@@ -1,51 +1,55 @@
 {
-  "id": "module",
-  "title": "New Module",
-  "description": "",
-  "version": "#{VERSION}#",
-  "library": "false",
-  "manifestPlusVersion": "1.2.0",
+  "id": "cyberpunk-red-agent-os-modified",
+  "title": "Cyberpunk Agent OS (Modified)",
+  "description": "A glassmorphic, immersive Agent device UI for Cyberpunk RED. Provides a native smartphone / tablet interface for players to access the Data Pool, send Eurobucks, monitor vitals, exchange messages with file attachments, and more. Modified build with extra themes, tablet mode, Russian localisation, sounds and biomonitor/wallet sync.",
+  "version": "1.1.0",
   "compatibility": {
-    "minimum": 10,
-    "verified": 10,
-    "maximum": 11
+    "minimum": "12",
+    "verified": "12"
   },
   "authors": [
     {
-      "name": "The League of Extraordinary FVTT Developers",
-      "url": "https://github.com/League-of-Foundry-Developers",
-      "discord": "discordID#0001"
+      "name": "inGramGames",
+      "url": "https://www.patreon.com/inGramGames",
+      "flags": {}
+    },
+    {
+      "name": "Modified build",
+      "flags": {}
     }
   ],
-  "relationships": {
-    "systems": [],
-    "requires": []
-  },
-  "esmodules": [
-    "scripts/module.js"
-  ],
+  "socket": true,
+  "esmodules": [],
   "scripts": [
-    "scripts/lib/lib.js"
+    "scripts/agent-app.js",
+    "scripts/main.js"
   ],
   "styles": [
-    "styles/module.css"
+    "styles/agent.css"
   ],
+  "packs": [],
   "languages": [
     {
       "lang": "en",
       "name": "English",
-      "path": "languages/en.json"
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "lang/ru.json"
     }
   ],
-  "url": "#{URL}#",
-  "manifest": "#{MANIFEST}#",
-  "download": "#{DOWNLOAD}#",
-  "license": "LICENSE",
-  "readme": "README.md",
-  "media": [
-    {
-      "type": "icon",
-      "url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
-    }
-  ]
+  "relationships": {
+    "systems": [
+      {
+        "id": "cyberpunk-red-core",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
+  "url": "https://www.patreon.com/inGramGames",
+  "manifest": "",
+  "download": ""
 }

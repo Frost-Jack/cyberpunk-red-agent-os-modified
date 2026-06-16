@@ -1,0 +1,3758 @@
+/* Agent Device - Base Frame */
+/* Modified build: base variables are the softened RED theme. Per-user themes
+   below redefine these on `.agent-chassis.theme-*`, which cascades to every
+   element inside the phone with no other CSS changes needed. All four palettes
+   are intentionally a touch desaturated / dimmed vs. the original pure-neon
+   look so they are calmer for the eyes while keeping the cyberpunk glow. */
+:root {
+  --neon-cyan: #34e3c4;
+  --neon-red: #ff3b63;
+  --neon-yellow: #e8d24a;
+  --bg-dark: rgba(10, 11, 14, 0.96);
+  --glass-bg: rgba(20, 25, 30, 0.62);
+  --glass-border: rgba(52, 227, 196, 0.28);
+  --frame-glow: rgba(52, 227, 196, 0.55);
+  --frame-border: #2e2e34;
+}
+
+/* ===== Per-user colour themes (П10) ===================================== */
+/* Modified build: richer, more cyberpunk palettes. Each theme now has a hotter
+   accent + a brighter frame glow than the earlier "calm" pass, while still
+   keeping text on dark glass readable. `--frame-glow` is the colour the new
+   soft device halo uses. */
+
+/* RED — classic cyberpunk crimson + teal-cyan */
+.agent-chassis.theme-red {
+  --neon-cyan: #2ff5d0;
+  --neon-red: #ff2b55;
+  --neon-yellow: #ffd23f;
+  --bg-dark: rgba(13, 9, 11, 0.96);
+  --glass-bg: rgba(30, 18, 22, 0.6);
+  --glass-border: rgba(255, 43, 85, 0.34);
+  --frame-glow: rgba(255, 43, 85, 0.72);
+  --frame-border: #3d2329;
+}
+
+/* CYBER 2077 — hot amber-yellow + cyan (the 2077 palette) */
+.agent-chassis.theme-cyber2077 {
+  --neon-cyan: #2ff0ea;
+  --neon-red: #ffd11a;
+  --neon-yellow: #ffd11a;
+  --bg-dark: rgba(14, 12, 6, 0.96);
+  --glass-bg: rgba(32, 27, 10, 0.6);
+  --glass-border: rgba(255, 209, 26, 0.34);
+  --frame-glow: rgba(255, 209, 26, 0.66);
+  --frame-border: #3a3216;
+}
+
+/* GREEN — matrix / militech neon green */
+.agent-chassis.theme-green {
+  --neon-cyan: #3df58a;
+  --neon-red: #25e07a;
+  --neon-yellow: #c6ff5c;
+  --bg-dark: rgba(7, 15, 11, 0.96);
+  --glass-bg: rgba(14, 32, 22, 0.6);
+  --glass-border: rgba(61, 245, 138, 0.32);
+  --frame-glow: rgba(61, 245, 138, 0.66);
+  --frame-border: #173a27;
+}
+
+/* BLUE — electric net-blue */
+.agent-chassis.theme-blue {
+  --neon-cyan: #38b6ff;
+  --neon-red: #5a6bff;
+  --neon-yellow: #66e0ff;
+  --bg-dark: rgba(7, 10, 18, 0.96);
+  --glass-bg: rgba(13, 20, 36, 0.62);
+  --glass-border: rgba(56, 182, 255, 0.34);
+  --frame-glow: rgba(56, 182, 255, 0.68);
+  --frame-border: #16233f;
+}
+
+/* PURPLE — Arasaka violet / deep-net */
+.agent-chassis.theme-purple {
+  --neon-cyan: #b06bff;
+  --neon-red: #c850ff;
+  --neon-yellow: #e0a3ff;
+  --bg-dark: rgba(12, 8, 18, 0.96);
+  --glass-bg: rgba(26, 16, 40, 0.62);
+  --glass-border: rgba(176, 107, 255, 0.34);
+  --frame-glow: rgba(176, 107, 255, 0.7);
+  --frame-border: #2c1c45;
+}
+
+/* ORANGE — toxic / hazard amber-orange */
+.agent-chassis.theme-orange {
+  --neon-cyan: #ff9d3c;
+  --neon-red: #ff6a2b;
+  --neon-yellow: #ffc83c;
+  --bg-dark: rgba(16, 10, 6, 0.96);
+  --glass-bg: rgba(34, 21, 10, 0.6);
+  --glass-border: rgba(255, 122, 43, 0.34);
+  --frame-glow: rgba(255, 122, 43, 0.7);
+  --frame-border: #3d2814;
+}
+
+/* MAGENTA — synthwave hot pink */
+.agent-chassis.theme-magenta {
+  --neon-cyan: #25d8ff;
+  --neon-red: #ff2bb0;
+  --neon-yellow: #ff8adf;
+  --bg-dark: rgba(15, 8, 14, 0.96);
+  --glass-bg: rgba(34, 14, 28, 0.62);
+  --glass-border: rgba(255, 43, 176, 0.34);
+  --frame-glow: rgba(255, 43, 176, 0.7);
+  --frame-border: #3d1730;
+}
+
+/* CHROME — monochrome white/ice cyber */
+.agent-chassis.theme-chrome {
+  --neon-cyan: #d8eef5;
+  --neon-red: #9fd0e0;
+  --neon-yellow: #eef6fa;
+  --bg-dark: rgba(10, 12, 14, 0.96);
+  --glass-bg: rgba(26, 30, 34, 0.6);
+  --glass-border: rgba(200, 224, 235, 0.32);
+  --frame-glow: rgba(190, 222, 235, 0.62);
+  --frame-border: #2c333a;
+}
+
+.AgentDevice .window-header {
+    display: none !important; /* Erase standard Foundry Header */
+}
+
+.AgentDevice.window-app {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.AgentDevice .window-content {
+    background: transparent !important;
+    /* Modified build: give the glow halo room to spill out and stop clipping
+       it to a hard rectangle. Padding creates a gutter around the chassis; the
+       phone content itself still clips internally via .agent-chassis. */
+    padding: 26px !important;
+    overflow: visible !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    /* Bound to the viewport so a tall chassis (or a content-heavy app like the
+       store / Sys Admin) can never push the bottom off the screen. */
+    max-height: 100vh;
+    box-sizing: border-box;
+}
+/* The app window must not clip the halo, but must stay within the viewport. */
+.AgentDevice.window-app {
+    overflow: visible !important;
+    max-height: 100vh !important;
+}
+
+/* The physical phone chassis */
+.agent-chassis {
+    width: 360px;
+    height: 640px;
+    /* Modified build: never let the device grow past the viewport. On short
+       screens the chassis shrinks (its internal views scroll) instead of the
+       store / Sys Admin panels running off the bottom of the screen. The 64px
+       budget covers the glow gutter + window chrome. */
+    max-height: calc(100vh - 64px);
+    background: #050505;
+    border-radius: 30px;
+    position: relative;
+    border: 4px solid var(--frame-border, #333);
+    /* Modified build: soft, organic, rounded halo instead of a hard rectangle.
+       Layered box-shadows — a tight rim, a mid bloom and a wide soft aura — all
+       following the chassis's rounded corners, plus the inner highlight. The
+       wide low-alpha layers read as an atmospheric glow rather than an outline.
+       First declaration is a color-mix-free fallback for older engines; the
+       second (richer) one wins where color-mix is supported. */
+    box-shadow:
+        inset 0 0 12px rgba(255, 255, 255, 0.06),
+        0 0 14px 1px var(--frame-glow, rgba(0,255,204,0.5)),
+        0 0 38px 6px var(--frame-glow, rgba(0,255,204,0.5)),
+        0 8px 60px 10px var(--frame-glow, rgba(0,255,204,0.5)),
+        0 0 22px rgba(0,0,0,0.7);
+    box-shadow:
+        inset 0 0 12px rgba(255, 255, 255, 0.06),
+        0 0 0 1px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 60%, transparent),
+        0 0 14px 1px var(--frame-glow, rgba(0,255,204,0.5)),
+        0 0 36px 6px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 55%, transparent),
+        0 8px 60px 10px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 35%, transparent),
+        0 0 22px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: white;
+    -webkit-user-select: none;
+    user-select: none; /* Physical objects shouldn't highlight */
+    /* Modified build (П2): the bezel/frame is a drag handle. */
+    cursor: move;
+}
+
+/* Speaker grille is part of the draggable frame */
+.agent-speaker {
+    cursor: move;
+}
+
+/* ===== Device mode: TABLET (П11) ======================================= */
+/* Tablet keeps the same colour theme but enlarges the chassis, bumps the base
+   font size and relaxes some phone-only proportions for a roomier layout.
+   The phone mode is the unchanged default. */
+.agent-chassis.mode-tablet {
+    width: 660px;
+    height: 780px;
+    /* Same viewport clamp as phone mode so the tablet never runs off-screen. */
+    max-height: calc(100vh - 64px);
+    border-radius: 24px;
+    /* Larger base font cascades to most rem/em-relative text inside. */
+    font-size: 1.18rem;
+}
+.agent-chassis.mode-tablet .agent-screen {
+    margin: 22px 14px 30px 14px;
+    border-radius: 16px;
+}
+.agent-chassis.mode-tablet .agent-top-bar.drag-handle {
+    font-size: 0.95rem;
+    padding: 8px 20px;
+}
+/* Roomier home grid icons on tablet */
+.agent-chassis.mode-tablet .agent-home {
+    gap: 6px;
+    padding: 18px 14px;
+}
+.agent-chassis.mode-tablet .app-icon i,
+.agent-chassis.mode-tablet .app-icon-img {
+    font-size: 2.4rem;
+}
+.agent-chassis.mode-tablet .app-label {
+    font-size: 0.8rem;
+}
+/* Bump the most common phone text sizes up one notch in tablet mode so the
+   whole UI reads larger, not just rem-based text. */
+.agent-chassis.mode-tablet .chat-bubble,
+.agent-chassis.mode-tablet .contact-name,
+.agent-chassis.mode-tablet .contact-preview,
+.agent-chassis.mode-tablet .transaction-row,
+.agent-chassis.mode-tablet .agent-content {
+    font-size: 1.05em;
+}
+
+/* While dragging the frame, force the grabbing cursor everywhere on the phone */
+.agent-chassis.agent-dragging,
+.agent-chassis.agent-dragging * {
+    cursor: grabbing !important;
+}
+
+/* Speaker grille at top of phone chassis */
+.agent-speaker {
+    width: 60px;
+    height: 4px;
+    background: #222;
+    border-radius: 3px;
+    margin: 8px auto 0 auto;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.agent-screen {
+    cursor: grab;
+    flex: 1;
+    /* Modified build: min-height:0 lets this flex item shrink below its content
+       so the inner app views scroll internally instead of pushing the store /
+       Sys Admin panels off the bottom of the phone frame. */
+    min-height: 0;
+    margin: 20px 10px 34px 10px;
+    background: var(--bg-dark);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--neon-red);
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-screen:active {
+    cursor: grabbing;
+}
+
+/* Classic Cyberpunk Scanline Overlay */
+.agent-screen::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.18) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.012), rgba(0, 0, 255, 0.03));
+    z-index: 50;
+    background-size: 100% 4px, 6px 100%;
+    pointer-events: none;
+    /* Modified build: softened scanlines (was 0.6) — less eye strain. */
+    opacity: 0.38;
+}
+
+/* Glassmorphism Apps Wrapper */
+.agent-content {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Modified build (П2): content area is NOT a drag handle — reset the
+       inherited `move` cursor from the chassis back to a normal pointer. */
+    cursor: default;
+}
+
+.agent-content *, .agent-content *::before, .agent-content *::after {
+    box-sizing: border-box;
+}
+
+/* OS Top Bar */
+.agent-top-bar.drag-handle {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 15px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    background: rgba(255, 0, 60, 0.15);
+    border-bottom: 1px solid var(--neon-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--neon-cyan);
+    cursor: move; /* Drag Handle Feedback */
+}
+
+.agent-close-btn {
+    cursor: pointer;
+    color: var(--neon-red);
+    font-size: 0.85rem;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: all 0.15s ease-out;
+    text-shadow: 0 0 4px rgba(255, 0, 60, 0.6);
+}
+.agent-close-btn:hover {
+    color: #fff;
+    background: var(--neon-red);
+    text-shadow: 0 0 8px var(--neon-red);
+    transform: scale(1.15);
+}
+
+/* Boot Sequence Logo */
+.agent-boot {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    color: var(--neon-red);
+    padding-bottom: 60px;
+    background: radial-gradient(ellipse at center, rgba(20,5,5,1) 0%, rgba(5,5,5,1) 100%);
+    gap: 8px;
+}
+
+.agent-boot-logo {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: var(--neon-red);
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: 6px;
+    font-family: monospace;
+    text-shadow: 0 0 10px var(--neon-red);
+    animation: agent-glitch 1.5s infinite;
+}
+
+.agent-boot-init {
+    font-family: monospace;
+    color: var(--neon-cyan);
+    font-size: 0.75rem;
+    margin: 16px 0 0 0;
+    letter-spacing: 2px;
+    animation: agent-blink 1s steps(2) infinite;
+}
+
+.agent-boot-ver {
+    font-family: monospace;
+    font-size: 0.6rem;
+    color: #444;
+    margin: 0;
+}
+
+/* Legacy compat — keep old .logo class if used elsewhere */
+.agent-boot .logo {
+    font-size: 2.8rem;
+    font-weight: 900;
+    text-shadow: 0 0 10px var(--neon-red);
+    animation: agent-glitch 1.5s infinite;
+}
+
+/* App Grid */
+.agent-home {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: min-content;
+    gap: 15px;
+    padding: 30px 20px;
+    align-content: start;
+}
+
+/* OS Viewports & Containers (Restores DataPool Visibility) */
+/* .agent-app-view — consolidated at line ~522 */
+
+.agent-view {
+    position: relative;
+    overflow: hidden;
+}
+
+/* App Headers & Navigation */
+/* .app-header — consolidated below (line ~558) */
+
+.app-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.app-icon:hover {
+    color: var(--neon-cyan);
+    transform: scale(1.1);
+}
+
+.app-icon i {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    margin-bottom: 8px;
+    position: relative; /* CRITICAL: Fixed notification badge escape bug */
+}
+
+/* .btn-creds — consolidated below (line ~510) */
+
+.btn-creds i {
+    font-size: 0.75rem;
+}
+
+/* Red Unread Notification Badge */
+.unread-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--neon-red);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    border: 1px solid black;
+    box-shadow: 0 0 5px var(--neon-red);
+    z-index: 20;
+}
+
+/* Wallet/Creds Colors — kept gold across all themes (eurobucks), slightly
+   softened from pure #ffcc00 so it reads warm rather than glaring. */
+:root {
+    --creds-gold: #f0c860;
+    --creds-gold-glow: rgba(240, 200, 96, 0.35);
+}
+
+/* Online/Offline Status Dots */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.status-dot.online {
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+    animation: status-pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background: #555;
+    box-shadow: none;
+}
+
+/* Inner App Views (DataPool) */
+.datapool-shards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shard-item {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    background: rgba(0, 255, 204, 0.05);
+    border: 1px solid rgba(0, 255, 204, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shard-item:hover {
+    background: rgba(0, 255, 204, 0.15);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+}
+
+.shard-item i {
+    color: var(--neon-cyan);
+    font-size: 1rem;
+}
+
+.shard-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #eee;
+}
+
+/* Monospace Reading Pane */
+.datapool-reader {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: #050505;
+    position: relative;
+    overflow: hidden;
+}
+
+.datapool-reader::before {
+    content: "ZIGGURAT SECURE DATA-STREAM";
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    font-size: 0.55rem;
+    font-family: monospace;
+    color: var(--neon-cyan);
+    opacity: 0.3;
+}
+
+.reading-pane {
+    flex: 1;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: var(--neon-cyan);
+    line-height: 1.5;
+    padding-right: 10px;
+    user-select: text !important; /* Allow copying text */
+}
+
+.reading-pane h1, .reading-pane h2, .reading-pane h3 {
+    color: var(--neon-red);
+    text-shadow: 0 0 5px var(--neon-red);
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    font-variant: small-caps;
+}
+
+.reading-pane img {
+    max-width: 100%;
+    margin: 10px 0;
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+}
+
+/* Inner App Views (Creds/Wallet) */
+.wallet-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(20,20,0,0.9) 100%);
+}
+
+.balance-card {
+    padding: 30px 20px;
+    text-align: center;
+    background: rgba(255, 204, 0, 0.05);
+    border: 1px solid var(--creds-gold);
+    border-radius: 12px;
+    box-shadow: inset 0 0 20px var(--creds-gold-glow);
+    margin-bottom: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.balance-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--creds-gold);
+    margin-bottom: 5px;
+    opacity: 0.8;
+}
+
+.balance-amount {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 0 15px var(--creds-gold);
+}
+
+.balance-amount span {
+    font-size: 1rem;
+    color: var(--creds-gold);
+    margin-left: 5px;
+    font-weight: 400;
+}
+
+.transaction-list {
+    flex: 1;
+    overflow-y: auto;
+    font-family: monospace;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #222;
+}
+
+.tx-label {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.tx-amount {
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.tx-amount.plus {
+    color: #44ff44;
+}
+
+.tx-amount.minus {
+    color: #ff4444;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-creds {
+    flex: 1;
+    background: rgba(255, 204, 0, 0.1);
+    border: 1px solid var(--creds-gold);
+    color: var(--creds-gold);
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    text-shadow: 0 0 5px var(--creds-gold-glow);
+    box-shadow: 0 0 5px var(--creds-gold-glow);
+}
+
+.btn-creds:hover {
+    background: var(--creds-gold);
+    color: black;
+    box-shadow: 0 0 10px var(--creds-gold);
+}
+
+@keyframes status-pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.app-icon:hover i {
+    background: rgba(0, 255, 204, 0.1);
+    box-shadow: 0 0 15px var(--neon-cyan);
+    border-color: var(--neon-cyan);
+}
+
+.edit-contact:hover {
+    color: var(--neon-cyan) !important;
+}
+
+.delete-contact:hover {
+    color: var(--neon-red) !important;
+}
+
+.app-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    /* Modified build (П5): keep labels centred and clipped so long names
+       ("THE GARDEN", "BLACK MKT") never overflow their grid cell. */
+    text-align: center;
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Inner App Views (Messenger, Wallet, etc.) — consolidated from two rules */
+.agent-app-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.82);
+    overflow: hidden; /* CRITICAL: Prevents apps from pushing past the phone frame */
+    max-height: 100%;
+}
+
+.app-header {
+    padding: 10px 12px;
+    /* Modified build (П5/П10): header tint follows the theme glow instead of a
+       hardcoded cyan, and gets a touch more horizontal padding for breathing room. */
+    background: var(--frame-glow, rgba(0, 255, 204, 0.1));
+    background: color-mix(in srgb, var(--neon-cyan) 12%, transparent);
+    border-bottom: 1px solid var(--neon-cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    z-index: 50;
+    position: relative;
+    user-select: none;
+}
+
+.app-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.app-header h3 {
+    margin: 0;
+    color: var(--neon-cyan);
+    font-size: 1rem;
+    text-transform: uppercase;
+    font-family: monospace;
+}
+
+.chat-window {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    /* Patch2 round 3: bumped from 180→200 because tall multi-line bubbles
+       were still slipping under the input area at the bottom of the scroll. */
+    padding-bottom: 200px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Each row must allow its bubble to grow vertically. flex-shrink:0 +
+   height:auto prevents the row from being squished when scroll math
+   under-reports the row's intrinsic height. */
+.chat-row {
+    flex-shrink: 0;
+    flex-grow: 0;
+    overflow: visible;
+    height: auto !important;
+    max-height: none !important;
+}
+
+/* Inner row container (the flex row holding avatar + bubble + delete) —
+   must NOT crop the bubble vertically. Belt-and-suspenders for the
+   "bubbles not growing dynamically" case. */
+.chat-row > div {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible;
+}
+
+/* chat-bubble styles consolidated in CitiNet Messenger 2.0 section below */
+
+/* .chat-sender-name — consolidated below (line ~844) */
+.chat-text {
+    margin-bottom: 3px;
+}
+.chat-time {
+    font-size: 0.65rem;
+    font-family: monospace;
+    opacity: 0.5;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+}
+.read-receipts {
+    opacity: 0.8;
+}
+.chat-bubble.received .chat-time {
+    text-align: left;
+    justify-content: flex-start;
+}
+
+/* chat-input-area layout consolidated in CitiNet Messenger 2.0 section below */
+
+.chat-input-area input {
+    flex: 1;
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    padding: 8px 15px !important;
+    outline: none !important;
+    box-shadow: none !important;
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    min-width: 0;
+    user-select: auto;
+}
+
+.chat-input-area input:focus {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 5px var(--neon-cyan) !important;
+}
+
+.chat-input-area button {
+    background: var(--neon-cyan);
+    border: none;
+    color: #050505;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: all 0.2s ease;
+}
+
+.chat-input-area button:hover {
+    background: white;
+    box-shadow: 0 0 10px white;
+    transform: scale(1.05);
+}
+
+/* Keyframes */
+@keyframes agent-glitch {
+  0%   { text-shadow: 2px 0 var(--neon-red), -2px 0 var(--neon-cyan); }
+  20%  { text-shadow: -2px 0 var(--neon-red), 2px 0 var(--neon-cyan); }
+  40%  { text-shadow: 2px 0 var(--neon-red), -2px 0 var(--neon-cyan); transform: translate(0, 0); }
+  41%  { transform: translate(-2px, 1px); }
+  42%  { transform: translate(0, 0); }
+  60%  { text-shadow: -2px 0 var(--neon-red), 2px 0 var(--neon-cyan); }
+  80%  { text-shadow: 2px 0 var(--neon-red), -2px 0 var(--neon-cyan); }
+  100% { text-shadow: -2px 0 var(--neon-red), 2px 0 var(--neon-cyan); }
+}
+
+@keyframes agent-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Custom Scrollbar for Phone (Hidden to emphasize Touch-Drag) */
+.agent-screen ::-webkit-scrollbar {
+    width: 0px; 
+    display: none;
+}
+.agent-screen {
+    scrollbar-width: none; /* Firefox */
+}
+.agent-screen * {
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+.agent-screen ::-webkit-scrollbar-track {
+    background: transparent;
+}
+.agent-screen ::-webkit-scrollbar-thumb {
+    background: var(--neon-red);
+    border-radius: 2px;
+}
+
+/* --- Global Form Styling (Cyberpunk Theme) --- */
+.AgentDevice select, 
+/* Global input styling — scoped to .agent-content to avoid Foundry-injected form elements */
+.AgentDevice .agent-content input[type="text"]:not(.rep-input):not(.auction-input):not(.auction-input-full):not(.admin-input):not(.datapool-input):not(.social-composer-input),
+.AgentDevice .agent-content input[type="number"]:not(.rep-input):not(.auction-input):not(.auction-input-full):not(.admin-input):not(.datapool-input),
+.AgentDevice .agent-content textarea:not(.admin-textarea):not(.social-composer-input):not(.datapool-input) {
+    background: #111 !important;
+    border: 1px solid #444 !important;
+    color: #eee !important;
+    font-family: 'Inter', sans-serif !important;
+    padding: 2px 12px !important;
+    border-radius: 4px !important;
+    outline: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 1rem !important;
+    height: 42px !important;
+    line-height: 38px !important;
+}
+/* Hide any Foundry-injected form elements outside agent-content */
+.AgentDevice-form > input,
+.AgentDevice-form > .form-group {
+    display: none !important;
+}
+
+/* Patch4 (Ley): generic flex-row layout helper. Any row tagged with the
+   .agent-flex-row class gets text/number inputs and selects to share
+   space (flex:1 1 0), and buttons to natural width (flex:0 0 auto). This
+   was the root of the "text boxes tiny + filter buttons huge" complaint —
+   the global `width: 100% !important` rule was making inputs greedy
+   while buttons stayed at their natural size, so the inputs got crushed
+   to nothing by flex shrink. */
+.AgentDevice .agent-content .agent-flex-row {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.AgentDevice .agent-content .agent-flex-row > input[type="text"],
+.AgentDevice .agent-content .agent-flex-row > input[type="number"],
+.AgentDevice .agent-content .agent-flex-row > select {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+.AgentDevice .agent-content .agent-flex-row > button {
+    flex: 0 0 auto !important;
+}
+
+.AgentDevice input::placeholder {
+    color: #555 !important;
+    opacity: 1 !important;
+}
+
+.AgentDevice select {
+    cursor: pointer;
+    appearance: menulist !important; /* Ensure the arrow shows */
+}
+
+.AgentDevice select:focus, 
+.AgentDevice input:focus {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.3) !important;
+}
+
+.AgentDevice option {
+    background: #1a1a1d !important;
+    color: #eee !important;
+    padding: 10px !important;
+}
+
+.AgentDevice label {
+    font-size: 0.65rem !important;
+    color: #888 !important;
+    display: block !important;
+    margin-bottom: 5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+/* Night City Map Styles */
+.map-viewport {
+    background-color: #000;
+    background-image: 
+        radial-gradient(circle, rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+        linear-gradient(rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 204, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px, 40px 40px, 40px 40px;
+    background-position: center center;
+}
+
+.map-grid {
+    display: none;
+}
+
+.agent-map-img {
+    filter: brightness(0.8) contrast(1.2) hue-rotate(-10deg);
+}
+
+.map-coords::before {
+    content: "SCANNING District...";
+    display: block;
+    margin-bottom: 5px;
+    animation: status-pulse 1.5s infinite;
+}
+
+.map-container {
+    transition: transform 0.05s ease-out; /* Smooth but responsive */
+}
+
+/* BioMonitor & HUD Animations */
+@keyframes heart-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    15% { transform: scale(1.3); opacity: 1; }
+    30% { transform: scale(1); opacity: 0.8; }
+    45% { transform: scale(1.15); opacity: 0.9; }
+    60% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+.bio-pulse {
+    animation: heart-pulse 1.2s infinite;
+}
+
+.wound-badge {
+    text-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.panic-alert {
+    transition: all 0.2s ease;
+}
+
+.panic-alert:hover {
+    background: rgba(255,0,0,0.4) !important;
+    box-shadow: 0 0 15px #ff3333;
+    transform: scale(1.02);
+}
+
+/* Social Feed Styling */
+.feed-item {
+    transition: all 0.2s ease;
+}
+
+.feed-item:hover {
+    background: rgba(255,153,0,0.15) !important;
+    border-color: #ff9900 !important;
+}
+/* CitiNet Messenger 2.0 :: Bubbles & Emojis */
+.chat-bubble {
+    /* Patch2 round 3: dropped `width: fit-content` — it was preventing the
+       bubble from expanding vertically when content wrapped in some flex-row
+       contexts. display:inline-block + max-width gives natural intrinsic
+       sizing that grows freely with however many lines the content needs.
+       flex-shrink/grow forced to 0 so the bubble can't be squeezed at all
+       by its row-flex parent. */
+    display: inline-block;
+    max-width: 78%;
+    height: auto !important;
+    max-height: none !important;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 0.85rem;
+    position: relative;
+    line-height: 1.4;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: visible !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
+    min-height: 0;
+    flex-shrink: 0;
+    flex-grow: 0;
+    box-sizing: border-box;
+}
+
+.chat-bubble.sent {
+    /* Cross-axis (vertical) alignment within the row — bottom-aligned with the avatar. */
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, #0088ff 100%);
+    color: #000;
+    border-bottom-right-radius: 4px;
+    font-weight: 500;
+}
+
+.chat-bubble.received {
+    align-self: flex-end;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    color: #eee;
+    border-bottom-left-radius: 4px;
+    backdrop-filter: blur(10px);
+}
+
+.chat-bubble.consecutive {
+    margin-top: -8px;
+}
+
+.chat-sender-name {
+    font-size: 0.65rem;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    display: block;
+    font-weight: 700;
+}
+
+/* Patch2 round 3: on SENT (cyan-gradient) bubbles the cyan label text
+   disappeared into the background. Use a dark high-contrast color and
+   a subtle white text-shadow so it stays readable across the gradient.
+   On RECEIVED bubbles the original cyan-on-dark stays. */
+.chat-bubble.sent .chat-sender-name {
+    color: #001a1a;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.chat-time {
+    font-size: 0.55rem;
+    margin-top: 6px;
+    opacity: 0.6;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+}
+
+.read-receipts {
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Emoji Picker Grid */
+.emoji-picker-container {
+    position: absolute;
+    bottom: 84px; /* Shifted up from 60px to avoid overlap */
+    left: 10px;
+    right: 10px;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 300;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 -10px 40px rgba(0, 255, 204, 0.25);
+    animation: slide-up-emoji 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+/* Custom Scrollbar for Emoji Grid (Replacing ugly red) */
+.emoji-grid::-webkit-scrollbar {
+    width: 4px;
+}
+.emoji-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+.emoji-grid::-webkit-scrollbar-thumb {
+    background: var(--neon-cyan);
+    border-radius: 4px;
+    box-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.emoji-item {
+    font-size: 1.6rem; /* Increased for readability */
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.emoji-item:hover {
+    background: rgba(0, 255, 204, 0.3);
+    transform: scale(1.3) rotate(5deg);
+    z-index: 10;
+}
+
+.chat-input-area {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    height: 48px;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    border-radius: 24px;
+    padding: 0 6px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(20px);
+    box-sizing: border-box;
+    z-index: 105;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#agent-chat-input {
+    background: transparent !important;
+    border: none !important;
+    color: #fff;
+    font-size: 0.9rem;
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    outline: none !important;
+    height: 100%;
+}
+
+.btn-chat-tool, #agent-chat-send {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--neon-cyan); /* Matches the right send icon perfectly */
+    color: #000; /* High contrast black icon */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+}
+
+.btn-chat-tool:hover, #agent-chat-send:hover {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 15px #fff;
+    transform: scale(1.05);
+}
+
+@keyframes slide-up-emoji {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ---------- CitiNet Messenger 2.1 :: Realistic Texting ---------- */
+
+/* Preserve whitespace so multi-line messages and Shift+Enter newlines render correctly. */
+.chat-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- CitiNet Messenger 2.2 :: Group participants header ---------- */
+.group-participants {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    min-width: 0;
+}
+.group-participant-avatars {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.group-participant-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 255, 204, 0.6);
+    margin-left: -4px;
+    background: #0a0a0f;
+    object-fit: cover;
+    box-shadow: 0 0 4px rgba(0, 255, 204, 0.4);
+}
+.group-participant-avatar:first-child { margin-left: 0; }
+.group-participant-avatar.is-gm {
+    border-color: #ff9900;
+    box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+}
+.group-participants-label {
+    font-size: 0.55rem;
+    color: rgba(0, 255, 204, 0.75);
+    font-family: monospace;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Day divider (Today / Yesterday / weekday / date) */
+.chat-day-divider {
+    align-self: center;
+    margin: 14px 0 8px;
+    padding: 2px 10px;
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(0, 255, 204, 0.55);
+    border-top: 1px solid rgba(0, 255, 204, 0.12);
+    border-bottom: 1px solid rgba(0, 255, 204, 0.12);
+    background: rgba(0, 255, 204, 0.04);
+    border-radius: 2px;
+}
+
+/* Typing indicator bubble */
+.typing-bubble {
+    padding: 10px 14px !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    animation: typing-fade-in 0.18s ease-out;
+}
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 6px rgba(0, 255, 204, 0.6);
+    opacity: 0.35;
+    animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+    40%           { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes typing-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Textarea-specific hardening (overrides the generic #agent-chat-input rule above) */
+textarea#agent-chat-input {
+    height: auto;
+    min-height: 32px;
+    resize: none;
+    line-height: 1.35;
+    font-family: inherit;
+    /* Patch5.5.17: hide the native scrollbar entirely. Long messages still scroll
+       internally up to max-height (120px) but the cyan thumb / native up-down
+       arrow buttons no longer show between the placeholder and the send icon. */
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* legacy Edge */
+}
+textarea#agent-chat-input::-webkit-scrollbar { width: 0; height: 0; display: none; }
+textarea#agent-chat-input::-webkit-scrollbar-thumb { background: transparent; }
+
+@keyframes bubble-pop {
+    from { transform: scale(0.8) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.new-message-anim {
+    animation: bubble-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.avatar-chat {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    margin-right: 12px;
+    border: 1px solid var(--neon-cyan);
+    object-fit: cover;
+    background: #111;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
+}
+
+/* Patch5.0.1 (Gotto): defensive default — any img inside the agent
+   content tree gets object-fit: cover so non-square avatars used as
+   contact portraits stop distorting the circle/rounded frame. Inline
+   `style="object-fit: contain"` in templates still wins (inline beats
+   stylesheet by specificity rules — NC Mart icons that need `contain`
+   already set it inline, unaffected). */
+.AgentDevice .agent-content img {
+    object-fit: cover;
+}
+
+/* =========================================================================
+   BETA 2 — 2077 SKIN VARIANT
+   Activated via class="agent-chassis skin-2077" on the chassis root.
+   Pure visual override: gameplay state is identical to the RED skin.
+   ========================================================================= */
+.agent-chassis.skin-2077 {
+    background: linear-gradient(160deg, #0a0a0e 0%, #1a1208 100%);
+    border-color: #ffcc00;
+    box-shadow:
+        0 0 20px rgba(0,0,0,0.8),
+        inset 0 0 12px rgba(255, 204, 0, 0.18),
+        0 0 14px var(--creds-gold, #ffcc00);
+}
+.agent-chassis.skin-2077 .agent-screen {
+    border-color: #ffcc00;
+    box-shadow: inset 0 0 18px rgba(255, 204, 0, 0.15);
+}
+.agent-chassis.skin-2077 .agent-top-bar.drag-handle {
+    background: rgba(255, 204, 0, 0.12);
+    border-bottom-color: #ffcc00;
+    color: #ffcc00;
+}
+.agent-chassis.skin-2077 .agent-close-btn {
+    color: #ffcc00 !important;
+    text-shadow: 0 0 8px #ffcc00 !important;
+}
+.agent-chassis.skin-2077 .app-icon i {
+    border-color: rgba(255, 204, 0, 0.4);
+    background: rgba(255, 204, 0, 0.04);
+}
+.agent-chassis.skin-2077 .app-icon:hover {
+    color: #ffcc00;
+}
+.agent-chassis.skin-2077 .agent-boot-logo {
+    color: #ffcc00;
+    text-shadow: 0 0 12px #ffcc00, 0 0 24px #ff9900;
+}
+.agent-chassis.skin-2077 .app-header h3 {
+    color: #ffcc00;
+}
+.agent-chassis.skin-2077 .contact-card {
+    border-left-color: #ffcc00 !important;
+}
+.agent-chassis.skin-2077 .shard-item {
+    border-color: rgba(255, 204, 0, 0.3) !important;
+}
+.agent-chassis.skin-2077 .balance-card {
+    border-color: #ffcc00;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+}
+.agent-chassis.skin-2077 .btn-creds {
+    border-color: #ffcc00 !important;
+    color: #ffcc00 !important;
+}
+.agent-chassis.skin-2077 .agent-screen::after {
+    /* Adjusted scanline tint for the yellow theme */
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 204, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(255, 0, 255, 0.04));
+}
+
+/* =========================================================================
+   BETA 2.2 — 2077 SKIN: HOLOGRAPHIC POLISH
+   ========================================================================= */
+
+/* Holographic scanline & chromatic shimmer overlay */
+.agent-chassis.skin-2077 .agent-screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 49;
+    background: repeating-linear-gradient(
+        180deg,
+        rgba(255, 204, 0, 0.04) 0px,
+        rgba(255, 204, 0, 0.04) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    mix-blend-mode: screen;
+    animation: agentHoloScan 6s linear infinite;
+    opacity: 0.7;
+}
+
+@keyframes agentHoloScan {
+    0%   { background-position-y: 0; }
+    100% { background-position-y: 12px; }
+}
+
+/* Pulsing chassis glow — gives the device a "powered up" feel */
+.agent-chassis.skin-2077 {
+    animation: agentHoloPulse 3.5s ease-in-out infinite;
+}
+
+@keyframes agentHoloPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 20px rgba(0,0,0,0.8),
+            inset 0 0 12px rgba(255, 204, 0, 0.18),
+            0 0 14px #ffcc00;
+    }
+    50% {
+        box-shadow:
+            0 0 24px rgba(0,0,0,0.8),
+            inset 0 0 16px rgba(255, 204, 0, 0.28),
+            0 0 22px #ffcc00,
+            0 0 38px rgba(255, 153, 0, 0.45);
+    }
+}
+
+/* Holographic top-bar — chromatic edge */
+.agent-chassis.skin-2077 .agent-top-bar.drag-handle {
+    background:
+        linear-gradient(90deg,
+            rgba(255, 204, 0, 0.15) 0%,
+            rgba(255, 153, 0, 0.20) 50%,
+            rgba(255, 0, 153, 0.10) 100%);
+    border-bottom: 1px solid #ffcc00;
+    text-shadow: 0 0 4px #ffcc00;
+}
+
+/* App tiles gain a soft cyan rim — the dual-tone 2077 phone vibe */
+.agent-chassis.skin-2077 .app-icon i {
+    border-color: rgba(255, 204, 0, 0.45);
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.06), rgba(0, 200, 255, 0.04));
+    box-shadow:
+        0 4px 6px rgba(0,0,0,0.5),
+        inset 0 0 6px rgba(255, 204, 0, 0.15);
+}
+.agent-chassis.skin-2077 .app-icon:hover i {
+    box-shadow:
+        0 4px 10px rgba(0,0,0,0.5),
+        inset 0 0 10px rgba(255, 204, 0, 0.35),
+        0 0 12px rgba(255, 204, 0, 0.6);
+}
+
+/* Boot logo: yellow-magenta chromatic split */
+.agent-chassis.skin-2077 .agent-boot-logo {
+    color: #ffcc00;
+    text-shadow:
+        -1px 0 #ff00cc,
+         1px 0 #00ddff,
+         0 0 14px #ffcc00,
+         0 0 28px #ff9900;
+}
+
+/* Wallet card — fat gold ring with inner glow */
+.agent-chassis.skin-2077 .balance-card {
+    border-color: #ffcc00;
+    box-shadow:
+        0 0 18px rgba(255, 204, 0, 0.45),
+        inset 0 0 22px rgba(255, 153, 0, 0.18);
+}
+.agent-chassis.skin-2077 .balance-amount {
+    text-shadow: 0 0 8px #ffcc00, 0 0 16px #ff9900;
+}
+
+/* Buttons get a holographic shimmer */
+.agent-chassis.skin-2077 .btn-creds {
+    border-color: #ffcc00 !important;
+    color: #ffcc00 !important;
+    background: linear-gradient(135deg, rgba(255,204,0,0.08), rgba(0,200,255,0.04)) !important;
+    text-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+.agent-chassis.skin-2077 .btn-creds:hover {
+    background: linear-gradient(135deg, rgba(255,204,0,0.18), rgba(0,200,255,0.08)) !important;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+}
+
+/* Status dot recolor under 2077 */
+.agent-chassis.skin-2077 .status-dot.online  { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+.agent-chassis.skin-2077 .status-dot.offline { background: #555; }
+
+/* =========================================================================
+   BETA 2.5 — Social text overflow + premium 2077 holophone refresh
+   ========================================================================= */
+
+/* Social feed: prevent long words / URLs from blowing out the right edge */
+.feed-item {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.feed-item > div { min-width: 0; }
+
+/* 2077 HOLOPHONE — heavier aesthetic, more faithful to the game's holocall UI.
+   Reference cues: layered translucent yellow panels, sharp angled corners,
+   chromatic-shifted text, prominent corner glyphs, ARASAKA/MILITECH-style
+   brand markers, faint datasheet noise.                                      */
+
+.agent-chassis.skin-2077 {
+    background:
+        linear-gradient(160deg, #0c0a02 0%, #1a1306 35%, #0a0805 100%);
+    border-color: #ffcc00;
+    /* Stronger ambient holographic bloom */
+    box-shadow:
+        0 0 20px rgba(0,0,0,0.85),
+        inset 0 0 14px rgba(255, 204, 0, 0.22),
+        0 0 18px #ffcc00,
+        0 0 40px rgba(255, 140, 0, 0.4),
+        0 0 80px rgba(255, 100, 0, 0.15);
+    /* Slight clipped-corner cutout — sharp 2077 chassis silhouette */
+    clip-path: polygon(
+        18px 0, calc(100% - 18px) 0, 100% 18px,
+        100% calc(100% - 18px), calc(100% - 18px) 100%,
+        18px 100%, 0 calc(100% - 18px), 0 18px
+    );
+    /* Carbon-weave datasheet noise behind the screen */
+    background-blend-mode: screen, normal;
+}
+
+/* Screen frame: angular yellow inner border with brand markers on each side */
+.agent-chassis.skin-2077 .agent-screen {
+    border: 1px solid #ffcc00;
+    box-shadow:
+        inset 0 0 22px rgba(255, 204, 0, 0.18),
+        0 0 12px rgba(255, 204, 0, 0.35);
+    /* Faint cross-hatch backplate */
+    background:
+        repeating-linear-gradient(135deg,
+            rgba(255, 204, 0, 0.025) 0 2px,
+            transparent 2px 8px),
+        var(--bg-dark);
+}
+
+/* Corner glyphs — small angular tick marks on each screen corner */
+.agent-chassis.skin-2077 .agent-screen::before,
+.agent-chassis.skin-2077 .agent-screen::after {
+    z-index: 49;
+    pointer-events: none;
+}
+.agent-chassis.skin-2077 .agent-screen::before {
+    /* Replace previous scanline pseudo to ALSO carry the corner brackets */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        /* TL bracket */
+        linear-gradient(180deg, #ffcc00 0 12px, transparent 12px) 0 0 / 2px 12px no-repeat,
+        linear-gradient(90deg,  #ffcc00 0 12px, transparent 12px) 0 0 / 12px 2px no-repeat,
+        /* TR bracket */
+        linear-gradient(180deg, #ffcc00 0 12px, transparent 12px) 100% 0 / 2px 12px no-repeat,
+        linear-gradient(270deg, #ffcc00 0 12px, transparent 12px) 100% 0 / 12px 2px no-repeat,
+        /* BL bracket */
+        linear-gradient(0deg,   #ffcc00 0 12px, transparent 12px) 0 100% / 2px 12px no-repeat,
+        linear-gradient(90deg,  #ffcc00 0 12px, transparent 12px) 0 100% / 12px 2px no-repeat,
+        /* BR bracket */
+        linear-gradient(0deg,   #ffcc00 0 12px, transparent 12px) 100% 100% / 2px 12px no-repeat,
+        linear-gradient(270deg, #ffcc00 0 12px, transparent 12px) 100% 100% / 12px 2px no-repeat,
+        /* Horizontal scanlines (denser) */
+        repeating-linear-gradient(180deg,
+            rgba(255, 204, 0, 0.05) 0 1px,
+            transparent 1px 3px);
+    mix-blend-mode: screen;
+    animation: agentHoloScan 4s linear infinite;
+    opacity: 0.85;
+}
+
+/* Top status bar — angled holographic header */
+.agent-chassis.skin-2077 .agent-top-bar.drag-handle {
+    background:
+        linear-gradient(90deg,
+            rgba(255, 204, 0, 0.18) 0%,
+            rgba(255, 140, 0, 0.10) 50%,
+            rgba(255, 0, 100, 0.06) 100%);
+    border-bottom: 1px solid #ffcc00;
+    color: #ffcc00;
+    text-shadow: 0 0 6px #ffcc00, 0 0 12px rgba(255, 204, 0, 0.5);
+    position: relative;
+}
+.agent-chassis.skin-2077 .agent-top-bar.drag-handle::after {
+    /* Tiny ARASAKA-style stripes on the right */
+    content: "";
+    position: absolute;
+    right: 60px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 6px;
+    background:
+        linear-gradient(90deg, #ffcc00 0 6px, transparent 6px 9px,
+                                #ffcc00 9px 15px, transparent 15px 18px,
+                                #ffcc00 18px 24px);
+    opacity: 0.85;
+}
+
+/* App tiles — angled holographic cards, yellow+cyan accent corners */
+.agent-chassis.skin-2077 .app-icon i {
+    border: 1px solid rgba(255, 204, 0, 0.55);
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.10), rgba(0, 220, 255, 0.05));
+    box-shadow:
+        0 4px 8px rgba(0,0,0,0.6),
+        inset 0 0 8px rgba(255, 204, 0, 0.20),
+        0 0 6px rgba(255, 204, 0, 0.3);
+    backdrop-filter: blur(6px);
+    border-radius: 6px; /* sharper than the RED skin's 12px */
+    clip-path: polygon(
+        8px 0, 100% 0, 100% calc(100% - 8px),
+        calc(100% - 8px) 100%, 0 100%, 0 8px
+    );
+}
+.agent-chassis.skin-2077 .app-icon:hover i {
+    box-shadow:
+        0 4px 12px rgba(0,0,0,0.6),
+        inset 0 0 14px rgba(255, 204, 0, 0.45),
+        0 0 18px rgba(255, 204, 0, 0.75),
+        0 0 32px rgba(0, 220, 255, 0.25);
+    color: #ffcc00;
+}
+.agent-chassis.skin-2077 .app-label {
+    color: #ffcc00;
+    text-shadow: 0 0 4px rgba(255, 204, 0, 0.7);
+    letter-spacing: 1.5px;
+    font-size: 0.65rem;
+}
+
+/* Boot logo: full CRT chromatic split + glitch */
+.agent-chassis.skin-2077 .agent-boot-logo {
+    color: #ffcc00;
+    text-shadow:
+        -2px 0 #ff00cc,
+         2px 0 #00ddff,
+         0 0 18px #ffcc00,
+         0 0 36px #ff9900;
+    animation: agentHoloGlitch 4s steps(1) infinite;
+}
+@keyframes agentHoloGlitch {
+    0%, 92%, 100% { transform: translate(0, 0); }
+    93% { transform: translate(-1px, 0); text-shadow: -3px 0 #ff00cc, 3px 0 #00ddff, 0 0 20px #ffcc00; }
+    94% { transform: translate(1px, 0);  }
+    95% { transform: translate(0, -1px); }
+    96% { transform: translate(0, 0); }
+}
+
+/* Wallet — hard-edge holopanel with glowing yellow rim */
+.agent-chassis.skin-2077 .balance-card {
+    border: 1px solid #ffcc00;
+    border-radius: 4px;
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.08), rgba(255, 100, 0, 0.04));
+    box-shadow:
+        0 0 22px rgba(255, 204, 0, 0.5),
+        inset 0 0 28px rgba(255, 140, 0, 0.22);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px),
+                       calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.agent-chassis.skin-2077 .balance-amount {
+    color: #ffcc00;
+    text-shadow:
+        0 0 10px #ffcc00,
+        0 0 22px #ff8800,
+        -1px 0 rgba(255, 0, 100, 0.4),
+         1px 0 rgba(0, 220, 255, 0.4);
+}
+
+/* Buttons — hard-cornered holobutton style */
+.agent-chassis.skin-2077 .btn-creds {
+    border: 1px solid #ffcc00 !important;
+    color: #ffcc00 !important;
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.10), rgba(0, 220, 255, 0.04)) !important;
+    text-shadow: 0 0 6px rgba(255, 204, 0, 0.65);
+    box-shadow: 0 0 8px rgba(255, 204, 0, 0.25);
+    border-radius: 2px;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px),
+                       calc(100% - 6px) 100%, 0 100%, 0 6px);
+    letter-spacing: 1px;
+}
+.agent-chassis.skin-2077 .btn-creds:hover {
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.22), rgba(0, 220, 255, 0.08)) !important;
+    box-shadow: 0 0 14px rgba(255, 204, 0, 0.6), 0 0 28px rgba(255, 140, 0, 0.3);
+}
+
+/* Contact cards: yellow left rim, hard corner */
+.agent-chassis.skin-2077 .contact-card {
+    border-left-color: #ffcc00 !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 0 6px rgba(255, 204, 0, 0.08);
+}
+
+/* Feed cards (NetStatus) */
+.agent-chassis.skin-2077 .feed-item {
+    border-color: rgba(255, 204, 0, 0.4) !important;
+    background: linear-gradient(135deg, rgba(255, 204, 0, 0.05), rgba(255, 100, 0, 0.02)) !important;
+    border-radius: 2px;
+}
+
+/* Status dot recolor */
+.agent-chassis.skin-2077 .status-dot.online  { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+.agent-chassis.skin-2077 .status-dot.offline { background: #4a3a05; }
+
+/* Close button */
+.agent-chassis.skin-2077 .agent-close-btn {
+    color: #ffcc00 !important;
+    text-shadow: 0 0 8px #ffcc00 !important;
+}
+
+/* Header titles */
+.agent-chassis.skin-2077 .app-header h3 {
+    color: #ffcc00;
+    letter-spacing: 2px;
+    text-shadow: 0 0 4px rgba(255, 204, 0, 0.55);
+}
+
+/* Pulsing chassis glow — slower / more atmospheric */
+.agent-chassis.skin-2077 {
+    animation: agentHoloPulse 4.5s ease-in-out infinite;
+}
+@keyframes agentHoloPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 6px rgba(255, 204, 0, 0.4));
+    }
+    50% {
+        filter: drop-shadow(0 0 14px rgba(255, 204, 0, 0.85))
+                drop-shadow(0 0 28px rgba(255, 100, 0, 0.4));
+    }
+}
+
+/* =========================================================================
+   BETA 2.6 — Generated 2077 holo asset wiring
+   Backplate, boot screen, app-icon image tiles.
+   ========================================================================= */
+
+/* Screen interior — circuit-trace holographic backplate */
+.agent-chassis.skin-2077 .agent-screen {
+    background-image:
+        url("../assets/cyberpunk-holophone/holographic-backplate.png");
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: screen;
+    background-color: var(--bg-dark);
+}
+
+/* Boot view — full-bleed ZIGGURAT splash; hide the legacy text logo */
+.agent-chassis.skin-2077 .agent-boot {
+    position: relative;
+    flex: 1;
+    background-image:
+        url("../assets/cyberpunk-holophone/ziggurat-boot-screen.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 20px;
+}
+.agent-chassis.skin-2077 .agent-boot-logo,
+.agent-chassis.skin-2077 .agent-boot > p {
+    visibility: hidden;  /* asset already contains ZIGGURAT + BIOS line */
+}
+
+/* App icon images — used when iconImg is set in getData (2077 skin) */
+.app-icon-img-wrap {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px;
+    position: relative;  /* for unread-badge anchoring */
+}
+.app-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Modified build (П5/П10): glow follows the active theme, not hardcoded yellow. */
+    filter: drop-shadow(0 0 6px var(--frame-glow, rgba(255, 204, 0, 0.4)));
+    transition: filter 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+.app-icon:hover .app-icon-img {
+    filter: drop-shadow(0 0 10px var(--neon-cyan))
+            drop-shadow(0 0 18px var(--frame-glow, rgba(255, 140, 0, 0.5)));
+    transform: scale(1.08);
+}
+/* When using image icons, drop the FontAwesome glass-tile underlay
+   (the icons already have their own octagonal frame baked in). */
+.agent-chassis.skin-2077 .app-icon-img-wrap {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    clip-path: none;
+}
+
+/* =========================================================================
+   BETA 2.7 — Tone down 2077 yellow overload; fit boot image properly
+   ========================================================================= */
+
+/* Screen interior — darken the holo backplate so it's atmosphere, not focal */
+.agent-chassis.skin-2077 .agent-screen {
+    background-image:
+        linear-gradient(rgba(8, 5, 0, 0.78), rgba(8, 5, 0, 0.78)),
+        url("../assets/cyberpunk-holophone/holographic-backplate.png");
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: normal;
+    background-color: var(--bg-dark);
+}
+
+/* Tone down the home-screen tile contrast a touch (icons should pop, not the bg) */
+.agent-chassis.skin-2077 .agent-home {
+    background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.55));
+}
+
+/* Boot screen: contain not cover, so the whole ZIGGURAT logo fits the
+   portrait screen instead of being clipped off the sides. */
+.agent-chassis.skin-2077 .agent-boot {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #000;
+}
+
+/* The label text under icons could blow out the column on narrow phones — clamp it */
+.agent-chassis.skin-2077 .app-label {
+    color: #ffcc00;
+    text-shadow: 0 0 3px rgba(255, 204, 0, 0.5);
+    letter-spacing: 1px;
+    font-size: 0.62rem;
+    max-width: 70px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================================================
+   BETA 2.9 — SYS ADMIN console (high-specificity to beat Foundry defaults)
+   All rules are nested under `.AgentDevice-form .admin-console` to win
+   the specificity battle against Foundry's `form input`, `form button`,
+   and `form .flexcol > *` defaults.
+   ========================================================================= */
+
+.AgentDevice-form .admin-console {
+    padding: 14px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: #ddd;
+    font-family: 'Outfit', sans-serif;
+    display: block;
+}
+
+/* Patch4 round 4: file-folder tabs for Application Access only.
+   - Tabs flow HORIZONTALLY (left-to-right) in a single row, like browser
+     tabs or a row of hanging file folders viewed from above.
+   - Each tab overlaps the previous one by 8px (negative margin-left), so
+     each tab visually "sits slightly to the right of the one behind it" —
+     matches the hanging-folder reference picture.
+   - Active tab is brought to the front via z-index and merges into the
+     frame below (no visible bottom border under the active tab's segment).
+   - If too many tabs to fit, the row scrolls horizontally — does NOT wrap
+     to vertical stacks (which is what was happening before because
+     Foundry's `form button` defaults to block/full-width and beat our
+     spec). Every relevant rule below is `!important`-locked to defeat that. */
+.AgentDevice-form .admin-section--app-access {
+    padding: 0;
+}
+.AgentDevice-form .admin-section--app-access .admin-section-title {
+    padding: 6px 10px 0 10px;
+}
+.AgentDevice-form .app-access-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    gap: 0 !important;
+    padding: 10px 10px 0 18px;  /* extra left padding so first tab's "before" cap has room */
+    margin: 0 !important;
+    border: none !important;
+    overflow-x: auto;
+    overflow-y: visible;
+    /* Hide scrollbar visually while keeping scroll behavior */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,0,255,0.35) transparent;
+}
+.AgentDevice-form .app-access-tabs::-webkit-scrollbar { height: 4px; }
+.AgentDevice-form .app-access-tabs::-webkit-scrollbar-thumb { background: rgba(255,0,255,0.35); border-radius: 2px; }
+
+.AgentDevice-form .app-access-tabs > .app-access-tab {
+    /* Defeat Foundry's `form button { display: block; width: 100% }` */
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    gap: 5px;
+    padding: 5px 12px 6px 12px !important;
+    font-family: monospace !important;
+    font-size: 0.62rem !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    border: 1px solid #333 !important;
+    border-bottom: none !important;
+    color: #888 !important;
+    border-radius: 7px 7px 0 0 !important;
+    /* Each tab overlaps the previous by 8px → classic file-folder cascade. */
+    margin: 0 0 -1px -8px !important;
+    box-shadow: -2px -1px 4px rgba(0,0,0,0.4) !important;
+    text-shadow: none !important;
+    position: relative;
+    z-index: 1;
+}
+/* First tab has no left overlap (sits flush against the left padding). */
+.AgentDevice-form .app-access-tabs > .app-access-tab:first-child {
+    margin-left: 0 !important;
+}
+.AgentDevice-form .app-access-tabs > .app-access-tab i { font-size: 0.7rem; }
+.AgentDevice-form .app-access-tabs > .app-access-tab .app-access-tab-label {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.AgentDevice-form .app-access-tabs > .app-access-tab:hover {
+    color: #ccc !important;
+    background: rgba(255, 0, 255, 0.08) !important;
+    z-index: 3;
+}
+.AgentDevice-form .app-access-tabs > .app-access-tab.is-active {
+    /* Active tab is "in front" — higher z-index, matches frame fill, no
+       visible bottom border (the -1px margin overlaps the frame's top
+       border on this tab's horizontal segment, hiding the border line
+       under the active tab and creating the seamless folder-join look). */
+    background: rgba(255, 0, 255, 0.12) !important;
+    border-color: #ff00ff !important;
+    color: #ff00ff !important;
+    z-index: 5 !important;
+    box-shadow: -2px -2px 6px rgba(255,0,255,0.25) !important;
+}
+.AgentDevice-form .app-access-tabs > .app-access-tab.no-actor {
+    font-style: italic;
+}
+.AgentDevice-form .app-access-frame {
+    border: 1px solid #ff00ff;
+    border-radius: 0 5px 5px 5px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    /* Top-left corner squared so it merges visually with the active tab. */
+}
+
+.AgentDevice-form .admin-section {
+    background: rgba(0, 0, 0, 0.32) !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 4px;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+    display: block;
+}
+
+.AgentDevice-form .admin-section-title {
+    font-family: monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: #ff00ff;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+    margin: 0 0 10px 0;
+}
+
+.AgentDevice-form .admin-console .admin-label {
+    display: block;
+    font-size: 0.6rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px 0;
+    line-height: 1.4;
+    flex: none;
+    width: auto;
+}
+
+.AgentDevice-form .admin-console .admin-hint {
+    font-size: 0.55rem;
+    color: #777;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+/* Inputs / selects / textareas — kill Foundry's striped form-field background */
+.AgentDevice-form .admin-console .admin-input,
+.AgentDevice-form .admin-console .admin-textarea,
+.AgentDevice-form .admin-console .admin-select {
+    width: 100%;
+    background: #111 !important;
+    background-image: none !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+    border-radius: 3px !important;
+    padding: 6px 8px !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    box-sizing: border-box !important;
+    outline: none;
+    box-shadow: none !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    height: auto;
+    line-height: 1.4;
+    margin: 0;
+}
+.AgentDevice-form .admin-console .admin-input:focus,
+.AgentDevice-form .admin-console .admin-textarea:focus,
+.AgentDevice-form .admin-console .admin-select:focus {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 4px rgba(0, 255, 204, 0.4) !important;
+}
+.AgentDevice-form .admin-console .admin-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 22px !important;
+    background:
+        linear-gradient(45deg, transparent 50%, #888 50%) calc(100% - 12px) 50% / 5px 5px no-repeat,
+        linear-gradient(135deg, #888 50%, transparent 50%) calc(100% - 7px) 50% / 5px 5px no-repeat,
+        #111 !important;
+}
+
+.AgentDevice-form .admin-console .admin-textarea-wrap {
+    overflow: hidden;
+    border-radius: 3px;
+}
+.AgentDevice-form .admin-console .admin-textarea {
+    resize: none !important;
+    min-height: 80px;
+    line-height: 1.5;
+    display: block;
+}
+
+/* Row (label/info on left, button on right) — FORCE horizontal flex */
+.AgentDevice-form .admin-console .admin-row {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100%;
+}
+.AgentDevice-form .admin-console .admin-row-info {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.AgentDevice-form .admin-console .admin-row-label {
+    font-size: 0.78rem;
+    color: #fff;
+    line-height: 1.2;
+}
+.AgentDevice-form .admin-console .admin-row-meta {
+    font-size: 0.6rem;
+    color: #888;
+    margin-top: 2px;
+    line-height: 1.3;
+}
+
+.AgentDevice-form .admin-console .admin-inline-group {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+    width: 100%;
+}
+.AgentDevice-form .admin-console .admin-inline-group .admin-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+}
+
+/* Buttons — kill Foundry's white striped background image */
+.AgentDevice-form .admin-console .admin-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px 10px !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 1px;
+    line-height: 1.2 !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    background-image: none !important;
+    border: 1px solid #555 !important;
+    color: #ccc !important;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0;
+    height: auto;
+    box-shadow: none !important;
+    text-shadow: none;
+    white-space: nowrap;
+}
+.AgentDevice-form .admin-console .admin-btn:hover {
+    background: rgba(255, 255, 255, 0.10) !important;
+}
+.AgentDevice-form .admin-console .admin-btn-red    { border-color: #ff003c !important; color: #ff003c !important; }
+.AgentDevice-form .admin-console .admin-btn-red:hover    { background: rgba(255, 0, 60, 0.14) !important; box-shadow: 0 0 6px rgba(255, 0, 60, 0.4) !important; }
+.AgentDevice-form .admin-console .admin-btn-gold   { border-color: #ffcc00 !important; color: #ffcc00 !important; }
+.AgentDevice-form .admin-console .admin-btn-gold:hover   { background: rgba(255, 204, 0, 0.14) !important; box-shadow: 0 0 6px rgba(255, 204, 0, 0.45) !important; }
+.AgentDevice-form .admin-console .admin-btn-cyan   { border-color: var(--neon-cyan) !important; color: var(--neon-cyan) !important; }
+.AgentDevice-form .admin-console .admin-btn-cyan:hover   { background: rgba(0, 255, 204, 0.12) !important; box-shadow: 0 0 6px rgba(0, 255, 204, 0.4) !important; }
+.AgentDevice-form .admin-console .admin-btn-orange { border-color: #ff9900 !important; color: #ff9900 !important; }
+.AgentDevice-form .admin-console .admin-btn-orange:hover { background: rgba(255, 153, 0, 0.12) !important; box-shadow: 0 0 6px rgba(255, 153, 0, 0.4) !important; }
+.AgentDevice-form .admin-console .admin-btn-ghost  { border-color: #555 !important; color: #aaa !important; }
+.AgentDevice-form .admin-console .admin-btn-ghost:hover  { background: rgba(255, 255, 255, 0.07) !important; color: #fff !important; }
+
+/* App-row tweaks under the new section card */
+.AgentDevice-form .admin-console .admin-section .admin-app-row {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid #222 !important;
+    padding: 8px 10px !important;
+    margin-bottom: 4px !important;
+}
+
+/* Social composer textarea (defensive — current uses input) */
+.social-composer textarea { resize: none !important; }
+
+/* =========================================================================
+   BETA 2.9.1 — Social composer 2-row layout + safe feed-item wrapping
+   ========================================================================= */
+.AgentDevice-form .social-composer {
+    padding: 10px;
+    background: rgba(255, 153, 0, 0.04);
+    border: 1px solid #444;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+.AgentDevice-form .social-composer-input {
+    /* Patch4 (Ley): inside the composer ROW this element is a flex sibling of
+       the category select and the POST button. width:100% used to make it
+       fight the other items for space. Use flex sizing so it shares cleanly. */
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto !important;
+    background: #111 !important;
+    background-image: none !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+    padding: 6px 8px !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    box-sizing: border-box !important;
+    border-radius: 3px;
+    margin-bottom: 0;
+}
+.AgentDevice-form .social-composer-input:focus {
+    outline: none;
+    border-color: #ff9900 !important;
+    box-shadow: 0 0 4px rgba(255, 153, 0, 0.4);
+}
+.AgentDevice-form .social-composer-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    align-items: stretch;
+}
+.AgentDevice-form .social-composer-select {
+    /* Patch4 (Ley): dropdown was being squeezed too narrow next to the
+       composer input. Pin to ~110px so the category label is always readable. */
+    flex: 0 0 110px;
+    min-width: 110px;
+    max-width: 110px;
+    background: #111 !important;
+    background-image: none !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+    padding: 5px 8px !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    border-radius: 3px;
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+}
+.AgentDevice-form .social-composer-btn {
+    flex: 0 0 auto;
+    cursor: pointer;
+    padding: 5px 12px !important;
+    background: rgba(255, 153, 0, 0.08) !important;
+    background-image: none !important;
+    border: 1px solid #ff9900 !important;
+    color: #ff9900 !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    border-radius: 3px;
+    white-space: nowrap;
+    box-shadow: none !important;
+    text-shadow: none;
+}
+.AgentDevice-form .social-composer-btn:hover {
+    background: rgba(255, 153, 0, 0.18) !important;
+    box-shadow: 0 0 6px rgba(255, 153, 0, 0.4) !important;
+}
+.AgentDevice-form .social-composer-hint {
+    font-size: 0.5rem;
+    color: #666;
+    margin-top: 4px;
+}
+
+/* Feed item — guarantee body text wraps, never collides with × button */
+.AgentDevice-form .feed-item {
+    padding: 10px 12px;
+    background: rgba(255, 153, 0, 0.05);
+    border: 1px solid #444;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;       /* prevent any descendant from spilling out */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.AgentDevice-form .feed-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.AgentDevice-form .feed-item-category {
+    font-size: 0.6rem;
+    color: #ff9900;
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.2;
+}
+.AgentDevice-form .feed-item-delete {
+    color: #555;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    flex: 0 0 auto;
+}
+.AgentDevice-form .feed-item-delete:hover { color: #ff003c; }
+.AgentDevice-form .feed-item-body {
+    font-size: 0.8rem;
+    color: #eee;
+    line-height: 1.35;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+.AgentDevice-form .feed-item-author {
+    font-size: 0.5rem;
+    color: #666;
+    margin-top: 6px;
+    text-align: right;
+    font-style: italic;
+}
+
+/* =========================================================================
+   BETA 2.9.3 — Clamp horizontal overflow on every view
+   Default flex children get min-width: auto which makes them grow to fit
+   intrinsic content. Force min-width: 0 + overflow-x: hidden everywhere
+   so nothing escapes the phone screen edge.
+   ========================================================================= */
+.AgentDevice-form .agent-content,
+.AgentDevice-form .agent-app-view,
+.AgentDevice-form .agent-view {
+    min-width: 0 !important;
+    max-width: 100%;
+    overflow-x: hidden !important;
+    box-sizing: border-box;
+}
+.AgentDevice-form .social-view {
+    min-width: 0 !important;
+    max-width: 100%;
+    overflow-x: hidden !important;
+    box-sizing: border-box;
+}
+
+/* Composer: belt-and-suspenders width clamp + force select to actually shrink */
+.AgentDevice-form .social-composer {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.AgentDevice-form .social-composer-row {
+    width: 100%;
+    min-width: 0;
+}
+.AgentDevice-form .social-composer-select {
+    /* flex-basis: 0 + width: 0 forces it to obey the parent's width budget */
+    flex: 1 1 0 !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.AgentDevice-form .social-composer-btn {
+    flex: 0 0 auto !important;
+    max-width: 45%;
+}
+.AgentDevice-form .social-composer-input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Feed item: hard-clamp so even malformed entries can't bleed out */
+.AgentDevice-form .feed-item {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.AgentDevice-form .feed-item-body,
+.AgentDevice-form .feed-item-category,
+.AgentDevice-form .feed-item-author {
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* =========================================================================
+   BETA 2.9.4 — Tone-down pass for 2077 skin
+   Real CP2077 UI is yellow accents + cyan data + white text on dark.
+   Previous build was monochrome yellow. Re-introducing contrast.
+   ========================================================================= */
+
+/* App labels: white, not yellow. Text should read first; tile glows second. */
+.AgentDevice-form .agent-chassis.skin-2077 .app-label {
+    color: #ffffff !important;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.6) !important;
+    letter-spacing: 1.5px;
+    font-size: 0.62rem;
+    opacity: 0.92;
+}
+
+/* Top bar — cyan status data (signal/clock/battery), red close button.
+   Matches 2077's "system data in cyan, alerts in red". */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle {
+    background:
+        linear-gradient(90deg,
+            rgba(255, 204, 0, 0.10) 0%,
+            rgba(0, 0, 0, 0.20) 50%,
+            rgba(255, 204, 0, 0.10) 100%);
+    border-bottom: 1px solid #ffcc00;
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 4px rgba(0, 255, 204, 0.5);
+}
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle .agent-clock,
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle span,
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle i {
+    color: var(--neon-cyan);
+}
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle .agent-close-btn {
+    color: #ff003c !important;
+    text-shadow: 0 0 8px #ff003c !important;
+}
+
+/* Chassis glow — reduce halo intensity so the whole device doesn't pulse yellow.
+   Keep a soft warm rim, but no atmospheric bloom. */
+.AgentDevice-form .agent-chassis.skin-2077 {
+    box-shadow:
+        0 0 16px rgba(0, 0, 0, 0.9),
+        inset 0 0 10px rgba(255, 204, 0, 0.12),
+        0 0 8px rgba(255, 204, 0, 0.5) !important;
+    animation: none !important;  /* kill the pulse */
+    filter: none !important;
+}
+
+/* Screen interior — darken backplate further so circuit traces are atmosphere only */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-screen {
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.88)),
+        url("../assets/cyberpunk-holophone/holographic-backplate.png") !important;
+    background-size: cover !important;
+    background-position: center !important;
+}
+
+/* Home screen container — pure black backdrop, no extra yellow tint */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-home {
+    background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* App tile hover glow — keep yellow but less aggressive */
+.AgentDevice-form .agent-chassis.skin-2077 .app-icon:hover .app-icon-img {
+    filter:
+        drop-shadow(0 0 6px rgba(255, 204, 0, 0.6))
+        drop-shadow(0 0 12px rgba(0, 220, 255, 0.25));
+    transform: scale(1.06);
+}
+.AgentDevice-form .agent-chassis.skin-2077 .app-icon-img {
+    filter: drop-shadow(0 0 3px rgba(255, 204, 0, 0.3));
+}
+
+/* Header titles — white with yellow underline, not pure yellow */
+.AgentDevice-form .agent-chassis.skin-2077 .app-header h3 {
+    color: #ffffff !important;
+    text-shadow: 0 0 4px rgba(0, 255, 204, 0.3);
+    border-bottom-color: #ffcc00;
+}
+
+/* Contact cards — yellow rim is fine but body text should be white not yellow */
+.AgentDevice-form .agent-chassis.skin-2077 .contact-card > div {
+    color: #ffffff;
+}
+
+/* Buttons — slightly cooler hover so it doesn't feel like one solid color */
+.AgentDevice-form .agent-chassis.skin-2077 .btn-creds:hover {
+    background:
+        linear-gradient(135deg, rgba(255, 204, 0, 0.16), rgba(0, 220, 255, 0.12)) !important;
+}
+
+/* Boot logo (when text fallback used) — chromatic split with cyan included */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-boot-logo {
+    color: #ffcc00;
+    text-shadow:
+        -2px 0 #ff00cc,
+         2px 0 var(--neon-cyan),
+         0 0 12px #ffcc00;
+}
+
+/* Stop the screen scanline pseudo from also tinting yellow */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-screen::before {
+    opacity: 0.55;
+}
+
+/* =========================================================================
+   BETA 2.9.5 — Bulletproof composer + 2077 color takeover
+   Composer is now fully stacked. Every social-composer-* child is full
+   width and block-displayed; nothing can overflow. 2077 overrides hit
+   every cyan/red leftover so the skin reads as pure 2077.
+   ========================================================================= */
+
+/* Composer: flat vertical stack, no flex */
+.AgentDevice-form .social-composer {
+    display: block !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px !important;
+    background: rgba(255, 153, 0, 0.04);
+    border: 1px solid #444;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+.AgentDevice-form .social-composer > * {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 0 6px 0 !important;
+    flex: none !important;
+}
+.AgentDevice-form .social-composer .social-composer-hint {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin-top: 4px !important;
+    margin-bottom: 0 !important;
+    color: #666 !important;
+    font-size: 0.5rem !important;
+}
+.AgentDevice-form .social-composer-btn {
+    cursor: pointer;
+    background: rgba(255, 153, 0, 0.10) !important;
+    background-image: none !important;
+    border: 1px solid #ff9900 !important;
+    color: #ff9900 !important;
+    font-family: monospace !important;
+    font-size: 0.7rem !important;
+    padding: 7px 10px !important;
+    border-radius: 3px !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    text-align: center;
+}
+.AgentDevice-form .social-composer-btn:hover {
+    background: rgba(255, 153, 0, 0.22) !important;
+    box-shadow: 0 0 6px rgba(255, 153, 0, 0.45) !important;
+}
+
+/* Feed-item body: prevent ANY child from exceeding parent width */
+.AgentDevice-form .feed-item-body,
+.AgentDevice-form .feed-item-body * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    hyphens: auto;
+}
+
+/* =========================================================================
+   2077 color takeover — eliminate cyan/red leftovers
+   ========================================================================= */
+
+/* Chassis: pure yellow rim glow, NO cyan halo */
+.AgentDevice-form .agent-chassis.skin-2077 {
+    box-shadow:
+        0 0 0 1px #ffcc00,
+        0 0 12px rgba(255, 204, 0, 0.55),
+        inset 0 0 8px rgba(255, 204, 0, 0.10) !important;
+}
+
+/* Screen frame: bright yellow border, no red bleed */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-screen {
+    border: 1px solid #ffcc00 !important;
+    box-shadow: inset 0 0 16px rgba(255, 204, 0, 0.15) !important;
+}
+
+/* Outer chassis stroke: kill the dark-gray bezel showing through */
+.AgentDevice-form .agent-chassis.skin-2077 {
+    border: 4px solid #1a1308 !important;
+}
+
+/* App-header back chevron — neutralize per-view cyan/red icons */
+.AgentDevice-form .agent-chassis.skin-2077 .app-header > i.fa-chevron-left {
+    color: #ffcc00 !important;
+}
+
+/* Buttons across the app (non-creds): default to yellow theme under 2077 */
+.AgentDevice-form .agent-chassis.skin-2077 .btn-creds,
+.AgentDevice-form .agent-chassis.skin-2077 button.btn-creds {
+    border-color: #ffcc00 !important;
+    color: #ffcc00 !important;
+    background:
+        linear-gradient(135deg, rgba(255,204,0,0.06), rgba(0,0,0,0.0)) !important;
+}
+
+/* Map controls and other icon clusters */
+.AgentDevice-form .agent-chassis.skin-2077 .map-controls button {
+    border-color: #ffcc00 !important;
+    color: #ffcc00 !important;
+}
+
+/* Unread badge — yellow under 2077 (was red) */
+.AgentDevice-form .agent-chassis.skin-2077 .unread-badge {
+    background: #ffcc00 !important;
+    color: #050505 !important;
+    box-shadow: 0 0 4px rgba(255, 204, 0, 0.6) !important;
+}
+
+/* Contact-card border + status dot reskinned for 2077 */
+.AgentDevice-form .agent-chassis.skin-2077 .contact-card {
+    border-left: 3px solid #ffcc00 !important;
+}
+
+/* App-header bottom border: matches yellow rim */
+.AgentDevice-form .agent-chassis.skin-2077 .app-header {
+    border-bottom: 1px solid rgba(255, 204, 0, 0.25) !important;
+}
+
+/* =========================================================================
+   BETA 2.9.6 — Kill the ARASAKA brand-stripe pseudo that was overlapping
+   the battery icon in the top bar.
+   ========================================================================= */
+.AgentDevice-form .agent-chassis.skin-2077 .agent-top-bar.drag-handle::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+}
+
+/* =========================================================================
+   BETA 3.0.1 — Store item layout fix (overlap of ADD button on long names)
+   ========================================================================= */
+.AgentDevice-form .store-item {
+    display: grid !important;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+}
+.AgentDevice-form .store-item-img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    background: #050505;
+    border: 1px solid #333;
+    border-radius: 2px;
+    display: block;
+}
+.AgentDevice-form .store-item-body {
+    min-width: 0;
+    overflow: hidden;
+}
+.AgentDevice-form .store-item-name {
+    font-size: 0.72rem;
+    color: #fff;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.AgentDevice-form .store-item-meta {
+    font-size: 0.55rem;
+    color: #666;
+    margin-top: 3px;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+.AgentDevice-form .store-item-price {
+    color: var(--creds-gold);
+    font-weight: bold;
+}
+.AgentDevice-form .store-item-type {
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.5rem;
+}
+.AgentDevice-form .store-add-btn {
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    padding: 0 !important;
+    flex: 0 0 36px;
+    background: rgba(0,255,204,0.08) !important;
+    background-image: none !important;
+    border: 1px solid var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+    font-size: 0.9rem !important;
+    border-radius: 3px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.AgentDevice-form .store-add-btn:hover {
+    background: rgba(0,255,204,0.18) !important;
+    box-shadow: 0 0 6px rgba(0,255,204,0.5) !important;
+}
+
+/* Cart row — same grid pattern, slightly tighter */
+.AgentDevice-form .store-cart-row {
+    display: grid !important;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* =========================================================================
+   BETA 5.5.28 — Mac NC Mart fix: .store-qty-btn was an unstyled button class
+   in the cart row's -/+/trash controls. Foundry V11/V12 default `form button`
+   rule forces width:100%, and on macOS Safari the user-agent Aqua button
+   styling layers on top, expanding each button to consume the row and
+   shoving siblings off-screen / making the cart look "broken". Defeating
+   both with explicit width:auto + appearance:none. Same defensive pattern
+   the .app-access-tab rule uses elsewhere in this file.
+   ========================================================================= */
+.AgentDevice-form .store-qty-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 22px !important;
+    height: 22px;
+    padding: 1px 6px !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+    cursor: pointer;
+    background: #1a1a1a !important;
+    background-image: none !important;
+    border: 1px solid #555 !important;
+    border-radius: 2px !important;
+    color: #ccc !important;
+    font-family: monospace !important;
+    font-size: 0.8rem;
+    line-height: 1;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    /* Kill macOS Safari's Aqua-style native button rendering */
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+.AgentDevice-form .store-qty-btn:hover {
+    background: #2a2a2a !important;
+    color: var(--neon-cyan) !important;
+    border-color: var(--neon-cyan) !important;
+}
+
+/* =========================================================================
+   BETA 3.0.2 — Cart footer: full-width stacked buttons (no flex row to break)
+   ========================================================================= */
+.AgentDevice-form .store-cart-footer {
+    padding: 10px;
+    border-top: 1px solid #333;
+    background: rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+.AgentDevice-form .store-cart-total-row {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+.AgentDevice-form .store-cart-total-label {
+    font-size: 0.65rem;
+    color: #888;
+    letter-spacing: 1px;
+}
+.AgentDevice-form .store-cart-total-amount {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--creds-gold);
+}
+.AgentDevice-form .store-checkout-btn,
+.AgentDevice-form .store-clear-btn {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    cursor: pointer;
+    font-family: monospace !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 1px;
+    border-radius: 3px !important;
+    background-image: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    margin: 0 0 6px 0 !important;
+}
+.AgentDevice-form .store-checkout-btn {
+    padding: 10px 12px !important;
+    background: rgba(0, 255, 204, 0.10) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+    font-weight: bold;
+}
+.AgentDevice-form .store-checkout-btn:hover {
+    background: rgba(0, 255, 204, 0.20) !important;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.5) !important;
+}
+.AgentDevice-form .store-clear-btn {
+    padding: 6px 10px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid #666 !important;
+    color: #aaa !important;
+    margin-bottom: 0 !important;
+    font-size: 0.65rem !important;
+}
+.AgentDevice-form .store-clear-btn:hover {
+    background: rgba(255, 255, 255, 0.10) !important;
+    color: #fff !important;
+}
+
+/* Chat message delete button — reveal on hover */
+.AgentDevice-form .chat-row:hover .delete-chat-msg {
+    opacity: 1 !important;
+}
+.AgentDevice-form .delete-chat-msg:hover {
+    color: #ff0040 !important;
+    text-shadow: 0 0 6px rgba(255,0,60,0.5);
+}
+
+/* ============================
+   NEW APP INPUT OVERRIDES
+   Undo the aggressive global input styles (42px height, 1rem, width:100%)
+   for compact inputs inside rep / auction / style views.
+   ============================ */
+/* Shared visual styles for rep + auction compact inputs */
+.AgentDevice .AgentDevice-form .rep-input,
+.AgentDevice .AgentDevice-form input.rep-input[type="text"],
+.AgentDevice .AgentDevice-form .auction-input,
+.AgentDevice .AgentDevice-form input.auction-input[type="text"],
+.AgentDevice .AgentDevice-form input.auction-input[type="number"] {
+    height: 28px !important;
+    font-size: 0.7rem !important;
+    line-height: 28px !important;
+    padding: 0 6px !important;
+    font-family: monospace !important;
+    background: #111 !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+}
+/* Rep inputs: text fields need readable min-width, flex from inline styles */
+.AgentDevice .AgentDevice-form .rep-input,
+.AgentDevice .AgentDevice-form input.rep-input[type="text"] {
+    min-width: 50px !important;
+    flex: 1 1 auto !important;
+}
+.AgentDevice .AgentDevice-form .rep-input-sm {
+    flex: 0.6 1 auto !important;
+    min-width: 40px !important;
+}
+/* Auction inputs: number fields can shrink to zero basis to prevent overflow */
+.AgentDevice .AgentDevice-form .auction-input,
+.AgentDevice .AgentDevice-form input.auction-input[type="text"],
+.AgentDevice .AgentDevice-form input.auction-input[type="number"] {
+    min-width: 0 !important;
+    flex: 1 1 0% !important;
+}
+.AgentDevice .AgentDevice-form .auction-input-full,
+.AgentDevice .AgentDevice-form input.auction-input-full[type="text"] {
+    width: 100% !important;
+    margin-bottom: 4px;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+}
+.AgentDevice .AgentDevice-form .rep-input:focus,
+.AgentDevice .AgentDevice-form .auction-input:focus {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 6px rgba(0,255,204,0.2) !important;
+}
+.AgentDevice .AgentDevice-form .rep-input::placeholder,
+.AgentDevice .AgentDevice-form .auction-input::placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}
+.AgentDevice-form .rep-add-btn {
+    flex: 0 0 auto !important;
+    padding: 4px 10px !important;
+    background: rgba(100,255,218,0.1) !important;
+    border: 1px solid #64ffda !important;
+    color: #64ffda !important;
+    font-family: monospace !important;
+    font-size: 0.65rem !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+}
+.AgentDevice-form .rep-add-btn:hover {
+    background: rgba(100,255,218,0.2) !important;
+}
+.AgentDevice-form .auction-list-btn {
+    flex: 0 0 auto !important;
+    padding: 4px 8px !important;
+    background: rgba(255,110,64,0.15) !important;
+    border: 1px solid #ff6e40 !important;
+    color: #ff6e40 !important;
+    font-family: monospace !important;
+    font-size: 0.65rem !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    box-sizing: border-box !important;
+    max-width: 45% !important;
+}
+.AgentDevice-form .auction-list-btn:hover {
+    background: rgba(255,110,64,0.25) !important;
+}
+
+/* ============================
+   DATAPOOL INPUT OVERRIDES
+   ============================ */
+.AgentDevice-form .datapool-input {
+    height: 32px !important;
+    width: 100% !important;
+    font-size: 0.75rem !important;
+    line-height: 32px !important;
+    padding: 0 10px !important;
+    font-family: monospace !important;
+    background: #111 !important;
+    color: #fff !important;
+    border: 1px solid #444 !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+}
+.AgentDevice-form .datapool-input:focus {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 6px rgba(0,255,204,0.2) !important;
+}
+.AgentDevice-form .datapool-input::placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}
+
+/* ============================
+   STYLE CHECKER APP
+   ============================ */
+.AgentDevice-form .style-item:hover {
+    border-color: #e040fb !important;
+    background: rgba(224,64,251,0.08) !important;
+}
+.AgentDevice-form .style-tab-btn:hover {
+    border-color: #e040fb !important;
+    color: #e040fb !important;
+}
+
+/* ============================
+   NPC REPUTATION TRACKER
+   ============================ */
+.AgentDevice-form .rep-standing-badge {
+    font-family: monospace;
+}
+.AgentDevice-form .rep-standing-allied {
+    background: rgba(68,255,68,0.15);
+    color: #44ff44;
+    border: 1px solid rgba(68,255,68,0.3);
+}
+.AgentDevice-form .rep-standing-friendly {
+    background: rgba(100,255,218,0.15);
+    color: #64ffda;
+    border: 1px solid rgba(100,255,218,0.3);
+}
+.AgentDevice-form .rep-standing-neutral {
+    background: rgba(255,204,0,0.15);
+    color: #ffcc00;
+    border: 1px solid rgba(255,204,0,0.3);
+}
+.AgentDevice-form .rep-standing-hostile {
+    background: rgba(255,50,50,0.15);
+    color: #ff3333;
+    border: 1px solid rgba(255,50,50,0.3);
+}
+.AgentDevice-form .rep-card:hover {
+    border-color: #64ffda !important;
+}
+.AgentDevice-form .rep-btn:hover {
+    filter: brightness(1.3);
+}
+.AgentDevice-form [data-action="rep-delete-npc"]:hover {
+    color: #ff3333 !important;
+}
+
+/* ============================
+   AUCTION HOUSE / BLACK MKT
+   ============================ */
+.AgentDevice-form .auction-view {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+.AgentDevice-form .auction-create-form,
+.AgentDevice-form .auction-detail-card {
+    /* Modified build: completed a truncated/corrupt rule from the upstream
+       source ("widt" with no value and no closing brace) that left the CSS
+       block unbalanced and silently broke parsing of everything after it. */
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+/* Patch5.5.19 (Sleepingmann): pins with labelMode=hover hide their label until
+   the user mouses over the pin. CSS lives here (not in the pin modal scope) so
+   the rule is always present when pins render on the map. */
+.agent-map-pin .pin-label-hover {
+    opacity: 0 !important;
+    transition: opacity 0.15s ease-in-out;
+}
+.agent-map-pin:hover .pin-label-hover,
+.agent-map-pin.is-hover .pin-label-hover {
+    opacity: 1 !important;
+}
+
+/* ===================================================================== */
+/* Modified build — Agent settings view (per-user theme + device mode)   */
+/* ===================================================================== */
+/* ===================================================================== */
+/* Modified build — on-screen new-message indicator (П12)                */
+/* Lives on document.body (outside the chassis), so it uses standalone    */
+/* colours rather than the per-chassis theme variables.                   */
+/* ===================================================================== */
+.agent-os-msg-indicator {
+    position: fixed;
+    right: 18px;
+    bottom: 96px;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+    max-width: 320px;
+    padding: 12px 14px;
+    background: rgba(10, 12, 16, 0.96);
+    border: 1px solid #34e3c4;
+    border-radius: 12px;
+    box-shadow: 0 0 18px rgba(52, 227, 196, 0.45), 0 6px 20px rgba(0,0,0,0.6);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    animation: agent-msg-indicator-in 0.28s ease-out;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.agent-os-msg-indicator:hover {
+    border-color: #6ff0d8;
+    box-shadow: 0 0 24px rgba(52, 227, 196, 0.7), 0 6px 20px rgba(0,0,0,0.6);
+}
+.agent-os-msg-indicator > .fa-comment-dots {
+    font-size: 1.4rem;
+    color: #34e3c4;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 6px rgba(52,227,196,0.6));
+    animation: agent-msg-indicator-pulse 1.6s ease-in-out infinite;
+}
+.agent-os-msg-indicator-text { flex: 1; min-width: 0; }
+.agent-os-msg-indicator-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #34e3c4;
+}
+.agent-os-msg-indicator-sub {
+    font-size: 0.78rem;
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.agent-os-msg-indicator-close {
+    flex: 0 0 auto;
+    color: #888;
+    font-size: 0.85rem;
+    padding: 2px 4px;
+}
+.agent-os-msg-indicator-close:hover { color: #ff3b63; }
+.agent-os-msg-indicator-out { opacity: 0; transform: translateX(20px); }
+@keyframes agent-msg-indicator-in {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes agent-msg-indicator-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.12); opacity: 0.85; }
+}
+
+/* ===================================================================== */
+/* Modified build — Sys Admin: stylized checkboxes, pack picker, polish   */
+/* ===================================================================== */
+
+/* Reusable cyberpunk checkbox: hide the native box, draw our own. */
+.AgentDevice-form .agent-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+    margin: 0;
+    pointer-events: none;
+}
+.AgentDevice-form .agent-checkbox-box {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0,0,0,0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+}
+.AgentDevice-form .agent-checkbox-box .fa-check {
+    font-size: 0.6rem;
+    color: #000;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: all 0.15s ease;
+}
+.AgentDevice-form .agent-checkbox:checked + .agent-checkbox-box {
+    background: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--frame-glow, rgba(0,255,204,0.5));
+}
+.AgentDevice-form .agent-checkbox:checked + .agent-checkbox-box .fa-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Compendium pack picker */
+.AgentDevice-form .admin-pack-picker {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid #2a2d33;
+    border-radius: 6px;
+    padding: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.AgentDevice-form .admin-pack-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 9px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+    border: 1px solid transparent;
+}
+.AgentDevice-form .admin-pack-row:hover {
+    background: rgba(255,255,255,0.04);
+}
+.AgentDevice-form .admin-pack-row.is-on {
+    background: color-mix(in srgb, var(--neon-cyan) 8%, transparent);
+    border-color: var(--glass-border);
+}
+.AgentDevice-form .admin-pack-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.AgentDevice-form .admin-pack-label {
+    font-size: 0.72rem;
+    color: #eaeaea;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.AgentDevice-form .admin-pack-id {
+    font-family: monospace;
+    font-size: 0.58rem;
+    color: #6f7a85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.AgentDevice-form .admin-count-pill {
+    display: inline-block;
+    min-width: 18px;
+    padding: 1px 7px;
+    margin-left: 6px;
+    border-radius: 9px;
+    background: var(--neon-cyan);
+    color: #061014;
+    font-family: monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* П6 friendlier admin: softer section titles + warmer labels, roomier feel */
+.AgentDevice-form .admin-section-title {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 5px var(--frame-glow, rgba(0,255,204,0.35));
+    font-size: 0.66rem !important;
+}
+.AgentDevice-form .admin-console .admin-label {
+    color: #c8d2da !important;
+    font-size: 0.64rem !important;
+}
+.AgentDevice-form .admin-console .admin-hint {
+    color: #8a949e !important;
+    font-size: 0.58rem !important;
+}
+.AgentDevice-form .admin-section {
+    border-color: var(--glass-border) !important;
+    background: rgba(8, 12, 16, 0.45) !important;
+    border-radius: 8px !important;
+}
+
+/* ===================================================================== */
+/* Modified build — file attachments (П4) + drop highlight (П9/П4)       */
+/* ===================================================================== */
+.chat-attachment-media {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 220px;
+}
+.chat-attachment-img {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 8px;
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 8px rgba(0,0,0,0.6);
+    cursor: pointer;
+    object-fit: cover;
+    transition: transform 0.12s ease;
+}
+.chat-attachment-img:hover { transform: scale(1.02); }
+.chat-attachment-audio {
+    width: 100%;
+    height: 34px;
+}
+.chat-attachment-caption {
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.7);
+    word-break: break-word;
+}
+
+/* Drop-target highlight when dragging a token/file over the phone */
+.agent-chassis.agent-drop-active {
+    outline: 2px dashed var(--neon-cyan);
+    outline-offset: -8px;
+    box-shadow:
+        0 0 24px var(--frame-glow, rgba(0,255,204,0.6)),
+        inset 0 0 24px var(--frame-glow, rgba(0,255,204,0.35));
+}
+
+/* Biomonitor sync button (П6) */
+.bio-sync-btn {
+    transition: transform 0.4s ease, color 0.15s ease, text-shadow 0.15s ease;
+}
+.bio-sync-btn:hover {
+    color: #fff !important;
+    text-shadow: 0 0 6px var(--neon-cyan);
+    transform: rotate(180deg);
+}
+
+.agent-settings-btn {
+    cursor: pointer;
+    color: var(--neon-cyan);
+    font-size: 0.8rem;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+.agent-settings-btn:hover {
+    color: #fff;
+    transform: rotate(45deg);
+    text-shadow: 0 0 6px var(--neon-cyan);
+}
+
+.agent-settings-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.agent-settings-section {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.agent-settings-label {
+    font-family: monospace;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--frame-glow, rgba(0,255,204,0.4));
+}
+
+.agent-settings-hint {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.4;
+}
+
+/* Theme swatch grid */
+.agent-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+.agent-theme-swatch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.agent-theme-swatch:hover {
+    transform: translateY(-1px);
+    border-color: var(--neon-cyan);
+    background: rgba(255,255,255,0.05);
+}
+.agent-theme-swatch.is-active {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--frame-glow, rgba(0,255,204,0.4)) inset;
+    background: rgba(255,255,255,0.06);
+}
+.agent-theme-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    /* The dot's own background colour bleeds into a soft halo. Using the
+       background as the shadow source keeps each swatch glowing in its theme
+       colour rather than white. */
+    box-shadow: 0 0 10px 1px;
+    color: inherit;
+    filter: drop-shadow(0 0 4px currentColor);
+    border: 1px solid rgba(255,255,255,0.25);
+}
+/* Make each dot glow in its own colour by tying `color` to its background. */
+.theme-swatch-red    .agent-theme-dot { color: #ff2b55; }
+.theme-swatch-2077   .agent-theme-dot { color: #ffd11a; }
+.theme-swatch-green  .agent-theme-dot { color: #3df58a; }
+.theme-swatch-blue   .agent-theme-dot { color: #38b6ff; }
+.theme-swatch-purple .agent-theme-dot { color: #b06bff; }
+.theme-swatch-orange .agent-theme-dot { color: #ff7a2b; }
+.theme-swatch-magenta .agent-theme-dot { color: #ff2bb0; }
+.theme-swatch-chrome .agent-theme-dot { color: #c8e0eb; }
+.agent-theme-name {
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+/* Device-mode toggle */
+.agent-mode-toggle {
+    display: flex;
+    gap: 10px;
+}
+.agent-mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    color: rgba(255,255,255,0.75);
+    font-family: monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.agent-mode-btn:hover {
+    border-color: var(--neon-cyan);
+    color: #fff;
+}
+.agent-mode-btn.is-active {
+    border-color: var(--neon-cyan);
+    background: rgba(0,255,204,0.08);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 6px var(--frame-glow, rgba(0,255,204,0.35));
+}
+
+/* ===================================================================== */
+/* Modified build — staged chat attachment preview (caption-before-send)  */
+.AgentDevice-form .staged-attachment-chip {
+    position: absolute;
+    bottom: 68px;
+    left: 12px;
+    right: 12px;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(10, 14, 18, 0.96);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 12px;
+    box-shadow: 0 0 16px var(--frame-glow, rgba(0,255,204,0.4));
+    animation: staged-attach-in 0.2s ease-out;
+}
+@keyframes staged-attach-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.AgentDevice-form .staged-attachment-thumb {
+    flex: 0 0 auto;
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--neon-cyan);
+    background: #0a0d10;
+}
+.AgentDevice-form .staged-attachment-icon {
+    flex: 0 0 auto;
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    background: rgba(0,0,0,0.4);
+    font-size: 1.1rem;
+}
+.AgentDevice-form .staged-attachment-info { flex: 1; min-width: 0; }
+.AgentDevice-form .staged-attachment-title {
+    font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--neon-cyan); font-family: monospace;
+}
+.AgentDevice-form .staged-attachment-name {
+    font-size: 0.68rem; color: #cfd6dc;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.AgentDevice-form .staged-attachment-cancel {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,51,85,0.14);
+    border: 1px solid #ff3355; color: #ff5577;
+    border-radius: 6px; cursor: pointer; padding: 0;
+    font-size: 0.7rem;
+    transition: background 0.12s ease;
+}
+.AgentDevice-form .staged-attachment-cancel:hover { background: rgba(255,51,85,0.3); }
+
+/* Modified build — personal CONTACTS app (П4)                           */
+/* ===================================================================== */
+.AgentDevice-form .contact-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background: rgba(57,217,138,0.06);
+    border: 1px solid rgba(57,217,138,0.28);
+    border-left: 3px solid #39d98a;
+    border-radius: 6px;
+    transition: background 0.12s ease, transform 0.12s ease;
+}
+.AgentDevice-form .contact-entry:hover { background: rgba(57,217,138,0.1); }
+.AgentDevice-form .contact-entry-avatar {
+    flex: 0 0 auto;
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    border: 1px solid rgba(57,217,138,0.5);
+    object-fit: cover;
+    background: #0a0d10;
+}
+.AgentDevice-form .contact-entry-info { flex: 1; min-width: 0; }
+.AgentDevice-form .contact-entry-name {
+    color: #fff; font-weight: 600; font-size: 0.78rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.AgentDevice-form .contact-entry-note {
+    font-size: 0.64rem; color: #aab4bd; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.AgentDevice-form .contact-entry-addr {
+    font-size: 0.6rem; color: #7f8a93; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.AgentDevice-form .contact-entry-actions {
+    flex: 0 0 auto; display: flex; gap: 5px;
+}
+.AgentDevice-form .contact-mini-btn {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(57,217,138,0.12);
+    border: 1px solid #39d98a; color: #39d98a;
+    border-radius: 5px; cursor: pointer; padding: 0;
+    font-size: 0.66rem;
+    transition: background 0.12s ease;
+}
+.AgentDevice-form .contact-mini-btn:hover { background: rgba(57,217,138,0.25); }
+.AgentDevice-form .contact-mini-btn--danger {
+    background: rgba(255,51,85,0.12); border-color: #ff3355; color: #ff5577;
+}
+.AgentDevice-form .contact-mini-btn--danger:hover { background: rgba(255,51,85,0.25); }
+.AgentDevice-form .contact-empty {
+    color: #6f7a85; font-size: 0.7rem; font-style: italic;
+}
+
+/* GM folders */
+.AgentDevice-form .contact-folder {
+    margin-bottom: 8px;
+    border: 1px solid rgba(57,217,138,0.22);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(8,14,11,0.45);
+}
+.AgentDevice-form .contact-folder-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px;
+    cursor: pointer;
+    background: rgba(57,217,138,0.08);
+    transition: background 0.12s ease;
+}
+.AgentDevice-form .contact-folder-head:hover { background: rgba(57,217,138,0.14); }
+.AgentDevice-form .contact-folder-name {
+    flex: 1; min-width: 0; color: #eaeaea; font-size: 0.75rem; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.AgentDevice-form .contact-folder-body { padding: 8px; }
+
+/* Contact map pin marker accent */
+.AgentDevice-form .agent-contact-pin .fa-user-circle {
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+}
+
+/* ===================================================================== */
+/* Modified build — button centering pass (П2)                           */
+/* Force flex-centering on the small square/round icon buttons across the */
+/* directory apps + FIXERS so their glyphs sit dead-centre regardless of  */
+/* the browser's default button text alignment.                          */
+/* ===================================================================== */
+.AgentDevice-form button[data-action="ncpd-modal-open"],
+.AgentDevice-form button[data-action="ncpd-edit-record"],
+.AgentDevice-form button[data-action="ncpd-delete-record"],
+.AgentDevice-form button[data-action="ziggurat-modal-open"],
+.AgentDevice-form button[data-action="ziggurat-edit-entry-open"],
+.AgentDevice-form button[data-action="ziggurat-delete-entry"],
+.AgentDevice-form button[data-action="garden-modal-open"],
+.AgentDevice-form button[data-action="garden-edit-profile-open"],
+.AgentDevice-form button[data-action="garden-delete-profile"],
+.AgentDevice-form button[data-action="contacts-add-open"],
+.AgentDevice-form button[data-action="contacts-edit-open"],
+.AgentDevice-form button[data-action="contacts-delete"],
+.AgentDevice-form .rep-add-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    text-align: center;
+}
+/* The rep add button is a touch taller to match its input row. */
+.AgentDevice-form .rep-add-btn {
+    height: 34px;
+}
+/* Generic safety net: any small icon-only button inside the phone whose
+   only child is a FontAwesome <i> gets centred too. */
+.AgentDevice-form .agent-content button > i.fas:only-child,
+.AgentDevice-form .agent-content button > i.far:only-child {
+    margin: 0;
+}
+
+/* ===================================================================== */
+/* Modified build — ambient "alive" cyberpunk layer (П7)                 */
+/* Subtle, theme-aware motion that makes the phone feel powered-on        */
+/* without being harsh on the eyes. All effects are low-amplitude.        */
+/* ===================================================================== */
+
+/* The chassis "breathes" — its frame glow gently rises and falls. */
+.agent-chassis {
+    animation: agent-frame-breathe 6s ease-in-out infinite;
+}
+@keyframes agent-frame-breathe {
+    0%, 100% {
+        box-shadow:
+            inset 0 0 12px rgba(255, 255, 255, 0.06),
+            0 0 0 1px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 55%, transparent),
+            0 0 13px 1px var(--frame-glow, rgba(0,255,204,0.5)),
+            0 0 32px 5px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 50%, transparent),
+            0 8px 54px 8px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 30%, transparent),
+            0 0 22px rgba(0,0,0,0.7);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 12px rgba(255, 255, 255, 0.08),
+            0 0 0 1px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 70%, transparent),
+            0 0 18px 2px var(--frame-glow, rgba(0,255,204,0.5)),
+            0 0 44px 8px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 60%, transparent),
+            0 10px 72px 14px color-mix(in srgb, var(--frame-glow, rgba(0,255,204,0.5)) 38%, transparent),
+            0 0 22px rgba(0,0,0,0.7);
+    }
+}
+
+/* A slow scanline sweep drifting down the screen — classic CRT life. */
+.agent-screen::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: 0;
+    height: 38%;
+    z-index: 49;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--neon-cyan) 5%, transparent) 50%,
+        transparent 100%);
+    opacity: 0.35;
+    animation: agent-scan-sweep 7s linear infinite;
+}
+@keyframes agent-scan-sweep {
+    0%   { transform: translateY(-40%); opacity: 0; }
+    12%  { opacity: 0.35; }
+    88%  { opacity: 0.35; }
+    100% { transform: translateY(270%); opacity: 0; }
+}
+
+/* App icons idle-shimmer: a faint glow pulse so the home screen feels live.
+   Staggered via nth-child so they don't all pulse in lockstep. */
+.agent-home .app-icon i,
+.agent-home .app-icon .app-icon-img-wrap {
+    animation: agent-icon-idle 4.5s ease-in-out infinite;
+}
+.agent-home .app-icon:nth-child(3n+1) i,
+.agent-home .app-icon:nth-child(3n+1) .app-icon-img-wrap { animation-delay: 0s; }
+.agent-home .app-icon:nth-child(3n+2) i,
+.agent-home .app-icon:nth-child(3n+2) .app-icon-img-wrap { animation-delay: 1.5s; }
+.agent-home .app-icon:nth-child(3n) i,
+.agent-home .app-icon:nth-child(3n) .app-icon-img-wrap { animation-delay: 3s; }
+@keyframes agent-icon-idle {
+    0%, 100% { box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+    50%      { box-shadow: 0 4px 6px rgba(0,0,0,0.5), 0 0 9px var(--frame-glow, rgba(0,255,204,0.35)); }
+}
+/* Snappier, brighter on hover (overrides the idle pulse). */
+.agent-home .app-icon:hover i,
+.agent-home .app-icon:hover .app-icon-img-wrap {
+    animation: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6), 0 0 14px var(--frame-glow, rgba(0,255,204,0.6));
+    border-color: var(--neon-cyan);
+}
+
+/* Signal bar in the top status row blinks like a live connection. */
+.agent-top-bar .fa-signal {
+    animation: agent-signal-blink 3.2s steps(1) infinite;
+}
+@keyframes agent-signal-blink {
+    0%, 92%, 100% { opacity: 1; }
+    94%           { opacity: 0.35; }
+    96%           { opacity: 1; }
+    98%           { opacity: 0.5; }
+}
+
+/* Card hover lift across the common list/card components — makes the whole
+   UI feel responsive and tactile. */
+.contact-card,
+.shard-item,
+.transaction-row,
+.balance-card,
+.heart-rate-card,
+.agent-theme-swatch {
+    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.contact-card:hover,
+.shard-item:hover {
+    transform: translateX(2px);
+}
+
+/* Respect reduced-motion preferences — disable the ambient animation layer. */
+@media (prefers-reduced-motion: reduce) {
+    .agent-chassis,
+    .agent-screen::before,
+    .agent-home .app-icon i,
+    .agent-home .app-icon .app-icon-img-wrap,
+    .agent-top-bar .fa-signal {
+        animation: none !important;
+    }
+}
