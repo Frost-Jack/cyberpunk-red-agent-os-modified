@@ -1,0 +1,65 @@
+<div class="agentos-chassis mode-{{mode}} theme-{{theme}} {{#if disabled}}net-off{{/if}}" style="--agent-zoom: {{zoom}};">
+
+  <div class="agentos-titlebar">
+    <div class="agentos-titlebar-left">
+      <div class="agentos-lights">
+        <button type="button" class="agentos-light red" data-action="device-close" title="{{localize "AGENTOS.Common.Close"}}"><i class="fas fa-xmark"></i></button>
+        <span class="agentos-light yellow"></span>
+        <span class="agentos-light green"></span>
+      </div>
+      {{#if (agEq mode "pc")}}
+        <span class="pc-activities" data-action="go-home">{{localize "AGENTOS.Pc.Activities"}}</span>
+        {{#if viewTitle}}<span class="pc-appname">{{viewTitle}}</span>{{/if}}
+      {{/if}}
+    </div>
+    <span class="agentos-titlebar-brand">AGENT OS</span>
+    <div class="agentos-titlebar-right">
+      <i class="fas fa-signal"></i>
+      {{#if disabled}}
+      <span class="agentos-wifi-dead"><i class="fas fa-wifi"></i><i class="fas fa-slash"></i></span>
+      {{else}}
+      <i class="fas fa-wifi agentos-net-blink"></i>
+      {{/if}}
+      <i class="fas fa-battery-three-quarters"></i>
+      <button type="button" class="agentos-gear" data-action="open-settings" title="{{localize "AGENTOS.App.settings"}}">
+        <i class="fas fa-gear"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="agentos-speaker"></div>
+
+  <div class="agentos-screen">
+    {{#if disabled}}<div class="agentos-static"></div>{{/if}}
+    {{#if (agEq view "home")}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/home.hbs"}}
+    {{else}}
+      <div class="agentos-app-frame {{#if (agEq mode "pc")}}pc-window{{/if}}">
+        <header class="agentos-app-header">
+          <button type="button" class="agentos-hbtn" data-action="go-home" title="{{localize "AGENTOS.Common.Home"}}">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="agentos-app-title">{{viewTitle}}</span>
+          <button type="button" class="agentos-hbtn" data-action="go-home" title="{{localize "AGENTOS.Common.Home"}}">
+            <i class="fas fa-house"></i>
+          </button>
+        </header>
+        <div class="agentos-app-body view-{{view}}">
+          {{#if (agEq view "chat")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chat.hbs" viewData}}{{/if}}
+          {{#if (agEq view "datapool")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/datapool.hbs" viewData}}{{/if}}
+          {{#if (agEq view "wallet")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/wallet.hbs" viewData}}{{/if}}
+          {{#if (agEq view "contacts")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/contacts.hbs" viewData}}{{/if}}
+          {{#if (agEq view "map")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/map.hbs" viewData}}{{/if}}
+          {{#if (agEq view "bio")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/bio.hbs" viewData}}{{/if}}
+          {{#if (agEq view "store")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/store.hbs" viewData}}{{/if}}
+          {{#if (agEq view "id")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/id.hbs" viewData}}{{/if}}
+          {{#if (agEq view "ncpd")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd.hbs" viewData}}{{/if}}
+          {{#if (agEq view "garden")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/garden.hbs" viewData}}{{/if}}
+          {{#if (agEq view "arcade")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/arcade.hbs" viewData}}{{/if}}
+          {{#if (agEq view "admin")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/admin.hbs" viewData}}{{/if}}
+          {{#if (agEq view "settings")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/settings.hbs" viewData}}{{/if}}
+        </div>
+      </div>
+    {{/if}}
+  </div>
+</div>

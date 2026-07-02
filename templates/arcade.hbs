@@ -1,0 +1,78 @@
+{{#if game}}
+
+<div class="agentos-arcade-game">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="arcade-exit"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-arcade-title">{{gameTitle}}</span>
+    <span class="agentos-arcade-rec">REC {{record}}</span>
+    <span class="agentos-spacer"></span>
+    <button type="button" class="agentos-btn" data-action="game-reset"><i class="fas fa-rotate-right"></i></button>
+  </div>
+  <div class="agentos-game-status">0</div>
+
+  {{#if (agEq game "mine")}}
+  <div class="agentos-mine-board"></div>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.MineHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "snake")}}
+  <canvas class="agentos-game-canvas" width="320" height="320"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.SnakeHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "runner")}}
+  <canvas class="agentos-game-canvas" width="340" height="200"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.RunnerHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "netduel")}}
+  <canvas class="agentos-game-canvas" width="340" height="200"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.DuelHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "quickhack")}}
+  <canvas class="agentos-game-canvas" width="330" height="110"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.QhHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "simon")}}
+  <div class="agentos-simon-board">
+    <button type="button" class="agentos-simon-pad p0" data-pad="0"></button>
+    <button type="button" class="agentos-simon-pad p1" data-pad="1"></button>
+    <button type="button" class="agentos-simon-pad p2" data-pad="2"></button>
+    <button type="button" class="agentos-simon-pad p3" data-pad="3"></button>
+  </div>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.SimonHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "g2077")}}
+  <div class="agentos-2077-board"></div>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.G2077Hint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "breach")}}
+  <div class="agentos-breach">
+    <div class="agentos-breach-top">
+      <span class="agentos-breach-timer">45s</span>
+      <div class="agentos-breach-target"></div>
+    </div>
+    <div class="agentos-breach-buffer"></div>
+    <div class="agentos-breach-grid"></div>
+  </div>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.BreachHint"}}</p>
+  {{/if}}
+</div>
+
+{{else}}
+
+<div class="agentos-arcade-menu">
+  {{#each games}}
+  <button type="button" class="agentos-arcade-card" data-action="arcade-pick" data-game="{{this.id}}">
+    <i class="fas {{this.icon}}"></i>
+    <span>{{this.title}}</span>
+    <small class="agentos-arcade-card-rec">REC {{this.rec}}</small>
+  </button>
+  {{/each}}
+</div>
+
+{{/if}}

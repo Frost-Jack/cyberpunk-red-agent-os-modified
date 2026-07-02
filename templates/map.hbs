@@ -1,0 +1,79 @@
+<div class="agentos-map {{#if pinMode}}pin-mode{{/if}}">
+  <div class="agentos-map-viewport">
+    <div class="agentos-map-container">
+      <img class="agentos-map-img" src="{{mapImage}}" alt="Night City" draggable="false">
+
+      {{#each markers}}
+      <div class="agentos-map-marker {{#if this.hidden}}gm-hidden{{/if}}" data-marker-id="{{this.id}}"
+           style="left: {{this.x}}%; top: {{this.y}}%;"
+           title="{{this.label}}{{#if this.hidden}} ({{localize "AGENTOS.Map.HiddenTag"}}){{/if}}">
+        <i class="fas {{#if this.icon}}{{this.icon}}{{else}}fa-location-dot{{/if}}" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
+        {{#if this.hidden}}<i class="fas fa-eye-slash agentos-marker-hidden-badge"></i>{{/if}}
+        <div class="agentos-pin-label" style="border-color: {{this.color}};">{{this.label}}</div>
+      </div>
+      {{/each}}
+
+      {{#each pins}}
+      <div class="agentos-map-pin" data-contact-id="{{this.id}}" style="left: {{this.mapX}}%; top: {{this.mapY}}%;"
+           title="{{this.name}}{{#if this.ownerName}} ({{this.ownerName}}){{/if}}">
+        <i class="fas fa-user-circle" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
+        <div class="agentos-pin-label" style="border-color: {{this.color}};">
+          {{this.name}}{{#if this.ownerName}} · {{this.ownerName}}{{/if}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="agentos-map-overlay">
+      <div class="agentos-map-coords">
+        {{#if pinMode}}<span class="agentos-map-pinmode-hint">{{localize "AGENTOS.Map.PinModeHint"}}</span><br>{{/if}}
+        LAT: 34.0522 N<br>LNG: 118.2437 W
+      </div>
+    </div>
+  </div>
+
+  <div class="agentos-map-controls">
+    <button type="button" class="agentos-map-btn" data-action="map-zoom-in"><i class="fas fa-plus"></i></button>
+    <button type="button" class="agentos-map-btn" data-action="map-zoom-out"><i class="fas fa-minus"></i></button>
+    <button type="button" class="agentos-map-btn" data-action="map-reset" title="{{localize "AGENTOS.Map.Reset"}}"><i class="fas fa-compress"></i></button>
+    {{#if isGM}}
+    <button type="button" class="agentos-map-btn gold {{#if pinMode}}active{{/if}}" data-action="map-pin-mode"
+            title="{{localize "AGENTOS.Map.PinMode"}}">
+      <i class="fas fa-map-pin"></i>
+    </button>
+    {{/if}}
+  </div>
+
+  {{#if editMarker}}
+  <div class="agentos-modal">
+    <div class="agentos-modal-card">
+      <h3>{{#if editMarker.id}}{{localize "AGENTOS.Map.EditMarker"}}{{else}}{{localize "AGENTOS.Map.NewMarker"}}{{/if}}</h3>
+      <label>{{localize "AGENTOS.Map.MarkerLabel"}}</label>
+      <input type="text" name="marker-label" value="{{editMarker.label}}">
+      <div class="agentos-field-row">
+        <label>{{localize "AGENTOS.Map.MarkerColor"}}</label>
+        <input type="color" name="marker-color" value="{{editMarker.color}}">
+      </div>
+      <label class="agentos-check row">
+        <input type="checkbox" name="marker-visible" {{#unless editMarker.hidden}}checked{{/unless}}>
+        <span>{{localize "AGENTOS.Map.MarkerVisible"}}</span>
+      </label>
+      <label>{{localize "AGENTOS.Map.MarkerIcon"}}</label>
+      <div class="agentos-marker-icons">
+        {{#each markerIcons}}
+        <button type="button" class="agentos-marker-icon-btn {{#if this.active}}active{{/if}}" data-action="marker-icon" data-icon="{{this.id}}">
+          <i class="fas {{this.id}}"></i>
+        </button>
+        {{/each}}
+      </div>
+      <div class="agentos-modal-actions">
+        {{#if editMarker.id}}
+        <button type="button" class="agentos-btn" data-action="marker-delete"><i class="fas fa-trash"></i> {{localize "AGENTOS.Common.Delete"}}</button>
+        {{/if}}
+        <button type="button" class="agentos-btn" data-action="marker-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+        <button type="button" class="agentos-btn primary" data-action="marker-save">{{localize "AGENTOS.Common.Save"}}</button>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+</div>

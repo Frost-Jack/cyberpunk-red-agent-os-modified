@@ -1,0 +1,79 @@
+{{#if thread}}
+  {{> "modules/cyberpunk-red-agent-os-modified/templates/chat-thread.hbs"}}
+{{else}}
+
+<div class="agentos-chat-list">
+  <div class="agentos-toolbar">
+    {{#if canCreate}}
+    <button type="button" class="agentos-btn primary" data-action="chat-new">
+      <i class="fas fa-plus"></i> {{localize "AGENTOS.Chat.NewChat"}}
+    </button>
+    {{/if}}
+  </div>
+
+  {{#if noActor}}
+  <p class="agentos-hint">{{localize "AGENTOS.Chat.NoActorHint"}}</p>
+  {{/if}}
+
+  {{#if chats.length}}
+  <ul class="agentos-list">
+    {{#each chats}}
+    <li class="agentos-list-row" data-action="chat-open" data-chat-id="{{this.id}}">
+      <img class="agentos-avatar" src="{{this.img}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.lastText}}</div>
+      </div>
+      <div class="agentos-list-meta">
+        <span class="agentos-list-time">{{agTime this.lastTs}}</span>
+        {{#if this.unread}}<span class="agentos-badge">{{this.unread}}</span>{{/if}}
+        {{#if @root.isGM}}
+        <button type="button" class="agentos-icon-btn danger" data-action="chat-delete" data-chat-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}">
+          <i class="fas fa-trash"></i>
+        </button>
+        {{/if}}
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Chat.Empty"}}</p>
+  {{/if}}
+</div>
+
+{{#if creating}}
+<div class="agentos-modal">
+  <div class="agentos-modal-card">
+    <h3>{{localize "AGENTOS.Chat.NewChat"}}</h3>
+    <input type="text" name="new-chat-name" value="{{newChatName}}" placeholder="{{localize "AGENTOS.Chat.NamePlaceholder"}}">
+    <div class="agentos-candidates">
+      {{#each candidateGroups}}
+      <div class="agentos-cand-folder" data-action="chat-cand-folder" data-folder-id="{{this.id}}">
+        <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+        <span>{{this.name}}</span>
+        <span class="agentos-folder-count">{{this.count}}</span>
+        <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+      </div>
+      {{#unless this.collapsed}}
+      {{#each this.items}}
+      <div class="agentos-candidate {{#if this.selected}}selected{{/if}}" data-action="chat-toggle-candidate" data-key="{{this.key}}">
+        <img class="agentos-avatar sm" src="{{this.img}}" alt="">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          <div class="agentos-list-sub">{{this.sub}}</div>
+        </div>
+        <i class="fas {{#if this.selected}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+      </div>
+      {{/each}}
+      {{/unless}}
+      {{/each}}
+    </div>
+    <div class="agentos-modal-actions">
+      <button type="button" class="agentos-btn" data-action="chat-new-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+      <button type="button" class="agentos-btn primary" data-action="chat-create">{{localize "AGENTOS.Common.Create"}}</button>
+    </div>
+  </div>
+</div>
+{{/if}}
+
+{{/if}}

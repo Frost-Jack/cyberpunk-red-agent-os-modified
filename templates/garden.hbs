@@ -1,0 +1,107 @@
+{{#if viewing}}
+
+<div class="agentos-garden-view">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="garden-back"><i class="fas fa-arrow-left"></i></button>
+  </div>
+  <div class="agentos-garden-profile">
+    <img class="agentos-avatar xl" src="{{#if contact.img}}{{contact.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+    <div class="agentos-id-name">{{contact.name}}</div>
+    {{#if contact.note}}<p class="agentos-garden-note">{{contact.note}}</p>{{/if}}
+    {{#if canChat}}
+    <button type="button" class="agentos-btn primary" data-action="garden-chat" data-garden-id="{{contact.id}}">
+      <i class="fas fa-comment-dots"></i> {{localize "AGENTOS.Garden.OpenChat"}}
+    </button>
+    {{/if}}
+  </div>
+</div>
+
+{{else}}
+{{#if editing}}
+
+<div class="agentos-garden-form agentos-garden-drop">
+  <p class="agentos-hint"><i class="fas fa-hand-pointer"></i> {{localize "AGENTOS.Garden.DropHint"}}</p>
+  <div class="agentos-field-row">
+    <img class="agentos-avatar" src="{{#if editing.img}}{{editing.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+    <button type="button" class="agentos-icon-btn" data-action="garden-img" title="{{localize "AGENTOS.Garden.PickImg"}}"><i class="fas fa-image"></i></button>
+    {{#if editing.actorUuid}}<span class="agentos-tag"><i class="fas fa-link"></i> Actor</span>{{/if}}
+  </div>
+  <label>{{localize "AGENTOS.Contacts.Name"}}</label>
+  <input type="text" name="garden-name" value="{{editing.name}}">
+  <label>{{localize "AGENTOS.Garden.Folder"}}</label>
+  <input type="text" name="garden-folder" value="{{editing.folder}}" list="agentos-garden-folders" placeholder="{{localize "AGENTOS.Garden.FolderPlaceholder"}}">
+  <datalist id="agentos-garden-folders">
+    {{#each folders}}<option value="{{this}}"></option>{{/each}}
+  </datalist>
+  <label>{{localize "AGENTOS.Contacts.Note"}}</label>
+  <textarea name="garden-note" rows="4">{{editing.note}}</textarea>
+  <div class="agentos-modal-actions">
+    <button type="button" class="agentos-btn" data-action="garden-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+    <button type="button" class="agentos-btn primary" data-action="garden-save">{{localize "AGENTOS.Common.Save"}}</button>
+  </div>
+</div>
+
+{{else}}
+
+<div class="agentos-garden">
+  {{#if isGM}}
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-btn primary" data-action="garden-new">
+      <i class="fas fa-user-plus"></i> {{localize "AGENTOS.Garden.New"}}
+    </button>
+  </div>
+  {{/if}}
+
+  {{#if hasContacts}}
+  {{#each groups}}
+  <div class="agentos-folder">
+    <div class="agentos-folder-header" data-action="garden-folder-toggle" data-folder="{{this.name}}">
+      <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+      <span class="agentos-folder-name">{{this.name}}</span>
+      <span class="agentos-folder-count">{{this.count}}</span>
+      {{#if @root.isGM}}
+      <button type="button" class="agentos-icon-btn folder-mini" data-action="garden-folder-add"
+              data-folder-raw="{{this.raw}}" title="{{localize "AGENTOS.Garden.AddToFolder"}}">
+        <i class="fas fa-user-plus"></i>
+      </button>
+      <button type="button" class="agentos-icon-btn folder-mini" data-action="garden-folder-rename"
+              data-folder-raw="{{this.raw}}" data-folder-name="{{this.name}}" title="{{localize "AGENTOS.Garden.RenameFolder"}}">
+        <i class="fas fa-pen"></i>
+      </button>
+      {{/if}}
+      <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+    </div>
+    {{#unless this.collapsed}}
+    <ul class="agentos-list">
+      {{#each this.contacts}}
+      <li class="agentos-list-row" data-action="garden-open" data-garden-id="{{this.id}}">
+        <img class="agentos-avatar" src="{{#if this.img}}{{this.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          {{#if @root.isGM}}
+          <div class="agentos-list-sub">{{#if this.visible}}{{localize "AGENTOS.Garden.Visible"}}{{else}}{{localize "AGENTOS.Garden.Hidden"}}{{/if}}</div>
+          {{/if}}
+        </div>
+        {{#if @root.isGM}}
+        <div class="agentos-list-meta row">
+          <button type="button" class="agentos-icon-btn toggle {{#if this.visible}}on{{/if}}" data-action="garden-toggle-visible" data-garden-id="{{this.id}}"
+                  title="{{#if this.visible}}{{localize "AGENTOS.Garden.Visible"}}{{else}}{{localize "AGENTOS.Garden.Hidden"}}{{/if}}">
+            <i class="fas {{#if this.visible}}fa-eye{{else}}fa-eye-slash{{/if}}"></i>
+          </button>
+          <button type="button" class="agentos-icon-btn" data-action="garden-edit" data-garden-id="{{this.id}}"><i class="fas fa-pen"></i></button>
+          <button type="button" class="agentos-icon-btn danger" data-action="garden-delete" data-garden-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+        </div>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{/unless}}
+  </div>
+  {{/each}}
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Garden.Empty"}}</p>
+  {{/if}}
+</div>
+
+{{/if}}
+{{/if}}

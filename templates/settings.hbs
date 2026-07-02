@@ -1,0 +1,40 @@
+<div class="agentos-settings">
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Settings.Mode"}}</h3>
+  <div class="agentos-mode-row">
+    {{#each modes}}
+    <button type="button" class="agentos-mode-card {{#if this.active}}active{{/if}}" data-action="set-mode" data-mode="{{this.id}}">
+      <i class="fas {{#if (agEq this.id "phone")}}fa-mobile-screen{{/if}}{{#if (agEq this.id "tablet")}}fa-tablet-screen-button{{/if}}{{#if (agEq this.id "pc")}}fa-display{{/if}}"></i>
+      <span>{{this.label}}</span>
+    </button>
+    {{/each}}
+  </div>
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Settings.Scale"}}</h3>
+  <div class="agentos-scale-row">
+    {{#each scales}}
+    <button type="button" class="agentos-cat {{#if this.active}}active{{/if}}" data-action="set-scale" data-scale="{{this.value}}">{{this.label}}</button>
+    {{/each}}
+  </div>
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Settings.Theme"}}</h3>
+  <div class="agentos-theme-grid">
+    {{#each themes}}
+    <button type="button" class="agentos-theme-swatch swatch-{{this.id}} {{#if this.active}}active{{/if}}" data-action="set-theme" data-theme="{{this.id}}">
+      <span class="swatch-dot"></span>
+      <span class="swatch-label">{{this.label}}</span>
+    </button>
+    {{/each}}
+  </div>
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Settings.Misc"}}</h3>
+  <label class="agentos-check row">
+    <input type="checkbox" name="set-sounds" {{#if soundsEnabled}}checked{{/if}}>
+    <span>{{localize "AGENTOS.Settings.Sounds"}}</span>
+  </label>
+  <label class="agentos-check row">
+    <input type="checkbox" name="set-indicator" {{#if indicatorEnabled}}checked{{/if}}>
+    <span>{{localize "AGENTOS.Settings.MessageIndicator"}}</span>
+  </label>
+
+</div>

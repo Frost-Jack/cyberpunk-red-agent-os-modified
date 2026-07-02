@@ -1,0 +1,131 @@
+<div class="agentos-admin">
+
+  <h3 class="agentos-section-title"><i class="fas fa-map"></i> {{localize "AGENTOS.Admin.MapSection"}}</h3>
+  <div class="agentos-field-row">
+    <code class="agentos-path">{{mapImagePath}}</code>
+    <button type="button" class="agentos-btn" data-action="admin-map-pick"><i class="fas fa-folder-open"></i></button>
+  </div>
+
+  <h3 class="agentos-section-title"><i class="fas fa-bag-shopping"></i> {{localize "AGENTOS.Admin.StoreSection"}}</h3>
+
+  <div class="agentos-field-row">
+    <label>{{localize "AGENTOS.Admin.MaxPrice"}}</label>
+    <input type="number" name="admin-max-price" min="0" value="{{maxPrice}}">
+  </div>
+
+  {{#if playerPrices.length}}
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.PlayerMaxPrice"}}</h4>
+  <p class="agentos-hint">{{localize "AGENTOS.Admin.PlayerMaxPriceHint"}}</p>
+  {{#each playerPrices}}
+  <div class="agentos-field-row">
+    <label>{{this.name}}</label>
+    <input type="number" min="0" value="{{this.value}}" placeholder="{{@root.viewData.maxPrice}}"
+           data-action="admin-player-price" data-user-id="{{this.id}}">
+  </div>
+  {{/each}}
+  {{/if}}
+  <div class="agentos-field-row">
+    <label>{{localize "AGENTOS.Admin.Markup"}} %</label>
+    <input type="number" name="admin-markup" min="0" value="{{markup}}">
+  </div>
+  <div class="agentos-field-row">
+    <label>{{localize "AGENTOS.Admin.SourceFilter"}}</label>
+    <select name="admin-source-filter" class="agentos-select">
+      <option value="all" {{#if (agEq sourceFilter "all")}}selected{{/if}}>{{localize "AGENTOS.Admin.SourceAll"}}</option>
+      <option value="core" {{#if (agEq sourceFilter "core")}}selected{{/if}}>{{localize "AGENTOS.Admin.SourceCore"}}</option>
+      <option value="extra" {{#if (agEq sourceFilter "extra")}}selected{{/if}}>{{localize "AGENTOS.Admin.SourceExtra"}}</option>
+    </select>
+  </div>
+
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.LockedCategories"}}</h4>
+  <div class="agentos-check-grid">
+    {{#each categories}}
+    <label class="agentos-check">
+      <input type="checkbox" data-action="admin-cat-toggle" data-cat="{{this.id}}" {{#if this.locked}}checked{{/if}}>
+      <span>{{this.id}}</span>
+    </label>
+    {{/each}}
+  </div>
+
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.ExtraPacks"}}</h4>
+  {{#if extraPackChoices.length}}
+  <div class="agentos-check-list">
+    {{#each extraPackChoices}}
+    <label class="agentos-check">
+      <input type="checkbox" data-action="admin-pack-toggle" data-pack-id="{{this.id}}" {{#if this.enabled}}checked{{/if}}>
+      <span>{{this.label}}</span>
+    </label>
+    {{/each}}
+  </div>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Admin.NoExtraPacks"}}</p>
+  {{/if}}
+
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.Blacklist"}}</h4>
+  <div class="agentos-blacklist-drop">
+    <i class="fas fa-ban"></i> {{localize "AGENTOS.Admin.BlacklistDropHint"}}
+  </div>
+  {{#if blacklist.length}}
+  <ul class="agentos-list compact">
+    {{#each blacklist}}
+    <li class="agentos-list-row static">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.uuid}}</div>
+      </div>
+      <button type="button" class="agentos-icon-btn danger" data-action="admin-blacklist-remove" data-uuid="{{this.uuid}}"><i class="fas fa-xmark"></i></button>
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  <h3 class="agentos-section-title"><i class="fas fa-table-cells"></i> {{localize "AGENTOS.Admin.AppsSection"}}</h3>
+  <table class="agentos-apps-table">
+    <thead>
+      <tr>
+        <th>{{localize "AGENTOS.Admin.App"}}</th>
+        <th>GM</th>
+        <th>{{localize "AGENTOS.Admin.Players"}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each appRows}}
+      <tr>
+        <td>{{this.label}}</td>
+        <td><input type="checkbox" data-action="admin-app-toggle" data-app-id="{{this.id}}" data-role="gm" {{#if this.gmOn}}checked{{/if}}></td>
+        <td><input type="checkbox" data-action="admin-app-toggle" data-app-id="{{this.id}}" data-role="player" {{#if this.playerOn}}checked{{/if}}></td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#if appPlayers.length}}
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.PerPlayerApps"}}</h4>
+  <div class="agentos-field-row">
+    <select name="admin-app-player" class="agentos-select">
+      {{#each appPlayers}}
+      <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+      {{/each}}
+    </select>
+    {{#if hasPlayerOverrides}}
+    <button type="button" class="agentos-btn" data-action="admin-app-player-reset" data-user-id="{{appPlayerId}}">
+      <i class="fas fa-rotate-left"></i> {{localize "AGENTOS.Admin.ResetOverrides"}}
+    </button>
+    {{/if}}
+  </div>
+  <label class="agentos-check row agentos-kill-switch">
+    <input type="checkbox" data-action="admin-agent-disable" data-user-id="{{appPlayerId}}" {{#if playerDisabled}}checked{{/if}}>
+    <span>{{localize "AGENTOS.Admin.DisableAgent"}}</span>
+  </label>
+  <div class="agentos-check-grid">
+    {{#each perPlayerRows}}
+    <label class="agentos-check {{#if this.overridden}}overridden{{/if}}">
+      <input type="checkbox" data-action="admin-app-player-toggle" data-app-id="{{this.id}}" data-user-id="{{@root.viewData.appPlayerId}}" {{#if this.on}}checked{{/if}}>
+      <span>{{this.label}}{{#if this.overridden}} *{{/if}}</span>
+    </label>
+    {{/each}}
+  </div>
+  <p class="agentos-hint">{{localize "AGENTOS.Admin.PerPlayerAppsHint"}}</p>
+  {{/if}}
+
+</div>

@@ -1,0 +1,136 @@
+{{#if listMode}}
+
+<div class="agentos-bio-list">
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Bio.Subjects"}}</h3>
+  {{#if subjects.length}}
+  <ul class="agentos-list">
+    {{#each subjects}}
+    <li class="agentos-list-row" data-action="bio-select" data-actor-uuid="{{this.actorUuid}}">
+      <img class="agentos-avatar" src="{{this.img}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.userName}}</div>
+      </div>
+      <span class="agentos-vital-chip {{this.hpState}}">{{this.hpPct}}%</span>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Bio.NoSubjects"}}</p>
+  {{/if}}
+</div>
+
+{{else}}
+{{#if noActor}}
+<p class="agentos-hint">{{localize "AGENTOS.Bio.NoActor"}}</p>
+{{else}}
+
+<div class="agentos-bio">
+  <div class="agentos-toolbar">
+    {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="bio-back"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-list-sub">{{actorName}}</span>
+    {{/if}}
+    <span class="agentos-spacer"></span>
+    {{#if trauma}}
+    <button type="button" class="agentos-btn agentos-tt-call {{trauma.tier}}" data-action="tt-call" data-actor-uuid="{{actorUuid}}">
+      <i class="fas fa-truck-medical"></i> {{localize "AGENTOS.Bio.CallTT"}}
+    </button>
+    {{/if}}
+  </div>
+
+  {{#if trauma}}
+  {{!-- Compact layout: TT card on the left, name + vitals bars on the right --}}
+  <div class="agentos-tt-row">
+    <div class="agentos-tt-card {{trauma.tier}}">
+      <img src="{{ttBlank}}" alt="Trauma Team">
+      <span class="agentos-tt-name">{{trauma.holderName}}</span>
+      <span class="agentos-tt-tier {{trauma.tier}}">
+        {{#if trauma.isPlatinum}}{{localize "AGENTOS.Id.TierPlatinum"}}{{else}}{{localize "AGENTOS.Id.TierSilver"}}{{/if}}
+      </span>
+    </div>
+    <div class="agentos-tt-side">
+      <div class="agentos-tt-side-id">
+        <img class="agentos-avatar" src="{{actorImg}}" alt="">
+        <div class="agentos-tt-side-who">
+          <div class="agentos-list-title">{{actorName}}</div>
+          <div class="agentos-bio-state {{hpState}}">{{localize (agConcat "AGENTOS.Bio.State." woundState)}}</div>
+          <div class="agentos-bio-pulse"><i class="fas fa-heart-pulse"></i> {{pulse}} BPM</div>
+        </div>
+      </div>
+      <div class="agentos-vital slim">
+        <div class="agentos-vital-label">
+          <span>HP</span><span>{{hpCurrent}} / {{hpMax}}</span>
+        </div>
+        <div class="agentos-bar"><div class="agentos-bar-fill {{hpState}}" style="width: {{hpPct}}%"></div></div>
+      </div>
+      <div class="agentos-vital slim">
+        <div class="agentos-vital-label">
+          <span>{{localize "AGENTOS.Bio.Humanity"}}</span><span>{{humCurrent}} / {{humMax}}</span>
+        </div>
+        <div class="agentos-bar"><div class="agentos-bar-fill hum {{humState}}" style="width: {{humPct}}%"></div></div>
+      </div>
+    </div>
+  </div>
+  {{else}}
+  <div class="agentos-bio-head">
+    <img class="agentos-avatar lg" src="{{actorImg}}" alt="">
+    <div>
+      <div class="agentos-list-title">{{actorName}}</div>
+      <div class="agentos-bio-state {{hpState}}">{{localize (agConcat "AGENTOS.Bio.State." woundState)}}</div>
+      <div class="agentos-bio-pulse"><i class="fas fa-heart-pulse"></i> {{pulse}} BPM</div>
+    </div>
+  </div>
+
+  <div class="agentos-vital">
+    <div class="agentos-vital-label">
+      <span>HP</span><span>{{hpCurrent}} / {{hpMax}}</span>
+    </div>
+    <div class="agentos-bar"><div class="agentos-bar-fill {{hpState}}" style="width: {{hpPct}}%"></div></div>
+  </div>
+
+  <div class="agentos-vital">
+    <div class="agentos-vital-label">
+      <span>{{localize "AGENTOS.Bio.Humanity"}}</span><span>{{humCurrent}} / {{humMax}}</span>
+    </div>
+    <div class="agentos-bar"><div class="agentos-bar-fill hum {{humState}}" style="width: {{humPct}}%"></div></div>
+  </div>
+  {{/if}}
+
+  <div class="agentos-bio-grid">
+    <div class="agentos-bio-cell">
+      <span class="agentos-bio-cell-label">{{localize "AGENTOS.Bio.DeathPenalty"}}</span>
+      <span class="agentos-bio-cell-value">{{deathPenalty}}</span>
+    </div>
+    <div class="agentos-bio-cell">
+      <span class="agentos-bio-cell-label">{{localize "AGENTOS.Bio.BodyArmor"}}</span>
+      <span class="agentos-bio-cell-value">SP {{bodySp}}</span>
+      <span class="agentos-bio-cell-sub">{{bodyArmorName}}</span>
+    </div>
+    <div class="agentos-bio-cell">
+      <span class="agentos-bio-cell-label">{{localize "AGENTOS.Bio.HeadArmor"}}</span>
+      <span class="agentos-bio-cell-value">SP {{headSp}}</span>
+      <span class="agentos-bio-cell-sub">{{headArmorName}}</span>
+    </div>
+  </div>
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Bio.Injuries"}}</h3>
+  {{#if injuries.length}}
+  <ul class="agentos-list">
+    {{#each injuries}}
+    <li class="agentos-list-row static">
+      <span class="agentos-contact-glyph crit"><i class="fas fa-notes-medical"></i></span>
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.location}}</div>
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Bio.NoInjuries"}}</p>
+  {{/if}}
+</div>
+
+{{/if}}
+{{/if}}

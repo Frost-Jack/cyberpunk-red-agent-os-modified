@@ -1,0 +1,25 @@
+<div class="agentos-home">
+  <div class="agentos-statusbar">
+    <div class="agentos-status-id">
+      <img src="{{identity.img}}" alt="">
+      <span>{{identity.name}}</span>
+    </div>
+    <div class="agentos-status-net {{#if disabled}}off{{/if}}">// NET LINK: {{#if disabled}}OFF{{else}}OK{{/if}}</div>
+  </div>
+
+  <div class="agentos-app-grid">
+    {{#each apps}}
+    <button type="button" class="agentos-app-tile" data-action="open-app" data-app-id="{{this.id}}">
+      <span class="agentos-app-icon">
+        <i class="fas {{this.icon}}" style="color: {{this.color}};"></i>
+        {{#if this.badge}}<span class="agentos-badge">{{this.badge}}</span>{{/if}}
+      </span>
+      <span class="agentos-app-label">{{this.label}}</span>
+    </button>
+    {{/each}}
+  </div>
+
+  <div class="agentos-home-footer">
+    <span class="agentos-brand">// NIGHT CITY NET 5.0</span>
+  </div>
+</div>

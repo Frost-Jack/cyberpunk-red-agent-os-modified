@@ -1,8 +1,8 @@
 {
   "id": "cyberpunk-red-agent-os-modified",
   "title": "Cyberpunk Agent OS (Modified)",
-  "description": "A glassmorphic, immersive Agent device UI for Cyberpunk RED. Provides a native smartphone / tablet interface for players to access the Data Pool, send Eurobucks, monitor vitals, exchange messages with file attachments, and more. Modified build with extra themes, tablet mode, Russian localisation, sounds and biomonitor/wallet sync.",
-  "version": "1.1.0",
+  "description": "An immersive Agent device UI for Cyberpunk RED: messenger between characters, Datapool mail shards, wallet synced to character sheets, contact book with a Night City map, biomonitor, NC Mart store, ID, NCPD database, Garden contacts and arcade games by Lumiel.",
+  "version": "1.0",
   "compatibility": {
     "minimum": "12",
     "verified": "12"
@@ -14,14 +14,12 @@
       "flags": {}
     },
     {
-      "name": "Modified build",
+      "name": "Lumiel",
       "flags": {}
     }
   ],
   "socket": true,
-  "esmodules": [],
-  "scripts": [
-    "scripts/agent-app.js",
+  "esmodules": [
     "scripts/main.js"
   ],
   "styles": [
@@ -49,7 +47,7 @@
       }
     ]
   },
-  "url": "https://www.patreon.com/inGramGames",
-  "manifest": "",
-  "download": ""
+  "url": "https://github.com/Frost-Jack/cyberpunk-red-agent-os-modified",
+  "manifest": "https://github.com/Frost-Jack/cyberpunk-red-agent-os-modified/releases/latest/download/module.json",
+  "download": "https://github.com/Frost-Jack/cyberpunk-red-agent-os-modified/releases/latest/download/module.zip"
 }

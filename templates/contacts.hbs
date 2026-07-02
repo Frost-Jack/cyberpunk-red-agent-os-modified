@@ -1,0 +1,148 @@
+{{#if picking}}
+
+<div class="agentos-pickmap">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="contact-pick-cancel"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-hint">{{localize "AGENTOS.Contacts.PickHint"}}</span>
+  </div>
+  <div class="agentos-map-viewport pick">
+    <div class="agentos-map-container">
+      <img class="agentos-map-img" src="{{mapImage}}" alt="map" draggable="false">
+
+      {{#each pickMarkers}}
+      <div class="agentos-map-marker pick-ref" style="left: {{this.x}}%; top: {{this.y}}%;" title="{{this.label}}">
+        <i class="fas {{#if this.icon}}{{this.icon}}{{else}}fa-location-dot{{/if}}" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
+        <div class="agentos-pin-label" style="border-color: {{this.color}};">{{this.label}}</div>
+      </div>
+      {{/each}}
+
+      {{#each pickPins}}
+      <div class="agentos-map-pin pick-ref" style="left: {{this.mapX}}%; top: {{this.mapY}}%;" title="{{this.name}}">
+        <i class="fas fa-user-circle" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
+        <div class="agentos-pin-label" style="border-color: {{this.color}};">{{this.name}}</div>
+      </div>
+      {{/each}}
+
+      {{#if editing.hasPin}}
+      <div class="agentos-map-pin current" style="left: {{editing.mapX}}%; top: {{editing.mapY}}%;">
+        <i class="fas fa-location-dot" style="color: #2ff5d0; text-shadow: 0 0 8px #2ff5d0, 0 0 2px #000;"></i>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  <div class="agentos-map-controls">
+    <button type="button" class="agentos-map-btn" data-action="pick-zoom-in"><i class="fas fa-plus"></i></button>
+    <button type="button" class="agentos-map-btn" data-action="pick-zoom-out"><i class="fas fa-minus"></i></button>
+  </div>
+</div>
+
+{{else}}
+{{#if editing}}
+
+<div class="agentos-contact-form">
+  <h3 class="agentos-section-title">
+    {{#if editing.id}}{{localize "AGENTOS.Contacts.Edit"}}{{else}}{{localize "AGENTOS.Contacts.New"}}{{/if}}
+  </h3>
+  <label>{{localize "AGENTOS.Contacts.Name"}}</label>
+  <input type="text" name="contact-name" value="{{editing.name}}">
+  <label>{{localize "AGENTOS.Contacts.Note"}}</label>
+  <textarea name="contact-note" rows="3">{{editing.note}}</textarea>
+  <label>{{localize "AGENTOS.Contacts.Address"}}</label>
+  <input type="text" name="contact-address" value="{{editing.address}}">
+
+  <div class="agentos-field-row">
+    <button type="button" class="agentos-btn" data-action="contact-pick-pin">
+      <i class="fas fa-map-pin"></i>
+      {{#if editing.hasPin}}{{localize "AGENTOS.Contacts.MovePin"}}{{else}}{{localize "AGENTOS.Contacts.SetPin"}}{{/if}}
+    </button>
+    {{#if editing.hasPin}}
+    <span class="agentos-tag">{{editing.mapX}}% / {{editing.mapY}}%</span>
+    <button type="button" class="agentos-icon-btn danger" data-action="contact-pin-clear" title="{{localize "AGENTOS.Contacts.ClearPin"}}">
+      <i class="fas fa-ban"></i>
+    </button>
+    {{/if}}
+  </div>
+
+  <div class="agentos-modal-actions">
+    <button type="button" class="agentos-btn" data-action="contact-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+    <button type="button" class="agentos-btn primary" data-action="contact-save">{{localize "AGENTOS.Common.Save"}}</button>
+  </div>
+</div>
+
+{{else}}
+
+<div class="agentos-contacts">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-btn primary" data-action="contact-new">
+      <i class="fas fa-user-plus"></i> {{localize "AGENTOS.Contacts.New"}}
+    </button>
+  </div>
+
+  {{#if hasContacts}}
+  {{#each groups}}
+  <div class="agentos-folder">
+    <div class="agentos-folder-header" data-action="contact-folder-toggle" data-owner-id="{{this.ownerId}}">
+      <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+      <span class="agentos-folder-name">{{this.ownerName}}{{#if this.isGmOwner}} <span class="agentos-tag">GM</span>{{/if}}</span>
+      <span class="agentos-folder-count">{{this.count}}</span>
+      <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+    </div>
+    {{#unless this.collapsed}}
+    <ul class="agentos-list">
+      {{#each this.contacts}}
+      <li class="agentos-list-row static {{#if this.focused}}focused{{/if}}">
+        <span class="agentos-contact-glyph" style="color: {{this.color}}; border-color: {{this.color}};"><i class="fas fa-user"></i></span>
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">
+            {{this.name}}
+            {{#if this.hasPin}}<i class="fas fa-map-pin agentos-pin-mark"></i>{{/if}}
+          </div>
+          <div class="agentos-list-sub">
+            {{#if this.address}}{{this.address}}{{/if}}
+            {{#if this.sharedCount}} · <i class="fas fa-share-nodes"></i> {{this.sharedCount}}{{/if}}
+          </div>
+          {{#if this.note}}<div class="agentos-list-note">{{this.note}}</div>{{/if}}
+        </div>
+        <div class="agentos-list-meta row">
+          <button type="button" class="agentos-icon-btn" data-action="contact-share-open" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.Share"}}"><i class="fas fa-share-nodes"></i></button>
+          {{#if this.canEdit}}
+          <button type="button" class="agentos-icon-btn" data-action="contact-edit" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Edit"}}"><i class="fas fa-pen"></i></button>
+          <button type="button" class="agentos-icon-btn danger" data-action="contact-delete" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}"><i class="fas fa-trash"></i></button>
+          {{/if}}
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+    {{/unless}}
+  </div>
+  {{/each}}
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Contacts.Empty"}}</p>
+  {{/if}}
+</div>
+
+{{#if sharing}}
+<div class="agentos-modal">
+  <div class="agentos-modal-card">
+    <h3>{{localize "AGENTOS.Contacts.ShareWith"}}</h3>
+    <div class="agentos-candidates">
+      {{#each sharing.users}}
+      <div class="agentos-candidate {{#if this.selected}}selected{{/if}}" data-action="contact-share-toggle" data-user-id="{{this.id}}">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          <div class="agentos-list-sub">{{#if this.online}}online{{else}}offline{{/if}}</div>
+        </div>
+        <i class="fas {{#if this.selected}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+      </div>
+      {{/each}}
+    </div>
+    <div class="agentos-modal-actions">
+      <button type="button" class="agentos-btn" data-action="contact-share-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+      <button type="button" class="agentos-btn primary" data-action="contact-share">{{localize "AGENTOS.Contacts.Share"}}</button>
+    </div>
+  </div>
+</div>
+{{/if}}
+
+{{/if}}
+{{/if}}

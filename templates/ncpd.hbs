@@ -1,0 +1,77 @@
+{{#if viewing}}
+
+<div class="agentos-ncpd-view">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="ncpd-back"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-spacer"></span>
+    {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="ncpd-edit" data-record-id="{{record.id}}"><i class="fas fa-pen"></i></button>
+    <button type="button" class="agentos-icon-btn danger" data-action="ncpd-delete"><i class="fas fa-trash"></i></button>
+    {{/if}}
+  </div>
+  <div class="agentos-ncpd-head">
+    <img class="agentos-mugshot" src="{{#if record.img}}{{record.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+    <div>
+      <div class="agentos-id-name">{{record.name}}</div>
+      {{#if record.faction}}<div class="agentos-tag">{{record.faction}}</div>{{/if}}
+      {{#if record.status}}<div class="agentos-tag warn">{{record.status}}</div>{{/if}}
+    </div>
+  </div>
+  <div class="agentos-ncpd-body">{{record.description}}</div>
+</div>
+
+{{else}}
+{{#if editing}}
+
+<div class="agentos-ncpd-form agentos-ncpd-drop">
+  <p class="agentos-hint"><i class="fas fa-hand-pointer"></i> {{localize "AGENTOS.Ncpd.DropHint"}}</p>
+  <div class="agentos-field-row">
+    <img class="agentos-mugshot sm" src="{{#if editing.img}}{{editing.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+    <button type="button" class="agentos-icon-btn" data-action="ncpd-img" title="{{localize "AGENTOS.Ncpd.PickImg"}}"><i class="fas fa-image"></i></button>
+  </div>
+  <label>{{localize "AGENTOS.Contacts.Name"}}</label>
+  <input type="text" name="ncpd-name" value="{{editing.name}}">
+  <label>{{localize "AGENTOS.Ncpd.Faction"}}</label>
+  <input type="text" name="ncpd-faction" value="{{editing.faction}}">
+  <label>{{localize "AGENTOS.Ncpd.Status"}}</label>
+  <input type="text" name="ncpd-status" value="{{editing.status}}">
+  <label>{{localize "AGENTOS.Ncpd.RapSheet"}}</label>
+  <textarea name="ncpd-desc" rows="6">{{editing.description}}</textarea>
+  <div class="agentos-modal-actions">
+    <button type="button" class="agentos-btn" data-action="ncpd-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+    <button type="button" class="agentos-btn primary" data-action="ncpd-save">{{localize "AGENTOS.Common.Save"}}</button>
+  </div>
+</div>
+
+{{else}}
+
+<div class="agentos-ncpd">
+  <div class="agentos-toolbar">
+    <input type="text" name="ncpd-search" class="agentos-search grow" value="{{search}}" placeholder="{{localize "AGENTOS.Ncpd.Search"}}">
+    {{#if isGM}}
+    <button type="button" class="agentos-btn primary" data-action="ncpd-new"><i class="fas fa-plus"></i></button>
+    {{/if}}
+  </div>
+
+  {{#if filtered.length}}
+  <ul class="agentos-list">
+    {{#each filtered}}
+    <li class="agentos-list-row" data-action="ncpd-open" data-record-id="{{this.id}}">
+      <img class="agentos-mugshot sm" src="{{#if this.img}}{{this.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.faction}}{{#if this.status}} · {{this.status}}{{/if}}</div>
+      </div>
+      {{#if @root.isGM}}
+      <button type="button" class="agentos-icon-btn danger" data-action="ncpd-delete" data-record-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+      {{/if}}
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Ncpd.Empty"}}</p>
+  {{/if}}
+</div>
+
+{{/if}}
+{{/if}}

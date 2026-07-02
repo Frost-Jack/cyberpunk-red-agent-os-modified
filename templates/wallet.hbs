@@ -1,0 +1,127 @@
+{{#if listMode}}
+
+<div class="agentos-wallet-list">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-btn primary" data-action="gm-transfer-open">
+      <i class="fas fa-money-bill-transfer"></i> {{localize "AGENTOS.Wallet.GmTransfer"}}
+    </button>
+  </div>
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Wallet.AllWallets"}}</h3>
+  {{#if wallets.length}}
+  <ul class="agentos-list">
+    {{#each wallets}}
+    <li class="agentos-list-row" data-action="wallet-select" data-actor-uuid="{{this.actorUuid}}">
+      <img class="agentos-avatar" src="{{this.img}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.userName}}</div>
+      </div>
+      <span class="agentos-money">{{agNum this.balance}} €$</span>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Wallet.NoWallets"}}</p>
+  {{/if}}
+</div>
+
+{{#if gmTransfer}}
+<div class="agentos-modal">
+  <div class="agentos-modal-card">
+    <h3>{{localize "AGENTOS.Wallet.GmTransfer"}}</h3>
+    <label>{{localize "AGENTOS.Wallet.SenderName"}}</label>
+    <input type="text" name="gm-transfer-sender" placeholder="{{localize "AGENTOS.Wallet.SenderNamePlaceholder"}}">
+    <label>{{localize "AGENTOS.Wallet.SelectTarget"}}</label>
+    <select name="gm-transfer-target" class="agentos-select">
+      <option value="">{{localize "AGENTOS.Wallet.SelectTarget"}}…</option>
+      {{#each gmTargets}}
+      <option value="{{this.uuid}}">{{this.name}}</option>
+      {{/each}}
+    </select>
+    <label>{{localize "AGENTOS.Wallet.Amount"}} (€$)</label>
+    <input type="number" name="gm-transfer-amount" min="1" step="1" placeholder="500">
+    <label>{{localize "AGENTOS.Wallet.Memo"}}</label>
+    <input type="text" name="gm-transfer-memo" placeholder="{{localize "AGENTOS.Wallet.MemoPlaceholder"}}">
+    <div class="agentos-modal-actions">
+      <button type="button" class="agentos-btn" data-action="gm-transfer-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+      <button type="button" class="agentos-btn primary" data-action="gm-transfer-send">{{localize "AGENTOS.Wallet.Send"}}</button>
+    </div>
+  </div>
+</div>
+{{/if}}
+
+{{else}}
+{{#if noActor}}
+<p class="agentos-hint">{{localize "AGENTOS.Wallet.NoActor"}}</p>
+{{else}}
+
+<div class="agentos-wallet">
+  {{#if isGM}}
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="wallet-back"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-list-sub">{{actorName}}</span>
+  </div>
+  {{/if}}
+
+  <div class="agentos-balance-card">
+    <div class="agentos-balance-label">{{localize "AGENTOS.Wallet.Balance"}}</div>
+    <div class="agentos-balance-value">{{agNum balance}} <span>€$</span></div>
+    <button type="button" class="agentos-btn primary" data-action="transfer-open">
+      <i class="fas fa-money-bill-transfer"></i> {{localize "AGENTOS.Wallet.Transfer"}}
+    </button>
+  </div>
+
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Wallet.History"}}</h3>
+  {{#if transactions.length}}
+  <ul class="agentos-tx-list">
+    {{#each transactions}}
+    <li class="agentos-tx">
+      {{#if (agEq this.kind "raw")}}
+      <div class="agentos-tx-text">{{this.text}}</div>
+      {{else}}
+      <div class="agentos-tx-line">
+        <span class="agentos-tx-amount {{this.kind}}">
+          {{#if (agEq this.kind "plus")}}+{{agNum this.amount}}{{/if}}
+          {{#if (agEq this.kind "minus")}}−{{agNum this.amount}}{{/if}}
+          {{#if (agEq this.kind "set")}}= {{agNum this.amount}}{{/if}}
+          €$
+        </span>
+        <span class="agentos-tx-total">{{localize "AGENTOS.Wallet.After"}}: {{agNum this.total}} €$</span>
+      </div>
+      {{/if}}
+      {{#if this.reason}}<div class="agentos-tx-reason">{{this.reason}}</div>{{/if}}
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Wallet.NoHistory"}}</p>
+  {{/if}}
+</div>
+
+{{#if transferring}}
+<div class="agentos-modal">
+  <div class="agentos-modal-card">
+    <h3>{{localize "AGENTOS.Wallet.Transfer"}}</h3>
+    <label>{{localize "AGENTOS.Wallet.SelectTarget"}}</label>
+    <select name="transfer-target" class="agentos-select">
+      <option value="">{{localize "AGENTOS.Wallet.SelectTarget"}}…</option>
+      {{#each targets}}
+      <option value="{{this.id}}">{{this.name}} ({{this.sub}})</option>
+      {{/each}}
+    </select>
+    <label>{{localize "AGENTOS.Wallet.Amount"}} (€$)</label>
+    <input type="number" name="transfer-amount" min="1" step="1" placeholder="500">
+    <label>{{localize "AGENTOS.Wallet.Memo"}}</label>
+    <input type="text" name="transfer-memo" placeholder="{{localize "AGENTOS.Wallet.MemoPlaceholder"}}">
+    <div class="agentos-modal-actions">
+      <button type="button" class="agentos-btn" data-action="transfer-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
+      <button type="button" class="agentos-btn primary" data-action="transfer-send" data-actor-uuid="{{actorUuid}}">
+        {{localize "AGENTOS.Wallet.Send"}}
+      </button>
+    </div>
+  </div>
+</div>
+{{/if}}
+
+{{/if}}
+{{/if}}

@@ -1,0 +1,27 @@
+# Continuous verification: runs the module's static checks on every push
+# and pull request (JSON validity, en/ru lang parity, Handlebars balance,
+# JS syntax, template↔JS action cross-reference, CSS brace balance).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate module manifest is proper JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('module.json','utf8')); console.log('module.json OK')"
+
+      - name: Run static verification suite
+        run: node tools/verify.mjs

@@ -1,0 +1,188 @@
+<div class="agentos-id">
+  {{#if isGM}}
+  <nav class="agentos-tabs">
+    {{#each players}}
+    <button type="button" class="agentos-tab {{#if this.active}}active{{/if}}" data-action="id-select-user" data-user-id="{{this.id}}">{{this.name}}</button>
+    {{/each}}
+  </nav>
+  {{/if}}
+
+  {{#if noTarget}}
+  <p class="agentos-empty">{{localize "AGENTOS.Id.NoTarget"}}</p>
+  {{else}}
+
+  <div class="agentos-idc">
+    <div class="agentos-idc-header">
+      <span class="agentos-idc-logo">NC</span>
+      <span class="agentos-idc-title">NIGHT CITY // CITIZEN IDENT</span>
+      <span class="agentos-idc-serial">SIN-{{targetUserId}}</span>
+    </div>
+    <div class="agentos-idc-body">
+      <div class="agentos-idc-photo">
+        <img src="{{publicImg}}" alt="">
+        <span class="agentos-idc-corner tl"></span><span class="agentos-idc-corner tr"></span>
+        <span class="agentos-idc-corner bl"></span><span class="agentos-idc-corner br"></span>
+        {{#if hasProxy}}<span class="agentos-tag proxy">PROXY</span>{{/if}}
+      </div>
+      <div class="agentos-idc-fields">
+        <div class="agentos-idc-name">{{publicName}}</div>
+        <div class="agentos-idc-sub">{{subtitle}}</div>
+        <div class="agentos-id-row"><span>SIN</span><b>{{sinStatus}}</b></div>
+        <div class="agentos-id-row"><span>{{localize "AGENTOS.Id.Clearance"}}</span><b>{{clearance}}</b></div>
+        <div class="agentos-id-row"><span>{{localize "AGENTOS.Id.RealId"}}</span><b>{{realName}}</b></div>
+        <div class="agentos-id-row"><span>{{localize "AGENTOS.Id.Housing"}}</span><b>{{housingName}}</b></div>
+        <div class="agentos-id-row"><span>{{localize "AGENTOS.Id.Lifestyle"}}</span><b>{{lifestyleName}}</b></div>
+        <div class="agentos-id-row"><span>{{localize "AGENTOS.Id.Trauma"}}</span><b>{{traumaName}}</b></div>
+      </div>
+    </div>
+    <div class="agentos-idc-strip">
+      <span class="agentos-idc-holo"></span>
+      <span class="agentos-idc-barcode"></span>
+      <span class="agentos-idc-code">{{targetUserId}}-A278/NC</span>
+    </div>
+  </div>
+
+  <div class="agentos-id-form">
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.RealName"}}</label>
+      <input type="text" name="id-real-name" value="{{realName}}" placeholder="{{localize "AGENTOS.Id.RealNamePlaceholder"}}">
+    </div>
+
+    <h3 class="agentos-section-title">{{localize "AGENTOS.Id.ProxySection"}}</h3>
+    <div class="agentos-field-row">
+      <input type="text" name="id-proxy-name" value="{{proxyName}}" placeholder="{{localize "AGENTOS.Id.ProxyPlaceholder"}}">
+      <button type="button" class="agentos-icon-btn" data-action="id-proxy-img" data-user-id="{{targetUserId}}" title="{{localize "AGENTOS.Id.ProxyImg"}}"><i class="fas fa-image"></i></button>
+      <button type="button" class="agentos-icon-btn danger" data-action="id-proxy-clear" data-user-id="{{targetUserId}}" title="{{localize "AGENTOS.Id.ProxyClear"}}"><i class="fas fa-rotate-left"></i></button>
+    </div>
+
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.Housing"}}</label>
+      <select name="id-housing" class="agentos-select">
+        <option value="">—</option>
+        {{#each housing}}
+        <option value="{{this.id}}" {{#if (agEq this.id @root.viewData.housingId)}}selected{{/if}}>
+          {{this.name}}{{#if this.rent}} · {{agNum this.rent}}€$/mo{{/if}}{{#if this.buy}} · buy {{agNum this.buy}}€${{/if}}
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.Lifestyle"}}</label>
+      <select name="id-lifestyle" class="agentos-select">
+        <option value="">—</option>
+        {{#each lifestyle}}
+        <option value="{{this.id}}" {{#if (agEq this.id @root.viewData.lifestyleId)}}selected{{/if}}>
+          {{this.name}} · {{agNum this.cost}}€$/mo
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.Trauma"}}</label>
+      <select name="id-trauma" class="agentos-select">
+        <option value="">—</option>
+        {{#each trauma}}
+        <option value="{{this.id}}" {{#if (agEq this.id @root.viewData.traumaId)}}selected{{/if}}>
+          {{this.name}} · {{agNum this.cost}}€$/mo
+        </option>
+        {{/each}}
+      </select>
+    </div>
+
+    {{#if isGM}}
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.Subtitle"}}</label>
+      <input type="text" name="id-subtitle" value="{{subtitle}}">
+    </div>
+    <div class="agentos-field-row">
+      <label>SIN</label>
+      <input type="text" name="id-sin" value="{{sinStatus}}">
+    </div>
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Id.Clearance"}}</label>
+      <input type="text" name="id-clearance" value="{{clearance}}">
+    </div>
+    {{/if}}
+
+    <button type="button" class="agentos-btn primary block" data-action="id-save" data-user-id="{{targetUserId}}">
+      {{localize "AGENTOS.Common.Save"}}
+    </button>
+  </div>
+
+  {{#if isGM}}
+  <button type="button" class="agentos-btn block" data-action="id-options-toggle">
+    <i class="fas fa-sliders"></i> {{localize "AGENTOS.Id.ManageOptions"}}
+  </button>
+
+  {{#if editingOptions}}
+  <div class="agentos-options-editor">
+    <h3 class="agentos-section-title">{{localize "AGENTOS.Id.Housing"}}</h3>
+    <ul class="agentos-list compact">
+      {{#each housing}}
+      <li class="agentos-list-row static">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          <div class="agentos-list-sub">
+            {{#if this.rent}}{{agNum this.rent}}€$/mo{{/if}}
+            {{#if this.buy}} · buy {{agNum this.buy}}€${{/if}}
+            {{#unless (agOr this.rent this.buy)}}—{{/unless}}
+          </div>
+        </div>
+        <button type="button" class="agentos-icon-btn danger" data-action="housing-delete" data-option-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="agentos-field-row">
+      <input type="text" name="housing-name" placeholder="{{localize "AGENTOS.Contacts.Name"}}">
+      <input type="number" name="housing-rent" placeholder="{{localize "AGENTOS.Id.Rent"}}">
+      <input type="number" name="housing-buy" placeholder="{{localize "AGENTOS.Id.Buy"}}">
+      <button type="button" class="agentos-icon-btn" data-action="housing-add"><i class="fas fa-plus"></i></button>
+    </div>
+
+    <h3 class="agentos-section-title">{{localize "AGENTOS.Id.Lifestyle"}}</h3>
+    <ul class="agentos-list compact">
+      {{#each lifestyle}}
+      <li class="agentos-list-row static">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          <div class="agentos-list-sub">{{agNum this.cost}}€$/mo</div>
+        </div>
+        <button type="button" class="agentos-icon-btn danger" data-action="lifestyle-delete" data-option-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="agentos-field-row">
+      <input type="text" name="lifestyle-name" placeholder="{{localize "AGENTOS.Contacts.Name"}}">
+      <input type="number" name="lifestyle-cost" placeholder="{{localize "AGENTOS.Id.Cost"}}">
+      <button type="button" class="agentos-icon-btn" data-action="lifestyle-add"><i class="fas fa-plus"></i></button>
+    </div>
+
+    <h3 class="agentos-section-title">{{localize "AGENTOS.Id.Trauma"}}</h3>
+    <ul class="agentos-list compact">
+      {{#each trauma}}
+      <li class="agentos-list-row static">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+          <div class="agentos-list-sub">{{agNum this.cost}}€$/mo · {{#if (agEq this.tier "platinum")}}{{localize "AGENTOS.Id.TierPlatinum"}}{{else}}{{localize "AGENTOS.Id.TierSilver"}}{{/if}}</div>
+        </div>
+        <button type="button" class="agentos-icon-btn danger" data-action="trauma-delete" data-option-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="agentos-field-row">
+      <input type="text" name="trauma-name" placeholder="{{localize "AGENTOS.Contacts.Name"}}">
+      <input type="number" name="trauma-cost" placeholder="{{localize "AGENTOS.Id.Cost"}}">
+      <select name="trauma-tier" class="agentos-select">
+        <option value="silver">{{localize "AGENTOS.Id.TierSilver"}}</option>
+        <option value="platinum">{{localize "AGENTOS.Id.TierPlatinum"}}</option>
+      </select>
+      <button type="button" class="agentos-icon-btn" data-action="trauma-add"><i class="fas fa-plus"></i></button>
+    </div>
+  </div>
+  {{/if}}
+  {{/if}}
+
+  {{/if}}
+</div>

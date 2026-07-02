@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="agGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- octagon frame, matching the PNG icon set -->
+  <polygon points="167,52 345,52 460,167 460,345 345,460 167,460 52,345 52,167"
+           fill="none" stroke="#b06bff" stroke-width="7" filter="url(#agGlow)" opacity="0.95"/>
+  <!-- gamepad glyph -->
+  <g stroke="#b06bff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"
+     fill="none" filter="url(#agGlow)">
+    <path d="M182 216 h148 a54 54 0 0 1 54 54 v14 a44 44 0 0 1 -44 44 h-14 l-24 -28 h-92 l-24 28 h-14 a44 44 0 0 1 -44 -44 v-14 a54 54 0 0 1 54 -54 z"/>
+    <line x1="212" y1="258" x2="212" y2="290"/>
+    <line x1="196" y1="274" x2="228" y2="274"/>
+  </g>
+  <circle cx="312" cy="264" r="11" fill="#b06bff" filter="url(#agGlow)"/>
+  <circle cx="344" cy="286" r="11" fill="#b06bff" filter="url(#agGlow)"/>
+</svg>

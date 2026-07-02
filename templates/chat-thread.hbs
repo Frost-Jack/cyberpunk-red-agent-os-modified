@@ -1,0 +1,131 @@
+<div class="agentos-thread">
+  <header class="agentos-thread-header">
+    <button type="button" class="agentos-icon-btn" data-action="chat-back"><i class="fas fa-arrow-left"></i></button>
+    <img class="agentos-avatar" src="{{chatImg}}" alt="">
+    <div class="agentos-thread-title">
+      <span>{{chatName}}</span>
+      <small>{{participants.length}} {{localize "AGENTOS.Chat.Members"}}</small>
+    </div>
+    <button type="button" class="agentos-icon-btn" data-action="chat-call" title="{{localize "AGENTOS.Chat.Call"}}"><i class="fas fa-phone"></i></button>
+    {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="chat-rename" title="{{localize "AGENTOS.Chat.RenameChat"}}"><i class="fas fa-pen"></i></button>
+    <button type="button" class="agentos-icon-btn" data-action="chat-participants" title="{{localize "AGENTOS.Chat.Participants"}}"><i class="fas fa-users"></i></button>
+    {{/if}}
+  </header>
+
+  {{#if showParticipants}}
+  <div class="agentos-participants">
+    {{#each participants}}
+    <div class="agentos-participant">
+      <img class="agentos-avatar sm" src="{{this.img}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.sub}}</div>
+      </div>
+      <button type="button" class="agentos-icon-btn" data-action="part-rename" data-key="{{this.key}}" title="{{localize "AGENTOS.Chat.RenameParticipant"}}"><i class="fas fa-pen"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="part-reimg" data-key="{{this.key}}" title="{{localize "AGENTOS.Chat.ChangeAvatar"}}"><i class="fas fa-image"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="part-reimg-clear" data-key="{{this.key}}" title="{{localize "AGENTOS.Chat.ResetOverrides"}}"><i class="fas fa-rotate-left"></i></button>
+      <button type="button" class="agentos-icon-btn danger" data-action="part-remove" data-key="{{this.key}}" title="{{localize "AGENTOS.Common.Remove"}}"><i class="fas fa-user-minus"></i></button>
+    </div>
+    {{/each}}
+    {{#if addable.length}}
+    <select name="chat-add-participant" class="agentos-select">
+      <option value="">{{localize "AGENTOS.Chat.AddParticipant"}}…</option>
+      {{#each addableGroups}}
+      <optgroup label="{{this.name}}">
+        {{#each this.items}}
+        <option value="{{this.key}}">{{this.name}}</option>
+        {{/each}}
+      </optgroup>
+      {{/each}}
+    </select>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  <div class="agentos-chat-scroll">
+    {{#each messages}}
+    <div class="agentos-msg-row {{#if this.isSelf}}self{{/if}}" data-msg-id="{{this.id}}">
+      {{#unless this.isSelf}}
+      <img class="agentos-avatar sm" src="{{this.img}}" alt="">
+      {{/unless}}
+      <div class="agentos-bubble-wrap">
+        {{#unless this.isSelf}}<div class="agentos-msg-sender">{{this.name}}</div>{{/unless}}
+        <div class="agentos-bubble">
+          {{#if this.attachment}}
+            {{#if (agEq this.attachment.kind "image")}}
+              <img class="agentos-attach-img" src="{{this.attachment.src}}" alt="">
+            {{/if}}
+            {{#if (agEq this.attachment.kind "audio")}}
+              <div class="agentos-attach-row">
+                <audio class="agentos-attach-audio" controls src="{{this.attachment.src}}"></audio>
+                <a class="agentos-attach-dl" href="{{this.attachment.src}}" download title="{{localize "AGENTOS.Chat.Download"}}"><i class="fas fa-download"></i></a>
+              </div>
+            {{/if}}
+            {{#if (agEq this.attachment.kind "video")}}
+              <div class="agentos-video-wrap">
+                <video class="agentos-attach-video" controls src="{{this.attachment.src}}"></video>
+                <a class="agentos-attach-dl video-overlay" href="{{this.attachment.src}}" download title="{{localize "AGENTOS.Chat.Download"}}"><i class="fas fa-download"></i></a>
+              </div>
+            {{/if}}
+          {{/if}}
+          {{#if this.text}}<div class="agentos-msg-text">{{this.text}}</div>{{/if}}
+          <span class="agentos-msg-time">{{agTime this.ts}}</span>
+        </div>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+
+  <footer class="agentos-compose">
+    {{#if uploading}}
+    <div class="agentos-attach-chip">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>{{localize "AGENTOS.Chat.Uploading"}}</span>
+    </div>
+    {{/if}}
+    {{#if attachment}}
+    <div class="agentos-attach-chip">
+      <i class="fas {{#if (agEq attachment.kind "image")}}fa-image{{/if}}{{#if (agEq attachment.kind "audio")}}fa-music{{/if}}{{#if (agEq attachment.kind "video")}}fa-film{{/if}}"></i>
+      <span>{{attachment.src}}</span>
+      <button type="button" class="agentos-icon-btn" data-action="chat-attach-clear"><i class="fas fa-xmark"></i></button>
+    </div>
+    {{/if}}
+    {{#if canWrite}}
+    {{#if isGM}}
+    {{#if voice}}
+    <div class="agentos-voice-row">
+      <button type="button" class="agentos-voice-chip" data-action="voice-toggle" title="{{localize "AGENTOS.Chat.PickVoice"}}">
+        <img class="agentos-avatar sm" src="{{voice.img}}" alt="">
+        <span class="agentos-voice-as">{{localize "AGENTOS.Chat.SpeakingAs"}}:</span>
+        <span class="agentos-voice-name">{{voice.name}}</span>
+        <i class="fas fa-chevron-{{#if voicePickerOpen}}down{{else}}up{{/if}}"></i>
+      </button>
+    </div>
+    {{#if voicePickerOpen}}
+    <div class="agentos-voice-panel">
+      {{#each npcParticipants}}
+      <div class="agentos-candidate {{#if (agEq this.key @root.viewData.voiceKey)}}selected{{/if}}" data-action="voice-pick" data-key="{{this.key}}">
+        <img class="agentos-avatar sm" src="{{this.img}}" alt="">
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.name}}</div>
+        </div>
+        <i class="fas {{#if (agEq this.key @root.viewData.voiceKey)}}fa-circle-check{{else}}fa-circle{{/if}}"></i>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+    {{/if}}
+    {{/if}}
+    <div class="agentos-compose-row">
+      <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="image" title="{{localize "AGENTOS.Chat.AttachImage"}}"><i class="fas fa-image"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="audio" title="{{localize "AGENTOS.Chat.AttachAudio"}}"><i class="fas fa-music"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="video" title="{{localize "AGENTOS.Chat.AttachVideo"}}"><i class="fas fa-film"></i></button>
+      <textarea name="chat-input" rows="1" placeholder="{{localize "AGENTOS.Chat.InputPlaceholder"}}">{{draft}}</textarea>
+      <button type="button" class="agentos-icon-btn send" data-action="chat-send"><i class="fas fa-paper-plane"></i></button>
+    </div>
+    {{else}}
+    <p class="agentos-hint">{{#if isGM}}{{localize "AGENTOS.Chat.GmNoNpcHint"}}{{else}}{{localize "AGENTOS.Chat.NotMemberHint"}}{{/if}}</p>
+    {{/if}}
+  </footer>
+</div>
