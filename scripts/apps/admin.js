@@ -8,7 +8,7 @@ import { AgentAudio } from "../audio.js";
 function storeCfg() {
   return foundry.utils.mergeObject({
     maxPrice: 100, sourceFilter: "all", lockedCategories: [],
-    blacklist: [], extraPacks: [], markup: 0, playerMaxPrice: {}
+    blacklist: [], extraPacks: [], markup: 0, playerMaxPrice: {}, playerMarkup: {}
   }, Data.getWorld("storeConfig") || {});
 }
 
@@ -43,7 +43,8 @@ export async function getData(app) {
     playerPrices: game.users.filter(u => !u.isGM).map(u => ({
       id: u.id,
       name: u.name,
-      value: (cfg.playerMaxPrice || {})[u.id] ?? ""
+      value: (cfg.playerMaxPrice || {})[u.id] ?? "",
+      markup: (cfg.playerMarkup || {})[u.id] ?? ""
     })),
     markup: cfg.markup,
     sourceFilter: cfg.sourceFilter,
@@ -104,8 +105,20 @@ export function activateListeners(app, html) {
     await saveStoreCfg({ playerMaxPrice: map });
   });
 
+  /* Global markup — negative allowed (a discount), clamped to -100%. */
   html.on("change", "[name='admin-markup']", async (ev) => {
-    await saveStoreCfg({ markup: Math.max(0, Number(ev.currentTarget.value || 0)) });
+    await saveStoreCfg({ markup: Math.max(-100, Number(ev.currentTarget.value || 0)) });
+  });
+
+  /* Per-player markup. Empty → global markup; negative = discount. */
+  html.on("change", "[data-action='admin-player-markup']", async (ev) => {
+    const userId = ev.currentTarget.dataset.userId;
+    const raw = String(ev.currentTarget.value).trim();
+    const cfg = storeCfg();
+    const map = { ...(cfg.playerMarkup || {}) };
+    if (raw === "") delete map[userId];
+    else map[userId] = Math.max(-100, Number(raw) || 0);
+    await saveStoreCfg({ playerMarkup: map });
   });
 
   html.on("change", "[name='admin-source-filter']", async (ev) => {

@@ -53,7 +53,6 @@ export async function getData(app) {
   const isGM = game.user.isGM;
   const st = app.state;
   const cfg = Data.getWorld("storeConfig") || {};
-  const markup = Number(cfg.markup || 0);
 
   if (!_catalog) {
     loadCatalog(app);
@@ -87,16 +86,25 @@ export async function getData(app) {
   items = items.filter(i => i.category === activeCat);
   if (search) items = items.filter(i => i.name.toLowerCase().includes(search));
 
-  const priced = (p) => Math.ceil(p * (1 + markup / 100));
-  const cart = (st.cart || []).map(uuid => _catalog.find(i => i.uuid === uuid)).filter(Boolean);
-  const total = cart.reduce((a, i) => a + priced(i.price), 0);
-
   let buyer = null;
   if (isGM) {
     if (st.buyerUuid) buyer = await fromUuid(st.buyerUuid);
   } else {
     buyer = game.user.character;
   }
+
+  /* Markup follows the BUYER (the player owning the target actor), so a
+   * per-player markup shows even when a GM shops on their behalf.
+   * Empty per-player value → the global markup. */
+  const buyerUserId = buyer
+    ? (game.users.find(u => !u.isGM && u.character?.uuid === buyer.uuid)?.id || null)
+    : null;
+  const perPlayer = (cfg.playerMarkup || {})[buyerUserId];
+  const markup = Number(perPlayer ?? cfg.markup ?? 0);
+
+  const priced = (p) => Math.max(0, Math.ceil(p * (1 + markup / 100)));
+  const cart = (st.cart || []).map(uuid => _catalog.find(i => i.uuid === uuid)).filter(Boolean);
+  const total = cart.reduce((a, i) => a + priced(i.price), 0);
 
   return {
     loading: false,

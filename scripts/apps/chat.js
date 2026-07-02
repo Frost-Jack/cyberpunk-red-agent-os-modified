@@ -18,7 +18,8 @@ function chatDisplay(chat) {
   const idents = others.map(p => Data.participantIdentity(chat, p.key));
   return {
     name: chat.name || idents.map(i => i.name).join(", ") || "—",
-    img: idents[0]?.img || "icons/svg/mystery-man.svg"
+    // a GM-set chat picture wins over the first participant's avatar
+    img: chat.img || idents[0]?.img || "icons/svg/mystery-man.svg"
   };
 }
 
@@ -131,6 +132,19 @@ export async function getData(app) {
       addable,
       addableGroups,
       showParticipants: !!st.showParticipants,
+      editingChat: st.editingChat ? {
+        name: chat.name || "",
+        img: chat.img || ""
+      } : null,
+      editMsg: (isGM && st.editMsgId) ? (() => {
+        const m = Data.getMessages(st.chatId).find(x => x.id === st.editMsgId);
+        if (!m) return null;
+        // build a YYYY-MM-DDTHH:mm string in local time for <input datetime-local>
+        const d = new Date(m.ts);
+        const pad = (n) => String(n).padStart(2, "0");
+        const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        return { text: m.text || "", tsLocal: local };
+      })() : null,
       attachment: st.attachment || null,
       uploading: !!st.uploading,
       draft: st.draft || ""
@@ -361,7 +375,7 @@ export function activateListeners(app, html) {
     });
   });
 
-  /* GM right-clicks a message → small context menu with "Delete". */
+  /* GM right-clicks a message → context menu: Edit / Delete. */
   if (isGM) {
     html.on("contextmenu", ".agentos-msg-row[data-msg-id]", (ev) => {
       ev.preventDefault();
@@ -375,16 +389,26 @@ export function activateListeners(app, html) {
       const rect = body.getBoundingClientRect();
       const menu = document.createElement("div");
       menu.className = "agentos-ctx-menu";
-      const item = document.createElement("button");
-      item.type = "button";
-      item.className = "agentos-ctx-item danger";
-      item.innerHTML = `<i class="fas fa-trash"></i> ${Handlebars.escapeExpression(loc("AGENTOS.Common.Delete"))}`;
-      item.addEventListener("click", async () => {
+
+      const mkItem = (icon, label, danger, fn) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "agentos-ctx-item" + (danger ? " danger" : "");
+        b.innerHTML = `<i class="fas ${icon}"></i> ${Handlebars.escapeExpression(label)}`;
+        b.addEventListener("click", fn);
+        return b;
+      };
+
+      menu.appendChild(mkItem("fa-pen", loc("AGENTOS.Common.Edit"), false, () => {
+        menu.remove();
+        st.editMsgId = msgId;
+        app.render(false);
+      }));
+      menu.appendChild(mkItem("fa-trash", loc("AGENTOS.Common.Delete"), true, async () => {
         menu.remove();
         if (!(await app.confirm(loc("AGENTOS.Chat.DeleteMessage")))) return;
         await app.mutate("msg.delete", { chatId: st.chatId, msgId });
-      });
-      menu.appendChild(item);
+      }));
       body.appendChild(menu);
 
       // position at the cursor (convert viewport px → zoomed local px),
@@ -402,6 +426,23 @@ export function activateListeners(app, html) {
         document.removeEventListener("pointerdown", dismiss, true);
       };
       document.addEventListener("pointerdown", dismiss, true);
+    });
+
+    html.on("click", "[data-action='msg-edit-cancel']", () => {
+      st.editMsgId = null;
+      app.render(false);
+    });
+
+    html.on("click", "[data-action='msg-edit-save']", async () => {
+      const msgId = st.editMsgId;
+      const text = String(html.find("[name='msg-edit-text']").val() || "");
+      const dt = String(html.find("[name='msg-edit-ts']").val() || "");
+      st.editMsgId = null;
+      AgentAudio.play("tap");
+      app.render(false);
+      // datetime-local → epoch ms (local time); blank keeps the original ts
+      const ts = dt ? new Date(dt).getTime() : undefined;
+      await app.mutate("msg.edit", { chatId: st.chatId, msgId, text, ts });
     });
   }
 
@@ -444,11 +485,40 @@ export function activateListeners(app, html) {
     await app.mutate("chat.addParticipant", { chatId: st.chatId, key });
   });
 
-  html.on("click", "[data-action='chat-rename']", async () => {
-    const chat = Data.getChat(st.chatId);
-    const name = await app.promptText(loc("AGENTOS.Chat.RenameChat"), chat?.name || "");
-    if (name === null) return;
-    await app.mutate("chat.rename", { chatId: st.chatId, name });
+  /* Styled edit-chat modal: rename + change picture. */
+  html.on("click", "[data-action='chat-rename']", () => {
+    st.editingChat = true;
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='chat-edit-cancel']", () => {
+    st.editingChat = false;
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='chat-edit-img']", async () => {
+    const path = await app.pickFile("image");
+    if (path === null) return;
+    st.editChatImg = path;
+    // reflect immediately in the preview without closing the modal
+    html.find(".agentos-chatedit-preview img").attr("src", path || "icons/svg/mystery-man.svg");
+    html.find("[name='chat-edit-img']").val(path);
+  });
+
+  html.on("click", "[data-action='chat-edit-img-clear']", () => {
+    st.editChatImg = "";
+    html.find(".agentos-chatedit-preview img").attr("src", "icons/svg/mystery-man.svg");
+    html.find("[name='chat-edit-img']").val("");
+  });
+
+  html.on("click", "[data-action='chat-edit-save']", async () => {
+    const name = String(html.find("[name='chat-edit-name']").val() || "").trim();
+    const img = String(html.find("[name='chat-edit-img']").val() || "").trim();
+    st.editingChat = false;
+    st.editChatImg = undefined;
+    AgentAudio.play("tap");
+    app.render(false);
+    await app.mutate("chat.rename", { chatId: st.chatId, name, img });
   });
 
   /* keep the thread scrolled to the newest message */

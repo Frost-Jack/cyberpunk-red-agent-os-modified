@@ -13,21 +13,25 @@
     <input type="number" name="admin-max-price" min="0" value="{{maxPrice}}">
   </div>
 
-  {{#if playerPrices.length}}
-  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.PlayerMaxPrice"}}</h4>
-  <p class="agentos-hint">{{localize "AGENTOS.Admin.PlayerMaxPriceHint"}}</p>
-  {{#each playerPrices}}
   <div class="agentos-field-row">
+    <label>{{localize "AGENTOS.Admin.Markup"}} %</label>
+    <input type="number" name="admin-markup" value="{{markup}}">
+  </div>
+  <p class="agentos-hint">{{localize "AGENTOS.Admin.MarkupHint"}}</p>
+
+  {{#if playerPrices.length}}
+  <h4 class="agentos-subsection">{{localize "AGENTOS.Admin.PerPlayerPricing"}}</h4>
+  <p class="agentos-hint">{{localize "AGENTOS.Admin.PerPlayerPricingHint"}}</p>
+  {{#each playerPrices}}
+  <div class="agentos-field-row agentos-player-pricing">
     <label>{{this.name}}</label>
-    <input type="number" min="0" value="{{this.value}}" placeholder="{{@root.viewData.maxPrice}}"
-           data-action="admin-player-price" data-user-id="{{this.id}}">
+    <input type="number" min="0" value="{{this.value}}" placeholder="{{localize "AGENTOS.Admin.CapPh"}}"
+           data-action="admin-player-price" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.PlayerMaxPrice"}}">
+    <input type="number" value="{{this.markup}}" placeholder="{{localize "AGENTOS.Admin.MarkupPh"}}"
+           data-action="admin-player-markup" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.Markup"}} %">
   </div>
   {{/each}}
   {{/if}}
-  <div class="agentos-field-row">
-    <label>{{localize "AGENTOS.Admin.Markup"}} %</label>
-    <input type="number" name="admin-markup" min="0" value="{{markup}}">
-  </div>
   <div class="agentos-field-row">
     <label>{{localize "AGENTOS.Admin.SourceFilter"}}</label>
     <select name="admin-source-filter" class="agentos-select">

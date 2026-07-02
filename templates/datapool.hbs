@@ -7,6 +7,7 @@
       {{#if isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
     </span>
     <span class="agentos-spacer"></span>
+    <button type="button" class="agentos-icon-btn" data-action="shard-move" title="{{localize "AGENTOS.Data.MoveToFolder"}}"><i class="fas fa-folder-tree"></i></button>
     {{#if canEdit}}
     <button type="button" class="agentos-icon-btn" data-action="shard-edit" title="{{localize "AGENTOS.Data.EditShard"}}"><i class="fas fa-pen"></i></button>
     {{/if}}
@@ -21,7 +22,21 @@
   <div class="agentos-shard-meta">
     <span><i class="fas fa-user"></i> {{shard.authorName}}</span>
     <span><i class="fas fa-clock"></i> {{agDate shard.ts}} {{agTime shard.ts}}</span>
+    {{#if currentFolder}}<span><i class="fas fa-folder"></i> {{currentFolder}}</span>{{/if}}
   </div>
+
+  {{#if hasRecipients}}
+  <div class="agentos-shard-recipients">
+    <div class="agentos-shard-recipients-head"><i class="fas fa-paper-plane"></i> {{localize "AGENTOS.Data.SentTo"}}</div>
+    {{#each recipients}}
+    <div class="agentos-shard-recipient">
+      <span class="agentos-shard-recipient-name">{{this.name}} <small>({{this.userName}})</small></span>
+      <span class="agentos-shard-recipient-ts">{{agDate this.ts}} {{agTime this.ts}}</span>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+
   <div class="agentos-shard-body">{{{bodyHtml}}}</div>
 </div>
 
@@ -58,30 +73,42 @@
     </button>
   </div>
 
-  {{#if shards.length}}
-  <ul class="agentos-list">
-    {{#each shards}}
-    <li class="agentos-list-row" data-action="shard-open" data-shard-id="{{this.id}}">
-      <span class="agentos-shard-icon {{#if this.isAuthored}}authored{{else}}received{{/if}}">
-        <i class="fas {{#if this.isAuthored}}fa-file-pen{{else}}fa-file-arrow-down{{/if}}"></i>
-      </span>
-      <div class="agentos-list-main">
-        <div class="agentos-list-title">{{this.title}}</div>
-        <div class="agentos-list-sub">
-          {{this.authorName}}
-          {{#if @root.isGM}} · {{localize "AGENTOS.Data.By"}} {{this.creatorName}} · <i class="fas fa-users"></i> {{this.recipientCount}}{{/if}}
-        </div>
-      </div>
-      <div class="agentos-list-meta">
-        <span class="agentos-tag {{#if this.isAuthored}}authored{{else}}received{{/if}}">
-          {{#if this.isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
+  {{#if hasShards}}
+  {{#each groups}}
+  <div class="agentos-folder">
+    <div class="agentos-folder-header" data-action="shard-folder-toggle" data-folder="{{this.name}}">
+      <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+      <span class="agentos-folder-name">{{this.name}}</span>
+      <span class="agentos-folder-count">{{this.count}}</span>
+      <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+    </div>
+    {{#unless this.collapsed}}
+    <ul class="agentos-list">
+      {{#each this.shards}}
+      <li class="agentos-list-row" data-action="shard-open" data-shard-id="{{this.id}}">
+        <span class="agentos-shard-icon {{#if this.isAuthored}}authored{{else}}received{{/if}}">
+          <i class="fas {{#if this.isAuthored}}fa-file-pen{{else}}fa-file-arrow-down{{/if}}"></i>
         </span>
-        {{#if (agAnd @root.isGM this.isCopy)}}<span class="agentos-tag">{{localize "AGENTOS.Data.Copy"}}</span>{{/if}}
-        <span class="agentos-list-time">{{agDate this.ts}}</span>
-      </div>
-    </li>
-    {{/each}}
-  </ul>
+        <div class="agentos-list-main">
+          <div class="agentos-list-title">{{this.title}}</div>
+          <div class="agentos-list-sub">
+            {{this.authorName}}
+            {{#if @root.viewData.isGM}} · {{localize "AGENTOS.Data.By"}} {{this.creatorName}} · <i class="fas fa-users"></i> {{this.recipientCount}}{{/if}}
+          </div>
+        </div>
+        <div class="agentos-list-meta">
+          <span class="agentos-tag {{#if this.isAuthored}}authored{{else}}received{{/if}}">
+            {{#if this.isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
+          </span>
+          {{#if (agAnd @root.viewData.isGM this.isCopy)}}<span class="agentos-tag">{{localize "AGENTOS.Data.Copy"}}</span>{{/if}}
+          <span class="agentos-list-time">{{agDate this.ts}}</span>
+        </div>
+      </li>
+      {{/each}}
+    </ul>
+    {{/unless}}
+  </div>
+  {{/each}}
   {{else}}
   <p class="agentos-empty">{{localize "AGENTOS.Data.Empty"}}</p>
   {{/if}}
@@ -109,6 +136,9 @@
       <option value="html" {{#if (agEq compose.format "html")}}selected{{/if}}>HTML</option>
     </select>
     <textarea name="shard-body" rows="8" placeholder="{{localize "AGENTOS.Data.BodyPlaceholder"}}">{{compose.body}}</textarea>
+    {{#unless isEditing}}
+    <input type="text" name="shard-folder" value="{{compose.folder}}" placeholder="{{localize "AGENTOS.Data.FolderPlaceholder"}}">
+    {{/unless}}
     <div class="agentos-modal-actions">
       <button type="button" class="agentos-btn" data-action="shard-compose-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
       <button type="button" class="agentos-btn primary" data-action="shard-create">{{#if isEditing}}{{localize "AGENTOS.Common.Save"}}{{else}}{{localize "AGENTOS.Common.Create"}}{{/if}}</button>

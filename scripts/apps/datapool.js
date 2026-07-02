@@ -91,9 +91,31 @@ export async function getData(app) {
   const shards = Data.shardsForUser(game.user.id, isGM)
     .slice().sort((a, b) => b.ts - a.ts);
 
+  /* The folder a shard lives in FOR THE CURRENT VIEWER. */
+  const folderOf = (s) => {
+    if (!s.isCopy && (isGM || s.createdBy === game.user.id)) return (s.folder || "").trim();
+    return ((s.recipientFolders || {})[game.user.id] || "").trim();
+  };
+  const allFolders = [...new Set(shards.map(folderOf).filter(Boolean))].sort();
+
   if (st.shardId) {
     const shard = shards.find(s => s.id === st.shardId);
     if (!shard) { app.state = {}; return getData(app); }
+
+    /* GM sees WHO got a copy and WHEN (recipients keyed by userId → ts). */
+    let recipients = [];
+    if (isGM) {
+      recipients = Object.entries(shard.recipients || {}).map(([uid, ts]) => ({
+        name: Data.playerIdentity(uid).name,
+        userName: game.users.get(uid)?.name || "?",
+        ts
+      })).sort((a, b) => a.ts - b.ts);
+      for (const gid of (shard.gardenRecipients || [])) {
+        const g = Data.gardenContact(gid);
+        recipients.push({ name: g?.name || "Garden", userName: "Garden", ts: shard.ts });
+      }
+    }
+
     return {
       viewing: true,
       shard,
@@ -102,12 +124,41 @@ export async function getData(app) {
       canDelete: isGM || shard.createdBy === game.user.id,
       canSend: !shard.isCopy && (isGM || shard.createdBy === game.user.id),
       canEdit: !shard.isCopy && (isGM || shard.createdBy === game.user.id),
+      currentFolder: folderOf(shard),
+      folders: allFolders,
+      recipients,
+      hasRecipients: recipients.length > 0,
       sending: !!st.sending,
       candidates: st.sending ? recipientCandidates(isGM, shard.createdBy).map(c => ({
         ...c, selected: (st.sendTo || []).includes(c.id)
       })) : []
     };
   }
+
+  const mapped = shards.map(s => ({
+    id: s.id,
+    title: s.title,
+    authorName: s.authorName,
+    ts: s.ts,
+    isCopy: !!s.isCopy,
+    isAuthored: s.createdBy === game.user.id && !s.isCopy,
+    creatorName: isGM ? (game.users.get(s.createdBy)?.name || "?") : "",
+    recipientCount: Object.keys(s.recipients || {}).length + (s.gardenRecipients || []).length,
+    folder: folderOf(s)
+  }));
+
+  /* Group into collapsible folders; ungrouped bucket first. */
+  const noFolder = loc("AGENTOS.Data.NoFolder");
+  const byFolder = new Map();
+  for (const s of mapped) {
+    const key = s.folder || noFolder;
+    if (!byFolder.has(key)) byFolder.set(key, []);
+    byFolder.get(key).push(s);
+  }
+  const collapsed = st.collapsed || {};
+  const groups = [...byFolder.entries()]
+    .sort((a, b) => (a[0] === noFolder ? -1 : b[0] === noFolder ? 1 : a[0].localeCompare(b[0])))
+    .map(([name, items]) => ({ name, collapsed: !!collapsed[name], count: items.length, shards: items }));
 
   return {
     viewing: false,
@@ -116,16 +167,8 @@ export async function getData(app) {
     compose: st.compose || { title: "", body: "", format: "plain", authorName: "" },
     isGM,
     gardenAuthors: isGM ? Data.visibleGardenContacts(true) : [],
-    shards: shards.map(s => ({
-      id: s.id,
-      title: s.title,
-      authorName: s.authorName,
-      ts: s.ts,
-      isCopy: !!s.isCopy,
-      isAuthored: s.createdBy === game.user.id && !s.isCopy,
-      creatorName: isGM ? (game.users.get(s.createdBy)?.name || "?") : "",
-      recipientCount: Object.keys(s.recipients || {}).length + (s.gardenRecipients || []).length
-    }))
+    hasShards: mapped.length > 0,
+    groups
   };
 }
 
@@ -143,11 +186,30 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
+  /* ---- folders ---- */
+
+  html.on("click", "[data-action='shard-folder-toggle']", (ev) => {
+    const name = ev.currentTarget.dataset.folder;
+    st.collapsed = st.collapsed || {};
+    st.collapsed[name] = !st.collapsed[name];
+    app.render(false);
+  });
+
+  /* Move the currently-open shard into a folder (author's original or the
+   * recipient's own copy — the op figures out which). */
+  html.on("click", "[data-action='shard-move']", async () => {
+    const folder = await app.promptText(loc("AGENTOS.Data.MoveToFolder"),
+      (await getData(app)).currentFolder || "", loc("AGENTOS.Data.FolderPlaceholder"));
+    if (folder === null) return;
+    await app.mutate("shard.setFolder", { shardId: st.shardId, folder: folder.trim() });
+  });
+
   const readCompose = () => ({
     title: String(html.find("[name='shard-title']").val() ?? st.compose?.title ?? ""),
     body: String(html.find("[name='shard-body']").val() ?? st.compose?.body ?? ""),
     format: String(html.find("[name='shard-format']").val() ?? st.compose?.format ?? "plain"),
-    authorName: String(html.find("[name='shard-author']").val() ?? st.compose?.authorName ?? "")
+    authorName: String(html.find("[name='shard-author']").val() ?? st.compose?.authorName ?? ""),
+    folder: String(html.find("[name='shard-folder']").val() ?? st.compose?.folder ?? "")
   });
 
   html.on("click", "[data-action='shard-compose']", () => {
@@ -177,7 +239,7 @@ export function activateListeners(app, html) {
   });
 
   /* Keep the compose draft synced so background re-renders never wipe it. */
-  html.on("input change", "[name='shard-title'], [name='shard-body'], [name='shard-format'], [name='shard-author']", () => {
+  html.on("input change", "[name='shard-title'], [name='shard-body'], [name='shard-format'], [name='shard-author'], [name='shard-folder']", () => {
     st.compose = readCompose();
   });
 
@@ -191,7 +253,7 @@ export function activateListeners(app, html) {
 
   html.on("click", "[data-action='shard-create']", (ev) => {
     ev.preventDefault();
-    const { title, body, format, authorName } = readCompose();
+    const { title, body, format, authorName, folder } = readCompose();
     if (!title.trim() || !body) return AgentAudio.play("error");
     const editShardId = st.editShardId;
     st.composing = false;
@@ -202,7 +264,7 @@ export function activateListeners(app, html) {
     if (editShardId) {
       app.mutate("shard.update", { shardId: editShardId, patch: { title: title.trim(), body, format, authorName: authorName.trim() } });
     } else {
-      app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim() } });
+      app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim(), folder: (folder || "").trim() } });
     }
   });
 

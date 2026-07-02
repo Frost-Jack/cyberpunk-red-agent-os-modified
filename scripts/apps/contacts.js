@@ -190,8 +190,11 @@ export function activateListeners(app, html) {
 
   html.on("click", "[data-action='contact-share-open']", (ev) => {
     ev.stopPropagation();
-    st.sharing = ev.currentTarget.dataset.contactId;
-    st.shareTo = [];
+    const contactId = ev.currentTarget.dataset.contactId;
+    st.sharing = contactId;
+    // Pre-select who it's already shared with, so unchecking removes them.
+    const c = Data.contactsForUser(game.user.id, game.user.isGM).find(x => x.id === contactId);
+    st.shareTo = [...(c?.sharedWith || [])];
     app.render(false);
   });
 
@@ -211,8 +214,7 @@ export function activateListeners(app, html) {
   html.on("click", "[data-action='contact-share']", (ev) => {
     ev.preventDefault();
     const contactId = st.sharing;
-    const userIds = st.shareTo || [];
-    if (!userIds.length) return AgentAudio.play("error");
+    const userIds = st.shareTo || [];   // exact set — empty means "shared with nobody"
     st.sharing = null;
     st.shareTo = [];
     AgentAudio.play("tap");

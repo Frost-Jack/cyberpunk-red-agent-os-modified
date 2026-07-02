@@ -312,12 +312,13 @@ const OPS = {
     return id;
   },
 
-  async "chat.rename"({ chatId, name }, userId) {
+  async "chat.rename"({ chatId, name, img }, userId) {
     const chats = getWorld("agentChats") || {};
     const chat = chats[chatId];
     if (!chat) return false;
     if (!requesterIsGM(userId) && chat.createdBy !== userId) return false;
-    chat.name = String(name || "");
+    if (name !== undefined) chat.name = String(name || "");
+    if (img !== undefined) chat.img = String(img || "").slice(0, 1000);
     await setWorld("agentChats", chats);
     return true;
   },
@@ -422,6 +423,24 @@ const OPS = {
     return true;
   },
 
+  /* GM silently edits a message's text and/or timestamp. No "edited" flag is
+   * stored, so players never see that anything changed. */
+  async "msg.edit"({ chatId, msgId, text, ts }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const all = getWorld("agentMessages") || {};
+    const list = all[chatId];
+    const msg = list?.find(m => m.id === msgId);
+    if (!msg) return false;
+    if (text !== undefined) msg.text = String(text).slice(0, 5000);
+    if (Number.isFinite(ts) && ts > 0) msg.ts = ts;
+    // keep the thread ordered by timestamp after a time edit
+    list.sort((a, b) => a.ts - b.ts);
+    const chats = getWorld("agentChats") || {};
+    if (chats[chatId]) { chats[chatId].lastTs = list[list.length - 1]?.ts || chats[chatId].lastTs; await setWorld("agentChats", chats); }
+    await setWorld("agentMessages", all);
+    return true;
+  },
+
   /* ---- Garden contacts ---- */
 
   async "garden.save"({ contact }, userId) {
@@ -496,8 +515,32 @@ const OPS = {
       authorName: isGM ? String(shard.authorName || "???") : playerIdentity(userId).name,
       createdBy: userId,
       recipients: {},
+      folder: String(shard.folder || "").trim(),
       ts: Date.now()
     });
+    await setWorld("agentShards", list);
+    return true;
+  },
+
+  /* Move a shard into a folder. Folders are per-viewer: the author sets the
+   * folder on originals they own; a recipient files their delivered COPY via
+   * `recipientFolders[userId]`. */
+  async "shard.setFolder"({ shardId, folder }, userId) {
+    const list = getWorld("agentShards") || [];
+    const shard = list.find(s => s.id === shardId);
+    if (!shard) return false;
+    const isGM = requesterIsGM(userId);
+    const f = String(folder || "").trim().slice(0, 100);
+    const owns = shard.createdBy === userId && !shard.isCopy;
+    if (isGM || owns) {
+      shard.folder = f;
+    } else if (shard.recipients && shard.recipients[userId]) {
+      shard.recipientFolders = shard.recipientFolders || {};
+      if (f) shard.recipientFolders[userId] = f;
+      else delete shard.recipientFolders[userId];
+    } else {
+      return false;
+    }
     await setWorld("agentShards", list);
     return true;
   },
@@ -601,14 +644,18 @@ const OPS = {
     return true;
   },
 
+  /* Set the EXACT share list — checking a box shares, unchecking removes.
+   * Only newly-added users are notified. */
   async "contact.share"({ contactId, userIds }, userId) {
     const list = getWorld("personalContacts") || [];
     const c = list.find(x => x.id === contactId);
     if (!c) return false;
-    if (!requesterIsGM(userId) && c.ownerUserId !== userId && !(c.sharedWith || []).includes(userId)) return false;
-    c.sharedWith = Array.from(new Set([...(c.sharedWith || []), ...(userIds || [])])).filter(u => u !== c.ownerUserId);
+    if (!requesterIsGM(userId) && c.ownerUserId !== userId) return false;
+    const before = new Set(c.sharedWith || []);
+    c.sharedWith = Array.from(new Set(userIds || [])).filter(u => u !== c.ownerUserId);
+    const added = c.sharedWith.filter(u => !before.has(u));
     await setWorld("personalContacts", list);
-    notifyClients({ kind: "contactShared", name: c.name, recipientUserIds: userIds || [] });
+    if (added.length) notifyClients({ kind: "contactShared", name: c.name, recipientUserIds: added });
     return true;
   },
 
@@ -799,7 +846,11 @@ const OPS = {
     if (!actor) return false;
     if (!requesterIsGM(userId) && !actor.testUserPermission(game.users.get(userId), "OWNER")) return false;
     const cfg = getWorld("storeConfig") || {};
-    const markup = Number(cfg.markup || 0);
+    // Pricing follows the ACTOR'S OWNER, not the request sender — so a GM
+    // buying for a player still applies that player's markup / price cap.
+    const ownerId = game.users.find(u => !u.isGM && actor.testUserPermission(u, "OWNER"))?.id || null;
+    // per-player markup overrides the global one; both may be negative (discount)
+    const markup = Number((cfg.playerMarkup || {})[ownerId] ?? cfg.markup ?? 0);
     const blacklist = (cfg.blacklist || []).map(b => b.uuid);
     const docs = [];
     let total = 0;
@@ -819,7 +870,7 @@ const OPS = {
       if (cfg.sourceFilter === "extra" && isCore) continue;
       const price = Number(foundry.utils.getProperty(doc, "system.price.market") || 0);
       if (cap > 0 && price > cap) continue;
-      total += Math.ceil(price * (1 + markup / 100));
+      total += Math.max(0, Math.ceil(price * (1 + markup / 100)));
       docs.push(doc);
     }
     if (!docs.length) return false;

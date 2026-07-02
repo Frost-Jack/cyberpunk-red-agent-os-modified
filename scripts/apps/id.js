@@ -33,7 +33,7 @@ export async function getData(app) {
     publicImg: Data.playerIdentity(targetUserId || "").img,
     subtitle: prof.subtitle || "Citizen Priority A+",
     sinStatus: prof.sinStatus || "Registered",
-    clearance: prof.clearance || "Verified",
+    clearance: prof.clearance || "NC Citizen",
     housing,
     lifestyle,
     trauma,
