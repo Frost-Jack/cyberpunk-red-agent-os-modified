@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="agLibGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- octagon frame, matching the app-icon set -->
+  <polygon points="167,52 345,52 460,167 460,345 345,460 167,460 52,345 52,167"
+           fill="none" stroke="#ffa361" stroke-width="7" filter="url(#agLibGlow)" opacity="0.95"/>
+  <!-- stacked data-books / spines -->
+  <g filter="url(#agLibGlow)">
+    <rect x="150" y="150" width="34" height="212" rx="4" fill="none" stroke="#ffa361" stroke-width="12"/>
+    <rect x="196" y="150" width="34" height="212" rx="4" fill="none" stroke="#ffa361" stroke-width="12"/>
+    <!-- a leaning volume -->
+    <rect x="248" y="168" width="34" height="194" rx="4" fill="none" stroke="#ffa361" stroke-width="12"
+          transform="rotate(12 265 265)"/>
+    <!-- title bands -->
+    <line x1="150" y1="196" x2="184" y2="196" stroke="#ffa361" stroke-width="8"/>
+    <line x1="196" y1="196" x2="230" y2="196" stroke="#ffa361" stroke-width="8"/>
+  </g>
+  <!-- data glint -->
+  <circle cx="332" cy="330" r="8" fill="#ffd23f" filter="url(#agLibGlow)"/>
+  <path d="M318 300 h40 M322 348 h32" stroke="#ffd23f" stroke-width="6" stroke-linecap="round" filter="url(#agLibGlow)"/>
+</svg>

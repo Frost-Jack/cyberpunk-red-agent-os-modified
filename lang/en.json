@@ -12,6 +12,7 @@
       "id": "ID",
       "ncpd": "NCPD",
       "garden": "Garden",
+      "library": "Library",
       "arcade": "Arcade",
       "admin": "Sys Admin",
       "settings": "Settings"
@@ -27,8 +28,21 @@
       "id": "ID",
       "ncpd": "NCPD",
       "garden": "Garden",
+      "library": "Library",
       "arcade": "Arcade",
       "admin": "Admin"
+    },
+    "Library": {
+      "Refresh": "Update files",
+      "Empty": "The library is empty.",
+      "EmptyGm": "The library is empty. Use \"Update files\" to pull books from a source URL.",
+      "SourcePrompt": "Source URL (folder with index.json, or a direct index.json):",
+      "RenameBook": "Rename book",
+      "DeleteBook": "Delete this book?",
+      "Fetching": "Fetching index…",
+      "Downloading": "Downloading {done} / {total}…",
+      "Done": "Library updated: {added} new, {skipped} skipped, {failed} failed.",
+      "Failed": "Could not read the source. Check the URL and that it is reachable."
     },
     "Theme": {
       "red": "Cyberpunk RED",

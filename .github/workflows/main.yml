@@ -1,14 +1,14 @@
 # GitHub Actions workflow for creating a new FoundryVTT module release.
 #
 # How to release:
-#   1. Bump nothing by hand — the version comes from the release tag.
+#   1. Don't edit versions by hand — the version comes from the release tag.
 #   2. Create and publish a GitHub Release with a tag like "v2.0.0" (or "2.0.0").
 #   3. This workflow patches module.json (version / url / manifest / download),
 #      builds module.zip and attaches both files to the release.
 #
-# The manifest committed in the repository keeps REAL values so a checked-out
+# The manifest committed in the repository keeps real values so a checked-out
 # copy works as-is in a local Foundry Data/modules folder; the release copy is
-# patched in the runner's filesystem only (никаких коммитов не создаётся).
+# patched in the runner's filesystem only (no commits are created).
 #
 # Foundry install URL (stable, always latest release):
 #   https://github.com/Frost-Jack/cyberpunk-red-agent-os-modified/releases/latest/download/module.json

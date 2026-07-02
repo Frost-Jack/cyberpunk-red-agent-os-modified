@@ -1,5 +1,17 @@
 # Agent OS — Changelog
 
+## Library app
+
+New **Library** application: a phone-style browser for system PDF books.
+
+- Folder/file tree with cover thumbnails (rendered from each PDF's first page
+  via Foundry's bundled pdf.js), books open in an in-app framed reader.
+- GM **Update files**: pull the whole tree from an external source URL — new
+  books are downloaded into the Foundry host, existing ones are skipped.
+- GM right-click on a book → **rename / delete**. Players get read-only access.
+- Bundled source tooling: `tools/library-server.mjs` (zero-dependency indexer +
+  CORS static server) and `tools/LIBRARY-SOURCE.md` (tunnel instructions).
+
 ## Beta 5.5.28 — Mac/Safari NC Mart cart-row buttons restored
 
 Game-night report from Mac users: NC Mart cart was visible but the -/+/trash buttons inside cart rows weren't (or were laid out broken). Windows/Linux users saw them fine.

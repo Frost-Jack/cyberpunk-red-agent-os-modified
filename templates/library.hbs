@@ -1,0 +1,60 @@
+<div class="agentos-library">
+  <div class="agentos-toolbar agentos-lib-bar">
+    {{#unless atRoot}}
+    <button type="button" class="agentos-icon-btn" data-action="lib-up"><i class="fas fa-arrow-up"></i></button>
+    {{/unless}}
+    <div class="agentos-lib-crumbs">
+      <button type="button" class="agentos-lib-crumb" data-action="lib-crumb" data-node-id="">
+        <i class="fas fa-book-open"></i>
+      </button>
+      {{#each crumbs}}
+      <span class="agentos-lib-crumb-sep">/</span>
+      <button type="button" class="agentos-lib-crumb" data-action="lib-crumb" data-node-id="{{this.id}}">{{this.name}}</button>
+      {{/each}}
+    </div>
+    <span class="agentos-spacer"></span>
+    {{#if isGM}}
+    <button type="button" class="agentos-btn" data-action="lib-refresh" {{#if busy}}disabled{{/if}}>
+      <i class="fas fa-cloud-arrow-down"></i> {{localize "AGENTOS.Library.Refresh"}}
+    </button>
+    {{/if}}
+  </div>
+
+  {{#if busy}}
+  <div class="agentos-lib-busy">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>{{busyText}}</span>
+  </div>
+  {{/if}}
+
+  {{#if empty}}
+  <p class="agentos-empty">
+    {{#if isGM}}{{localize "AGENTOS.Library.EmptyGm"}}{{else}}{{localize "AGENTOS.Library.Empty"}}{{/if}}
+  </p>
+  {{else}}
+  <div class="agentos-lib-grid">
+    {{#each folders}}
+    <button type="button" class="agentos-lib-folder" data-action="lib-open-folder" data-node-id="{{this.id}}">
+      <span class="agentos-lib-folder-icon"><i class="fas fa-folder"></i></span>
+      <span class="agentos-lib-name">{{this.name}}</span>
+      <span class="agentos-lib-count">{{this.count}}</span>
+    </button>
+    {{/each}}
+
+    {{#each files}}
+    <button type="button" class="agentos-lib-book" data-action="lib-open-file"
+            data-node-id="{{this.id}}" data-src="{{this.src}}" data-title="{{this.name}}">
+      <span class="agentos-lib-cover">
+        {{#if this.cover}}
+        <img src="{{this.cover}}" alt="" loading="lazy">
+        {{else}}
+        <span class="agentos-lib-cover-fallback"><i class="fas fa-file-pdf"></i></span>
+        {{/if}}
+        <span class="agentos-lib-spine"></span>
+      </span>
+      <span class="agentos-lib-name">{{this.name}}</span>
+    </button>
+    {{/each}}
+  </div>
+  {{/if}}
+</div>

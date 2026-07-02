@@ -12,6 +12,7 @@
       "id": "ID",
       "ncpd": "NCPD",
       "garden": "Garden",
+      "library": "Библиотека",
       "arcade": "Аркада",
       "admin": "Сисадмин",
       "settings": "Настройки"
@@ -27,8 +28,21 @@
       "id": "ID",
       "ncpd": "NCPD",
       "garden": "Garden",
+      "library": "Книги",
       "arcade": "Аркада",
       "admin": "Админ"
+    },
+    "Library": {
+      "Refresh": "Обновить файлы",
+      "Empty": "Библиотека пуста.",
+      "EmptyGm": "Библиотека пуста. Нажмите «Обновить файлы», чтобы выкачать книги по URL источника.",
+      "SourcePrompt": "URL источника (папка с index.json или прямой index.json):",
+      "RenameBook": "Переименовать книгу",
+      "DeleteBook": "Удалить эту книгу?",
+      "Fetching": "Получение индекса…",
+      "Downloading": "Загрузка {done} / {total}…",
+      "Done": "Библиотека обновлена: {added} новых, {skipped} пропущено, {failed} с ошибкой.",
+      "Failed": "Не удалось прочитать источник. Проверьте URL и доступность."
     },
     "Theme": {
       "red": "Cyberpunk RED",

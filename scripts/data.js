@@ -22,6 +22,13 @@ async function setWorld(key, value) {
   return game.settings.set(MODULE_ID, key, value);
 }
 
+/** Direct world write — GM-only callers only (e.g. the library downloader). */
+export async function setWorldGM(key, value) {
+  if (!game.user.isGM) return false;
+  await setWorld(key, value);
+  return true;
+}
+
 export function primaryGM() {
   return game.users.filter(u => u.isGM && u.active).sort((a, b) => a.id.localeCompare(b.id))[0] ?? null;
 }
@@ -702,6 +709,31 @@ const OPS = {
   async "lifestyle.delete"({ optionId }, userId) {
     if (!requesterIsGM(userId)) return false;
     await setWorld("lifestyleOptions", (getWorld("lifestyleOptions") || []).filter(o => o.id !== optionId));
+    return true;
+  },
+
+  /* ---- library (GM only; PDFs are downloaded by the GM client itself) ---- */
+
+  async "library.setTree"({ tree }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    await setWorld("libraryTree", Array.isArray(tree) ? tree : []);
+    return true;
+  },
+
+  async "library.renameFile"({ nodeId, name }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const tree = getWorld("libraryTree") || [];
+    const node = tree.find(n => n.id === nodeId);
+    if (!node) return false;
+    node.name = String(name || node.name).slice(0, 200);
+    await setWorld("libraryTree", tree);
+    return true;
+  },
+
+  async "library.deleteFile"({ nodeId }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const tree = getWorld("libraryTree") || [];
+    await setWorld("libraryTree", tree.filter(n => n.id !== nodeId));
     return true;
   },
 

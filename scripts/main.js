@@ -18,7 +18,8 @@ const WORLD_OBJECTS = {
   lifestyleOptions: [],
   traumaOptions: [],
   storeConfig: {},
-  appConfig: {}
+  appConfig: {},
+  libraryTree: []
 };
 
 Hooks.once("init", () => {
@@ -34,6 +35,9 @@ Hooks.once("init", () => {
   });
   game.settings.register(MODULE_ID, "defaultsSeeded", {
     scope: "world", config: false, type: Boolean, default: false
+  });
+  game.settings.register(MODULE_ID, "librarySourceUrl", {
+    scope: "world", config: false, type: String, default: ""
   });
   game.settings.register(MODULE_ID, "enableCallAnimation", {
     name: "AGENTOS.Settings.CallAnimation",
@@ -62,7 +66,7 @@ Hooks.once("ready", async () => {
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
     "contacts", "map", "bio", "store", "id", "ncpd", "garden",
-    "arcade", "admin", "settings"
+    "library", "arcade", "admin", "settings"
   ].map(TPL));
 
   // Seed default Housing / Lifestyle options once (GM only).
