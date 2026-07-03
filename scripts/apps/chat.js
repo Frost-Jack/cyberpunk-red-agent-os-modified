@@ -283,6 +283,28 @@ export function activateListeners(app, html) {
     st.draft = ev.currentTarget.value;
     st.composeFocus = true;
   });
+
+  /* Paste an image straight from the clipboard (Ctrl+V) into the input. */
+  html.on("paste", "[name='chat-input']", async (ev) => {
+    const items = ev.originalEvent?.clipboardData?.items || ev.clipboardData?.items;
+    if (!items) return;
+    const imgItem = [...items].find(i => i.kind === "file" && i.type.startsWith("image/"));
+    if (!imgItem) return;                    // plain text paste — let it through
+    ev.preventDefault();
+    const blob = imgItem.getAsFile();
+    if (!blob) return;
+    const ext = (blob.type.split("/")[1] || "png").replace(/[^\w]/g, "");
+    const file = new File([blob], `clipboard-${Date.now()}.${ext}`, { type: blob.type });
+    st.draft = String(html.find("[name='chat-input']").val() || "");
+    st.composeFocus = true;
+    st.uploading = true;
+    app.render(false);
+    const path = await app.uploadFile(file);
+    st.uploading = false;
+    if (path) st.attachment = { kind: "image", src: path };
+    app.render(false);
+  });
+
   html.find("[name='chat-input']").on("blur", () => { st.composeFocus = false; });
   if (st.composeFocus) {
     const ta = html.find("[name='chat-input']")[0];
