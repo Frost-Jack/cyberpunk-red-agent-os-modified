@@ -168,16 +168,16 @@ Hooks.on(`${MODULE_ID}.notify`, async (data) => {
   const forMe = (ids) => Array.isArray(ids) && ids.includes(game.user.id);
 
   if (data.kind === "message") {
-    const participant = forMe(data.participantUserIds);
-    if (!participant && !isGM) return;
-    // Author's own client gets no ping.
-    if (data.senderKey === `player:${game.user.id}`) { _rerenderDebounced(); return; }
+    // A recipient is a chat participant; the GM observes every chat.
+    const isRecipient = forMe(data.participantUserIds) || isGM;
+    if (!isRecipient) return;
+    // The author's own client (player OR GM speaking as an NPC) gets no ping.
+    if (data.authorUserId === game.user.id) { _rerenderDebounced(); return; }
     const viewingThread = app?.rendered && app.currentApp === "chat" && app.state.chatId === data.chatId;
-    if (participant && viewingThread) {
+    if (viewingThread) {
       const { markChatRead } = await import("./data.js");
       await markChatRead(data.chatId);
-    }
-    if (participant && !viewingThread) {
+    } else {
       AgentAudio.play("message");
       showToast(`${data.senderName}`, data.preview, () => {
         const ui2 = globalThis.AgentOS?.ui;

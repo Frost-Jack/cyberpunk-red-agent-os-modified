@@ -188,12 +188,18 @@ async function ensureMapFolder(userId) {
 export function unreadCounts() {
   const lastRead = game.user.getFlag(MODULE_ID, "lastRead") || {};
   const selfKey = participantKeyForUser(game.user.id);
+  const isGM = game.user.isGM;
   const out = {};
-  const chats = game.user.isGM ? allChats() : chatsForUser(game.user.id);
+  const chats = isGM ? allChats() : chatsForUser(game.user.id);
   for (const chat of chats) {
-    if (game.user.isGM) { out[chat.id] = 0; continue; } // GM is an observer, no unreads
     const since = lastRead[chat.id] || 0;
-    out[chat.id] = getMessages(chat.id).filter(m => m.ts > since && m.senderKey !== selfKey).length;
+    // Player: incoming = not from their own participant key. GM: incoming =
+    // any message they didn't send themselves (msg.authorUserId identifies the
+    // emitting user, so GM-voiced NPC lines don't count as unread).
+    out[chat.id] = getMessages(chat.id).filter(m => {
+      if (m.ts <= since) return false;
+      return isGM ? (m.authorUserId !== game.user.id) : (m.senderKey !== selfKey);
+    }).length;
   }
   return out;
 }
@@ -486,6 +492,7 @@ const OPS = {
       chatName: chat.name,
       senderKey,
       senderName: identity.name,
+      authorUserId: userId,
       preview: text ? text.slice(0, 80) : "📎",
       participantUserIds: chat.participants.filter(p => p.kind === "player").map(p => p.userId)
     });

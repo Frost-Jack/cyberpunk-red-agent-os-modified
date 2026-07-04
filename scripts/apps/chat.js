@@ -90,9 +90,14 @@ export async function getData(app) {
         isSelf: !isGM && m.senderKey === mine
       };
     });
-    if (isMember) {
+    // Opening a chat marks it read — for members AND the observing GM. An
+    // "incoming" message is one this user didn't send: a member checks by
+    // participant key, the GM by authorUserId (so GM-voiced NPC lines don't
+    // keep the chat marked unread).
+    if (isMember || isGM) {
       const lastRead = (game.user.getFlag(MODULE_ID, "lastRead") || {})[st.chatId] || 0;
-      const lastOther = [...messages].reverse().find(m => m.senderKey !== mine);
+      const lastOther = [...messages].reverse().find(m =>
+        isGM ? m.authorUserId !== game.user.id : m.senderKey !== mine);
       if (lastOther && lastOther.ts > lastRead) await Data.markChatRead(st.chatId);
     }
 
