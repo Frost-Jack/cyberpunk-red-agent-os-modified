@@ -1,0 +1,117 @@
+{{#if listMode}}
+
+<div class="agentos-bio-list">
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Chrome.Subjects"}}</h3>
+  {{#if subjects.length}}
+  <ul class="agentos-list">
+    {{#each subjects}}
+    <li class="agentos-list-row" data-action="chrome-select" data-actor-uuid="{{this.actorUuid}}">
+      <img class="agentos-avatar" src="{{this.img}}" alt="">
+      <div class="agentos-list-main">
+        <div class="agentos-list-title">{{this.name}}</div>
+        <div class="agentos-list-sub">{{this.userName}}</div>
+      </div>
+      <span class="agentos-vital-chip ok">{{this.count}}</span>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="agentos-empty">{{localize "AGENTOS.Chrome.NoSubjects"}}</p>
+  {{/if}}
+</div>
+
+{{else}}
+{{#if noActor}}
+<p class="agentos-hint">{{localize "AGENTOS.Chrome.NoActor"}}</p>
+{{else}}
+
+<div class="agentos-chrome">
+  <div class="agentos-toolbar">
+    {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="chrome-back"><i class="fas fa-arrow-left"></i></button>
+    {{/if}}
+    <span class="agentos-chrome-brand"><i class="fas fa-microchip"></i> CYBERWARE_PROFILE</span>
+    <span class="agentos-spacer"></span>
+    <span class="agentos-chrome-load">loading_profile…{{humPct}}%</span>
+  </div>
+
+  <div class="agentos-chrome-grid {{#if psychoGlitch}}psycho-slots{{/if}}">
+
+    {{!-- Top-center: neural link + cyberaudio --}}
+    <div class="agentos-chrome-topbar">
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" neural}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" audio}}
+    </div>
+
+    <div class="agentos-chrome-columns">
+      {{!-- Left column. A merged pair takes the place of its right-side panel
+           (only that cell), so the portrait / grid never shifts. --}}
+      <div class="agentos-chrome-col left">
+        {{#if eyes.merged}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" eyes.merged}}{{else if eyes.right}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" eyes.right}}{{/if}}
+        {{#if arms.merged}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" arms.merged}}{{else if arms.right}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" arms.right}}{{/if}}
+        {{#if legs.merged}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" legs.merged}}{{else if legs.right}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" legs.right}}{{/if}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" internal}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" borg}}
+      </div>
+
+      {{!-- Center: body scan (cyberpsychosis corruption scales with humanity) --}}
+      <div class="agentos-chrome-scan">
+        <div class="agentos-chrome-scan-frame psycho-{{psychoLevel}}">
+          {{!-- Boxed layers: clipped to the frame so scanlines / errors / border
+                stay tidy. The real portrait lives here and never moves. --}}
+          <div class="agentos-chrome-scan-clip">
+            <img class="agentos-chrome-avatar" src="{{actorImg}}" alt="">
+            {{#if psychoLevel}}
+            <div class="agentos-chrome-glitch" aria-hidden="true"></div>
+            <div class="agentos-chrome-scanlines" aria-hidden="true"></div>
+            {{#if (agGt psychoLevel 3)}}
+            <div class="agentos-chrome-errors" aria-hidden="true">
+              <span>ERR 0xC0FFEE: HUMANITY UNDERFLOW</span>
+              <span>NEURAL_LINK :: SIGNAL LOST</span>
+              <span>WARNING: CYBERPSYCHOSIS</span>
+              <span>SEGFAULT @ CORTEX//0x00</span>
+              <span>&gt;_ containment failed</span>
+              <span>REROUTING… REROUTING… FAIL</span>
+            </div>
+            {{/if}}
+            {{/if}}
+            <div class="agentos-chrome-crosshair"></div>
+          </div>
+          {{!-- Ghost duplicates live OUTSIDE the clip so they can drift past the
+                frame edge (doubling / tripling) without being cropped. --}}
+          {{#if psychoLevel}}
+          <img class="agentos-chrome-ghost g1" src="{{actorImg}}" alt="" aria-hidden="true">
+          {{#if (agGt psychoLevel 2)}}<img class="agentos-chrome-ghost g2" src="{{actorImg}}" alt="" aria-hidden="true">{{/if}}
+          {{/if}}
+          <div class="agentos-chrome-lock">TARGET LOCKED</div>
+        </div>
+        <div class="agentos-chrome-readout">
+          <div class="agentos-chrome-readout-name">{{actorName}}</div>
+          <div class="agentos-chrome-hum">
+            <div class="agentos-chrome-hum-label">
+              <span>{{localize "AGENTOS.Chrome.Humanity"}}</span>
+              <span>{{humCurrent}} / {{humMax}}</span>
+            </div>
+            <div class="agentos-bar"><div class="agentos-bar-fill {{humState}}" style="width: {{humPct}}%"></div></div>
+          </div>
+          <div class="agentos-chrome-total">
+            <i class="fas fa-microchip"></i> {{total}} {{localize "AGENTOS.Chrome.Installed"}}
+          </div>
+        </div>
+      </div>
+
+      {{!-- Right column. When a pair is merged, its left cell becomes a small
+           placeholder so the panels below never move. --}}
+      <div class="agentos-chrome-col right">
+        {{#if eyes.placeholder}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-merged-stub.hbs" eyes.placeholder}}{{else if eyes.left}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" eyes.left}}{{/if}}
+        {{#if arms.placeholder}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-merged-stub.hbs" arms.placeholder}}{{else if arms.left}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" arms.left}}{{/if}}
+        {{#if legs.placeholder}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-merged-stub.hbs" legs.placeholder}}{{else if legs.left}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" legs.left}}{{/if}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" external}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-panel.hbs" fashion}}
+      </div>
+    </div>
+  </div>
+</div>
+
+{{/if}}
+{{/if}}

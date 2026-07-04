@@ -15,6 +15,7 @@ export const APPS = [
   { id: "contacts", icon: "fa-address-book",       color: "#ff9d3c", labelKey: "AGENTOS.App.contacts" }, // записная книжка — оранжевый
   { id: "map",      icon: "fa-map-location-dot",   color: "#3df58a", labelKey: "AGENTOS.App.map" },      // навигация — зелёный
   { id: "bio",      icon: "fa-heart-pulse",        color: "#ff2b55", labelKey: "AGENTOS.App.bio" },      // витальность — красный
+  { id: "chrome",   icon: "fa-microchip",          color: "#ff3b30", labelKey: "AGENTOS.App.chrome" },   // импланты — кровавый неон
   { id: "store",    icon: "fa-cart-shopping",      color: "#ff4fd8", labelKey: "AGENTOS.App.store" },    // рынок — неоново-розовый
   { id: "id",       icon: "fa-id-card",            color: "#7a6bff", labelKey: "AGENTOS.App.id" },       // документ — индиго
   { id: "ncpd",     icon: "fa-building-shield",    color: "#38b6ff", labelKey: "AGENTOS.App.ncpd" },     // полиция — холодный синий

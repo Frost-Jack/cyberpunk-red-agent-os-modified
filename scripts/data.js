@@ -780,6 +780,26 @@ const OPS = {
     return true;
   },
 
+  /* ---- chrome (implant viewer display layout; owner or GM) ---- */
+
+  async "chrome.setLayout"({ actorUuid, layout }, userId) {
+    const actor = await fromUuid(actorUuid);
+    if (!actor) return false;
+    if (!requesterIsGM(userId) && !actor.testUserPermission(game.users.get(userId), "OWNER")) return false;
+    const sides = {};
+    for (const [k, v] of Object.entries((layout && layout.sides) || {})) {
+      if (v === "left" || v === "right") sides[String(k)] = v;
+    }
+    const paired = {};
+    for (const [k, v] of Object.entries((layout && layout.paired) || {})) {
+      if (v) paired[String(k)] = true;
+    }
+    const all = getWorld("chromeLayout") || {};
+    all[actor.id] = { sides, paired };
+    await setWorld("chromeLayout", all);
+    return true;
+  },
+
   /* ---- library (GM only; PDFs are downloaded by the GM client itself) ---- */
 
   async "library.setTree"({ tree }, userId) {

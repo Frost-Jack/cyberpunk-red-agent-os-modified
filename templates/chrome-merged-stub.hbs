@@ -1,0 +1,13 @@
+{{!-- Placeholder shown in the right column when a pair is merged into the
+      left column. Keeps the column's flow so nothing below shifts up. --}}
+<div class="agentos-chrome-panel agentos-chrome-stub">
+  <div class="agentos-chrome-panel-head">
+    <span class="agentos-chrome-panel-title dim">{{localize this.splitLabel}}</span>
+    <span class="agentos-spacer"></span>
+    {{#if this.canEdit}}
+    <button type="button" class="agentos-chrome-mergebtn" data-action="chrome-split" data-pair-type="{{this.pairType}}"
+            title="{{localize "AGENTOS.Chrome.Split"}}"><i class="fas fa-link-slash"></i></button>
+    {{/if}}
+  </div>
+  <div class="agentos-chrome-stub-note"><i class="fas fa-link"></i> {{localize "AGENTOS.Chrome.Merged"}}</div>
+</div>

@@ -1,0 +1,43 @@
+{{!-- One cyberware category panel. For paired types it is a drop target and
+      each unit card is draggable between the two sides. --}}
+<div class="agentos-chrome-panel {{#if this.empty}}is-empty{{/if}} {{#if this.paired}}is-paired{{/if}}"
+     {{#if this.side}}data-chrome-drop="{{this.side}}" data-pair-type="{{this.pairType}}"{{/if}}>
+  <div class="agentos-chrome-panel-head">
+    <span class="agentos-chrome-panel-title">{{localize this.labelKey}}</span>
+    {{#if this.count}}<span class="agentos-chrome-panel-count">{{this.count}}</span>{{/if}}
+    <span class="agentos-spacer"></span>
+    {{#if this.mergeable}}
+    <button type="button" class="agentos-chrome-mergebtn" data-action="chrome-merge" data-pair-type="{{this.pairType}}"
+            title="{{localize "AGENTOS.Chrome.Merge"}}"><i class="fas fa-link"></i></button>
+    {{/if}}
+    {{#if this.paired}}
+    {{#if this.canEdit}}
+    <button type="button" class="agentos-chrome-mergebtn" data-action="chrome-split" data-pair-type="{{this.pairType}}"
+            title="{{localize "AGENTOS.Chrome.Split"}}"><i class="fas fa-link-slash"></i></button>
+    {{/if}}
+    {{/if}}
+  </div>
+
+  <div class="agentos-chrome-panel-body">
+    {{#each this.units}}
+    <div class="agentos-chrome-unit" {{#if ../canEdit}}draggable="true"{{/if}}
+         data-chrome-unit="{{this.id}}" data-pair-type="{{../pairType}}">
+      {{#if this.base}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-item.hbs" this.base}}
+      {{/if}}
+      {{#if this.baseless.length}}
+      <div class="agentos-chrome-baseless">
+        <div class="agentos-chrome-baseless-label">{{localize "AGENTOS.Chrome.NoBase"}}</div>
+        {{#each this.baseless}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chrome-item.hbs" this}}
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+    {{/each}}
+
+    {{#if this.empty}}
+    <div class="agentos-chrome-slot-empty">{{localize "AGENTOS.Chrome.SlotEmpty"}}</div>
+    {{/if}}
+  </div>
+</div>

@@ -20,7 +20,8 @@ const WORLD_OBJECTS = {
   storeConfig: {},
   appConfig: {},
   libraryTree: [],
-  toolMacros: []
+  toolMacros: [],
+  chromeLayout: {}
 };
 
 Hooks.once("init", () => {
@@ -66,7 +67,7 @@ Hooks.once("ready", async () => {
 
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
-    "contacts", "map", "bio", "store", "id", "ncpd", "garden",
+    "contacts", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "store", "id", "ncpd", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
 
@@ -124,7 +125,20 @@ Hooks.on("updateActor", (actor) => {
   const app = globalThis.AgentOS?.ui;
   if (!app?.rendered) return;
   if (["wallet", "bio"].includes(app.currentApp)) _rerenderDebounced();
+  // Installing a foundational cyberware updates the actor's installedItems.list.
+  if (app.currentApp === "chrome") _rerenderDebounced();
 });
+
+/* Live Chrome sync — installing / uninstalling / editing cyberware fires
+ * item hooks on the actor's embedded items. Refresh the implant viewer. */
+const _chromeRefresh = (item) => {
+  const app = globalThis.AgentOS?.ui;
+  if (!app?.rendered || app.currentApp !== "chrome") return;
+  if (item?.type === "cyberware" || item?.parent?.documentName === "Actor") _rerenderDebounced();
+};
+Hooks.on("createItem", _chromeRefresh);
+Hooks.on("updateItem", _chromeRefresh);
+Hooks.on("deleteItem", _chromeRefresh);
 
 /* Client-side notifications (fired locally on GM, via socket elsewhere). */
 Hooks.on(`${MODULE_ID}.notify`, async (data) => {

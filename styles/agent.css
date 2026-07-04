@@ -3860,3 +3860,493 @@ input.agentos-search, .agentos-search {
   border: none !important;
   color: var(--text) !important;
 }
+
+/* ==========================================================================
+   CHROME — cyberware / implant viewer
+   ========================================================================== */
+
+.agentos-chrome { display: flex; flex-direction: column; gap: 6px; }
+.agentos-chrome-brand {
+  font-family: monospace;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--neon-accent);
+  text-shadow: 0 0 8px var(--frame-glow);
+  font-size: 12px;
+}
+.agentos-chrome-load {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.agentos-chrome-grid { display: flex; flex-direction: column; gap: 8px; }
+.agentos-chrome-topbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.agentos-chrome-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.agentos-chrome-col { display: flex; flex-direction: column; gap: 8px; }
+
+/* --- category panel (the red cut-corner card from the reference) --- */
+.agentos-chrome-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--neon-warn) 10%, transparent), rgba(0, 0, 0, 0.35));
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 55%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--frame-glow) 45%, transparent),
+              inset 0 0 14px rgba(0, 0, 0, 0.4);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  padding: 0 0 6px;
+  min-height: 60px;
+}
+.agentos-chrome-panel.is-empty { opacity: 0.72; }
+.agentos-chrome-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--neon-accent) 40%, transparent);
+  margin-bottom: 4px;
+}
+.agentos-chrome-panel-title {
+  background: var(--neon-accent);
+  color: #0a0204;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 2px 8px 2px 10px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  text-shadow: none;
+}
+.agentos-chrome-panel-tag {
+  font-family: monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+}
+.agentos-chrome-panel-count {
+  margin-left: auto;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--neon-accent);
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 50%, transparent);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+.agentos-chrome-panel-body { display: flex; flex-direction: column; gap: 3px; padding: 0 8px; }
+
+.agentos-chrome-slot-empty {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  padding: 8px 4px;
+  letter-spacing: 1px;
+}
+
+/* --- one implant row --- */
+.agentos-chrome-base { display: flex; flex-direction: column; gap: 2px; }
+.agentos-chrome-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.agentos-chrome-item:hover {
+  background: color-mix(in srgb, var(--neon-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--neon-accent) 45%, transparent);
+}
+.agentos-chrome-item.foundational {
+  background: color-mix(in srgb, var(--neon-accent) 8%, rgba(0, 0, 0, 0.3));
+  border-left: 2px solid var(--neon-accent);
+}
+.agentos-chrome-item-img {
+  width: 20px; height: 20px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--glass-border);
+  flex: 0 0 auto;
+}
+.agentos-chrome-item-name {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agentos-chrome-item-glyph {
+  width: 20px; height: 20px;
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--neon-accent);
+  font-size: 11px;
+}
+.agentos-chrome-item.is-upgrade .agentos-chrome-item-glyph { color: var(--neon-gold); }
+
+/* Per-implant palette — each installed implant gets its own colour so the
+   dots it occupies on the base match its own row marker / size dots. */
+.agentos-chrome-item-tag,
+.agentos-chrome-dots .dot {
+  --c0: #2ff5d0; --c1: #ffd23f; --c2: #ff5db1; --c3: #7db4ff;
+  --c4: #9d7bff; --c5: #6bff8f; --c6: #ff9d3c; --c7: #38d4ff;
+}
+/* small colour marker on an implant's own row */
+.agentos-chrome-item-tag {
+  width: 4px; height: 16px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--tag, var(--neon-accent));
+}
+.agentos-chrome-dots { display: flex; gap: 2px; flex: 0 0 auto; align-items: center; }
+.agentos-chrome-dots .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+}
+.agentos-chrome-dots .dot.k-free {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--neon-accent) 40%, transparent);
+}
+.agentos-chrome-item-tag.c0, .agentos-chrome-dots .dot.c0 { background: var(--c0); box-shadow: 0 0 4px var(--c0); }
+.agentos-chrome-item-tag.c1, .agentos-chrome-dots .dot.c1 { background: var(--c1); box-shadow: 0 0 4px var(--c1); }
+.agentos-chrome-item-tag.c2, .agentos-chrome-dots .dot.c2 { background: var(--c2); box-shadow: 0 0 4px var(--c2); }
+.agentos-chrome-item-tag.c3, .agentos-chrome-dots .dot.c3 { background: var(--c3); box-shadow: 0 0 4px var(--c3); }
+.agentos-chrome-item-tag.c4, .agentos-chrome-dots .dot.c4 { background: var(--c4); box-shadow: 0 0 4px var(--c4); }
+.agentos-chrome-item-tag.c5, .agentos-chrome-dots .dot.c5 { background: var(--c5); box-shadow: 0 0 4px var(--c5); }
+.agentos-chrome-item-tag.c6, .agentos-chrome-dots .dot.c6 { background: var(--c6); box-shadow: 0 0 4px var(--c6); }
+.agentos-chrome-item-tag.c7, .agentos-chrome-dots .dot.c7 { background: var(--c7); box-shadow: 0 0 4px var(--c7); }
+
+/* nested option-slot items indent under their base */
+.agentos-chrome-children {
+  margin-left: 12px;
+  padding-left: 6px;
+  border-left: 1px dashed color-mix(in srgb, var(--neon-accent) 30%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.agentos-chrome-item.depth-1 .agentos-chrome-item-name,
+.agentos-chrome-children .agentos-chrome-item-name { font-size: 10px; color: var(--text-dim); }
+
+/* implants without a base */
+.agentos-chrome-baseless { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.agentos-chrome-baseless-label {
+  font-family: monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--neon-warn);
+  opacity: 0.85;
+  padding: 2px 0;
+}
+
+/* --- draggable unit + merge / split controls --- */
+.agentos-chrome-unit { display: flex; flex-direction: column; gap: 2px; }
+.agentos-chrome-unit[draggable="true"] { cursor: grab; }
+.agentos-chrome-unit[draggable="true"]:active { cursor: grabbing; }
+.agentos-chrome-panel[data-chrome-drop].drop-over {
+  outline: 2px dashed var(--neon-accent);
+  outline-offset: -4px;
+  background: color-mix(in srgb, var(--neon-accent) 6%, transparent);
+}
+.agentos-chassis .agentos-chrome-mergebtn {
+  width: 20px; height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 45%, transparent);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--neon-accent);
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+}
+.agentos-chassis .agentos-chrome-mergebtn:hover {
+  background: color-mix(in srgb, var(--neon-accent) 20%, transparent);
+}
+/* placeholder left when a pair is merged into the other column */
+.agentos-chrome-stub { opacity: 0.6; }
+.agentos-chrome-panel-title.dim {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px dashed var(--glass-border);
+  clip-path: none;
+}
+.agentos-chrome-stub-note {
+  font-family: monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 6px 8px;
+}
+.agentos-chrome-stub-note i { margin-right: 4px; color: var(--neon-accent); }
+
+/* --- center body scan --- */
+.agentos-chrome-scan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+}
+.agentos-chrome-scan-frame {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 3 / 4;
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 40%, transparent);
+  border-radius: 6px;
+  /* NOT clipped — ghost duplicates must be able to drift past the edge. The
+     boxed content is clipped by the inner .scan-clip instead. */
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--neon-warn) 18%, transparent), rgba(0, 0, 0, 0.9));
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7), 0 0 14px var(--frame-glow);
+}
+/* clips only the tidy layers (portrait, scanlines, errors, crosshair) */
+.agentos-chrome-scan-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.agentos-chrome-avatar {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: sepia(1) hue-rotate(-30deg) saturate(4) brightness(0.75) contrast(1.2);
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+.agentos-chrome-lock {
+  position: absolute;
+  top: 8px; right: 8px;
+  font-family: monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--neon-accent);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 50%, transparent);
+  animation: agentos-chrome-blink 2s steps(1) infinite;
+}
+@keyframes agentos-chrome-blink { 0%, 70% { opacity: 1; } 71%, 100% { opacity: 0.35; } }
+.agentos-chrome-crosshair {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(color-mix(in srgb, var(--neon-accent) 25%, transparent), transparent 3px) 0 0 / 100% 50% no-repeat,
+    linear-gradient(90deg, color-mix(in srgb, var(--neon-accent) 25%, transparent), transparent 3px) 0 0 / 50% 100% no-repeat;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ======================================================================
+   CYBERPSYCHOSIS — portrait corruption that scales with Humanity.
+   Every layer is confined to the scan frame and is pointer-events:none,
+   so it never obscures the functional implant panels or their text.
+   ====================================================================== */
+.agentos-chrome-ghost,
+.agentos-chrome-glitch,
+.agentos-chrome-scanlines,
+.agentos-chrome-errors { position: absolute; inset: 0; pointer-events: none; }
+
+/* duplicated portrait(s) for the doubling / tripling effect. Anchored to the
+   (unclipped) frame so they can slide fully outside it without being cropped,
+   then snap back. Filter matches the base portrait. */
+.agentos-chrome-ghost {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: sepia(1) hue-rotate(-30deg) saturate(4) brightness(0.75) contrast(1.2);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+/* moving RGB tear band */
+.agentos-chrome-glitch {
+  background: linear-gradient(transparent 40%,
+    color-mix(in srgb, var(--neon-warn) 45%, transparent) 50%, transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+/* CRT scanlines + static */
+.agentos-chrome-scanlines {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.35) 0, rgba(0,0,0,0.35) 1px, transparent 1px, transparent 3px);
+  opacity: 0;
+  mix-blend-mode: multiply;
+}
+/* scrolling error log (critical only) */
+.agentos-chrome-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  font-family: monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--neon-warn);
+  text-shadow: 0 0 5px var(--neon-warn);
+  overflow: hidden;
+  opacity: 0.85;
+  /* ease out to a drifted position then ease smoothly back to the original —
+     no hard jump. alternate reverses each cycle. */
+  animation: agentos-psycho-errscroll 5s ease-in-out infinite alternate;
+}
+.agentos-chrome-errors span { white-space: nowrap; }
+
+/* The real portrait NEVER moves — it fills the frame at scale(1) and is never
+   cropped. The doubling / tripling happens on GHOST duplicates that live
+   OUTSIDE the clip, so they can slide fully past the frame edge for a brief
+   burst and then snap back to invisible. */
+
+/* Level 1 (29–20): faint static + a rare micro-jitter (no doubling). The ghost
+   just shivers a couple of px so it reads as a faint signal wobble. */
+.psycho-1 .agentos-chrome-scanlines { opacity: 0.12; }
+.psycho-1 .agentos-chrome-ghost.g1 { opacity: 0.16; animation: agentos-psycho-jitter 6s steps(1) infinite; }
+
+/* Level 2 (19–10): visible static + a clear periodic DOUBLE — one ghost jumps
+   a short random distance and rejoins. */
+.psycho-2 .agentos-chrome-scanlines { opacity: 0.25; }
+.psycho-2 .agentos-chrome-ghost.g1 { animation: agentos-psycho-splitA 5s ease-in-out infinite; }
+.psycho-2 .agentos-chrome-glitch { animation: agentos-psycho-tear 5s steps(1) infinite; }
+
+/* Level 3 (9–0): heavy static, hue sickness, and a TRIPLE — two ghosts drift
+   in different random directions before snapping back. */
+.psycho-3 .agentos-chrome-scanlines { opacity: 0.4; }
+.psycho-3 .agentos-chrome-avatar {
+  filter: sepia(1) hue-rotate(-30deg) saturate(6) brightness(0.7) contrast(1.4);
+}
+.psycho-3 .agentos-chrome-ghost.g1 { animation: agentos-psycho-splitA 2.6s ease-in-out infinite; }
+.psycho-3 .agentos-chrome-ghost.g2 { animation: agentos-psycho-splitB 2.6s ease-in-out infinite; }
+.psycho-3 .agentos-chrome-glitch { animation: agentos-psycho-tear 1.1s steps(1) infinite; opacity: 0.6; }
+.psycho-3 .agentos-chrome-scan-frame,
+.agentos-chrome-scan-frame.psycho-3 { box-shadow: inset 0 0 30px rgba(0,0,0,0.7), 0 0 20px var(--neon-warn); }
+
+/* Level 4 (<0): critical — violent, frequent triple split, red alarm, errors. */
+.psycho-4 .agentos-chrome-scanlines { opacity: 0.5; }
+.psycho-4 .agentos-chrome-avatar {
+  filter: sepia(1) hue-rotate(-20deg) saturate(8) brightness(0.6) contrast(1.6);
+}
+.psycho-4 .agentos-chrome-ghost.g1 { animation: agentos-psycho-splitA 1.1s ease-in-out infinite; }
+.psycho-4 .agentos-chrome-ghost.g2 { animation: agentos-psycho-splitB 1.3s ease-in-out infinite; }
+.psycho-4 .agentos-chrome-glitch { animation: agentos-psycho-tear 0.5s steps(1) infinite; opacity: 0.8; }
+.agentos-chrome-scan-frame.psycho-4 {
+  animation: agentos-psycho-alarm 1.3s ease-in-out infinite;
+}
+
+/* jitter: a couple-px shiver, no drift (level 1) */
+@keyframes agentos-psycho-jitter {
+  0%, 90%, 100% { transform: translate(0, 0); }
+  92% { transform: translate(-2px, 1px); }
+  94% { transform: translate(2px, -2px); }
+  96% { transform: translate(-1px, 2px); }
+  98% { transform: translate(1px, -1px); }
+}
+/* Split A: brief burst — jumps a SHORT random-ish distance in varied
+   directions (up-left, down-left, right…) then rejoins. Offsets kept small
+   (≤18%) so the double never reaches the implant panels. */
+@keyframes agentos-psycho-splitA {
+  0%, 62%, 100% { opacity: 0; transform: translate(0, 0); }
+  66% { opacity: 0.75; transform: translate(-16%, -9%); }
+  72% { opacity: 0.7;  transform: translate(-11%, 12%); }
+  78% { opacity: 0.6;  transform: translate(-17%, 4%); }
+  86% { opacity: 0.4;  transform: translate(-6%, -5%); }
+  93% { opacity: 0.18; transform: translate(-2%, 1%); }
+}
+/* Split B: the third image — different random directions. */
+@keyframes agentos-psycho-splitB {
+  0%, 58%, 100% { opacity: 0; transform: translate(0, 0); }
+  63% { opacity: 0.7;  transform: translate(15%, 10%); }
+  70% { opacity: 0.62; transform: translate(9%, -13%); }
+  77% { opacity: 0.55; transform: translate(17%, -3%); }
+  86% { opacity: 0.38; transform: translate(5%, 6%); }
+  93% { opacity: 0.16; transform: translate(2%, -1%); }
+}
+@keyframes agentos-psycho-tear {
+  0%, 100% { opacity: 0; background-position: 0 -40%; }
+  10% { opacity: 0.6; background-position: 0 10%; }
+  20% { opacity: 0.2; background-position: 0 60%; }
+  30% { opacity: 0.7; background-position: 0 90%; }
+  40% { opacity: 0; }
+}
+@keyframes agentos-psycho-errscroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-14px); }
+}
+@keyframes agentos-psycho-alarm {
+  0%, 100% { box-shadow: inset 0 0 30px rgba(0,0,0,0.7), 0 0 14px var(--neon-warn); }
+  50% { box-shadow: inset 0 0 40px rgba(120,0,0,0.6), 0 0 34px var(--neon-warn); }
+}
+
+/* Optional faint flicker near slots at levels 3–4 — kept subtle and behind
+   the rows (pseudo-element, pointer-events:none) so implant text stays clear. */
+.agentos-chrome-grid.psycho-slots .agentos-chrome-panel-body { position: relative; }
+.agentos-chrome-grid.psycho-slots .agentos-chrome-panel-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(0deg,
+    color-mix(in srgb, var(--neon-warn) 8%, transparent) 0,
+    color-mix(in srgb, var(--neon-warn) 8%, transparent) 1px, transparent 1px, transparent 5px);
+  opacity: 0;
+  animation: agentos-psycho-slotflicker 4.5s steps(1) infinite;
+}
+.agentos-chrome-grid.psycho-slots .agentos-chrome-item { position: relative; z-index: 1; }
+@keyframes agentos-psycho-slotflicker {
+  0%, 96%, 100% { opacity: 0; }
+  97% { opacity: 0.5; }
+  98% { opacity: 0.1; }
+  99% { opacity: 0.6; }
+}
+
+.agentos-chrome-readout { width: 100%; max-width: 240px; display: flex; flex-direction: column; gap: 6px; }
+.agentos-chrome-readout-name {
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  color: var(--text);
+}
+.agentos-chrome-hum-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.agentos-chrome-total {
+  text-align: center;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--neon-accent);
+  letter-spacing: 1px;
+}
+.agentos-chrome-total i { margin-right: 4px; }
+
+/* --- wide layouts (tablet / pc): true 3-column reference layout --- */
+.agentos-chassis.mode-tablet .agentos-chrome-columns,
+.agentos-chassis.mode-pc .agentos-chrome-columns {
+  grid-template-columns: 1fr 1.1fr 1fr;
+  align-items: start;
+}
+.agentos-chassis.mode-tablet .agentos-chrome-scan,
+.agentos-chassis.mode-pc .agentos-chrome-scan { position: sticky; top: 0; }

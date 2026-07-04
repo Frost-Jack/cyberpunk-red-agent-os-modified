@@ -17,6 +17,7 @@ import * as WalletApp from "./apps/wallet.js";
 import * as ContactsApp from "./apps/contacts.js";
 import * as MapApp from "./apps/map.js";
 import * as BioApp from "./apps/bio.js";
+import * as ChromeApp from "./apps/chrome.js";
 import * as StoreApp from "./apps/store.js";
 import * as IdApp from "./apps/id.js";
 import * as NcpdApp from "./apps/ncpd.js";
@@ -29,7 +30,7 @@ import * as SettingsApp from "./apps/settings.js";
 
 const IMPL = {
   chat: ChatApp, datapool: DatapoolApp, wallet: WalletApp,
-  contacts: ContactsApp, map: MapApp, bio: BioApp, store: StoreApp,
+  contacts: ContactsApp, map: MapApp, bio: BioApp, chrome: ChromeApp, store: StoreApp,
   id: IdApp, ncpd: NcpdApp, garden: GardenApp, library: LibraryApp,
   tools: ToolsApp, arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp
 };
