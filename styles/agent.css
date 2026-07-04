@@ -3711,3 +3711,92 @@ input.agentos-search, .agentos-search {
   filter: invert(0.8) sepia(1) saturate(3) hue-rotate(120deg);
   cursor: pointer;
 }
+
+/* ==========================================================================
+   TOOLS — "Дэймоны" macro launcher
+   ========================================================================== */
+
+.agentos-tools { display: flex; flex-direction: column; min-height: 0; }
+.agentos-tools-bar { flex: 0 0 auto; }
+
+.agentos-tools-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  align-content: start;
+}
+.mode-tablet .agentos-tools-grid,
+.mode-pc .agentos-tools-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+
+.agentos-daemon {
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-left: 2px solid #4dffb0;
+  border-radius: 3px;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  overflow: hidden;
+}
+.agentos-daemon.hidden { opacity: 0.6; }
+.agentos-daemon.hidden .agentos-daemon-name { color: var(--text-dim); }
+
+.agentos-chassis .agentos-daemon-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text) !important;
+  cursor: pointer;
+  width: 100%;
+}
+.agentos-daemon-run:hover { background: rgba(77, 255, 176, 0.08) !important; }
+.agentos-daemon-icon {
+  width: 46px; height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: linear-gradient(160deg, rgba(77, 255, 176, 0.12), rgba(0, 0, 0, 0.4));
+  box-shadow: 0 0 8px rgba(77, 255, 176, 0.25);
+}
+.agentos-daemon-icon img { width: 30px; height: 30px; object-fit: contain; }
+.agentos-daemon-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.25;
+  max-height: 2.6em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.agentos-tools.drop-over {
+  outline: 2px dashed #4dffb0;
+  outline-offset: -6px;
+  background: rgba(77, 255, 176, 0.05);
+}
+
+.agentos-daemon-actions {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.35);
+}
+.agentos-chassis .agentos-daemon-actions .agentos-icon-btn { width: 26px !important; height: 24px !important; }
+
+/* Hard-override so core never repaints the run button */
+.agentos-chassis .agentos-daemon-run {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text) !important;
+}

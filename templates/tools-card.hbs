@@ -1,0 +1,18 @@
+<div class="agentos-daemon {{#unless this.visible}}{{#if this.showVisible}}hidden{{/if}}{{/unless}}">
+  <button type="button" class="agentos-daemon-run" data-action="tool-run" data-uuid="{{this.uuid}}" title="{{localize "AGENTOS.Tools.Run"}}">
+    <span class="agentos-daemon-icon"><img src="{{this.img}}" alt=""></span>
+    <span class="agentos-daemon-name">{{this.name}}</span>
+  </button>
+  {{#if this.own}}
+  <div class="agentos-daemon-actions">
+    {{#if this.showVisible}}
+    <button type="button" class="agentos-icon-btn toggle {{#if this.visible}}on{{/if}}" data-action="tool-toggle" data-uuid="{{this.uuid}}"
+            title="{{#if this.visible}}{{localize "AGENTOS.Tools.Visible"}}{{else}}{{localize "AGENTOS.Tools.Hidden"}}{{/if}}">
+      <i class="fas {{#if this.visible}}fa-eye{{else}}fa-eye-slash{{/if}}"></i>
+    </button>
+    {{/if}}
+    <button type="button" class="agentos-icon-btn" data-action="tool-edit" data-uuid="{{this.uuid}}" title="{{localize "AGENTOS.Common.Edit"}}"><i class="fas fa-pen"></i></button>
+    <button type="button" class="agentos-icon-btn danger" data-action="tool-delete" data-uuid="{{this.uuid}}" title="{{localize "AGENTOS.Common.Delete"}}"><i class="fas fa-trash"></i></button>
+  </div>
+  {{/if}}
+</div>

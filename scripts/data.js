@@ -759,6 +759,27 @@ const OPS = {
     return true;
   },
 
+  /* ---- tools / daemons ----
+   * Entries: { uuid, visible, ownerUserId }. GM entries have ownerUserId="".
+   * The GM may rewrite the whole list; a player may only touch their OWN
+   * entries (add / remove / reorder), never GM or other players' ones. */
+
+  async "tools.setList"({ list }, userId) {
+    const clean = (Array.isArray(list) ? list : [])
+      .filter(e => e && typeof e.uuid === "string")
+      .map(e => ({ uuid: e.uuid, visible: !!e.visible, ownerUserId: String(e.ownerUserId || "") }));
+    if (requesterIsGM(userId)) {
+      await setWorld("toolMacros", clean);
+      return true;
+    }
+    // player: keep everyone else's entries, replace only this player's set
+    const current = getWorld("toolMacros") || [];
+    const others = current.filter(e => e.ownerUserId !== userId);
+    const mine = clean.filter(e => e.ownerUserId === userId);
+    await setWorld("toolMacros", [...others, ...mine]);
+    return true;
+  },
+
   /* ---- library (GM only; PDFs are downloaded by the GM client itself) ---- */
 
   async "library.setTree"({ tree }, userId) {

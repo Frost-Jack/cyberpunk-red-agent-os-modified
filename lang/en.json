@@ -13,9 +13,24 @@
       "ncpd": "NCPD",
       "garden": "Garden",
       "library": "Library",
+      "tools": "Daemons",
       "arcade": "Arcade",
       "admin": "Sys Admin",
       "settings": "Settings"
+    },
+    "Tools": {
+      "New": "New daemon",
+      "NewName": "Daemon name",
+      "Mine": "My daemons",
+      "Run": "Run daemon",
+      "Visible": "Visible to players",
+      "Hidden": "Hidden",
+      "DeleteConfirm": "Delete this daemon?",
+      "Import": "Import daemons",
+      "Export": "Export daemons",
+      "Imported": "Imported {added} daemon(s).",
+      "ImportFailed": "Could not read the daemon file.",
+      "DropHint": "No daemons yet. Create one, or drag a macro here."
     },
     "AppShort": {
       "chat": "Chat",
@@ -29,6 +44,7 @@
       "ncpd": "NCPD",
       "garden": "Garden",
       "library": "Library",
+      "tools": "Daemons",
       "arcade": "Arcade",
       "admin": "Admin"
     },

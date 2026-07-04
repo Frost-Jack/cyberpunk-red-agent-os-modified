@@ -96,7 +96,7 @@ console.log(`JS files checked: ${jsFiles.length}`);
 ["stable", "wounded", "critical"].forEach(s => usedKeys.add("AGENTOS.Bio.State." + s));
 ["phone", "tablet", "pc"].forEach(s => usedKeys.add("AGENTOS.Mode." + s));
 ["chat", "datapool", "wallet", "contacts", "map", "bio", "store", "id",
- "ncpd", "garden", "library", "arcade", "admin"].forEach(s => usedKeys.add("AGENTOS.AppShort." + s));
+ "ncpd", "garden", "library", "tools", "arcade", "admin"].forEach(s => usedKeys.add("AGENTOS.AppShort." + s));
 
 for (const k of usedKeys) {
   if (k.startsWith("AGENTOS.") && !enKeys.has(k)) err("en.json missing used key: " + k);

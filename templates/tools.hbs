@@ -1,0 +1,55 @@
+<div class="agentos-tools">
+  <div class="agentos-toolbar agentos-tools-bar">
+    <button type="button" class="agentos-btn primary" data-action="tool-create">
+      <i class="fas fa-plus"></i> {{localize "AGENTOS.Tools.New"}}
+    </button>
+    <span class="agentos-spacer"></span>
+    {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="tool-import" title="{{localize "AGENTOS.Tools.Import"}}"><i class="fas fa-file-import"></i></button>
+    <button type="button" class="agentos-icon-btn" data-action="tool-export" title="{{localize "AGENTOS.Tools.Export"}}"><i class="fas fa-file-export"></i></button>
+    {{/if}}
+  </div>
+
+  {{#if empty}}
+  <p class="agentos-empty">{{localize "AGENTOS.Tools.DropHint"}}</p>
+  {{else}}
+
+  {{#if hasGmShared}}
+  <div class="agentos-tools-grid">
+    {{#each gmShared}}
+    {{> "modules/cyberpunk-red-agent-os-modified/templates/tools-card.hbs"}}
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if hasMine}}
+  <h3 class="agentos-section-title">{{localize "AGENTOS.Tools.Mine"}}</h3>
+  <div class="agentos-tools-grid">
+    {{#each mine}}
+    {{> "modules/cyberpunk-red-agent-os-modified/templates/tools-card.hbs"}}
+    {{/each}}
+  </div>
+  {{/if}}
+
+  {{#if isGM}}
+  {{#each playerFolders}}
+  <div class="agentos-folder">
+    <div class="agentos-folder-header" data-action="tool-folder-toggle" data-folder-id="{{this.id}}">
+      <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+      <span class="agentos-folder-name">{{this.name}}</span>
+      <span class="agentos-folder-count">{{this.count}}</span>
+      <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+    </div>
+    {{#unless this.collapsed}}
+    <div class="agentos-tools-grid">
+      {{#each this.macros}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/tools-card.hbs"}}
+      {{/each}}
+    </div>
+    {{/unless}}
+  </div>
+  {{/each}}
+  {{/if}}
+
+  {{/if}}
+</div>

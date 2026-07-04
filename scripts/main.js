@@ -19,7 +19,8 @@ const WORLD_OBJECTS = {
   traumaOptions: [],
   storeConfig: {},
   appConfig: {},
-  libraryTree: []
+  libraryTree: [],
+  toolMacros: []
 };
 
 Hooks.once("init", () => {
@@ -66,7 +67,7 @@ Hooks.once("ready", async () => {
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
     "contacts", "map", "bio", "store", "id", "ncpd", "garden",
-    "library", "arcade", "admin", "settings"
+    "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
 
   // Seed default Housing / Lifestyle options once (GM only).

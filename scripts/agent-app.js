@@ -22,6 +22,7 @@ import * as IdApp from "./apps/id.js";
 import * as NcpdApp from "./apps/ncpd.js";
 import * as GardenApp from "./apps/garden.js";
 import * as LibraryApp from "./apps/library.js";
+import * as ToolsApp from "./apps/tools.js";
 import * as ArcadeApp from "./apps/arcade.js";
 import * as AdminApp from "./apps/admin.js";
 import * as SettingsApp from "./apps/settings.js";
@@ -30,7 +31,7 @@ const IMPL = {
   chat: ChatApp, datapool: DatapoolApp, wallet: WalletApp,
   contacts: ContactsApp, map: MapApp, bio: BioApp, store: StoreApp,
   id: IdApp, ncpd: NcpdApp, garden: GardenApp, library: LibraryApp,
-  arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp
+  tools: ToolsApp, arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp
 };
 
 export class AgentOSApplication extends Application {

@@ -20,6 +20,7 @@ export const APPS = [
   { id: "ncpd",     icon: "fa-building-shield",    color: "#38b6ff", labelKey: "AGENTOS.App.ncpd" },     // полиция — холодный синий
   { id: "garden",   icon: "fa-seedling",           color: "#b6ff6b", labelKey: "AGENTOS.App.garden" },   // сеть контактов — салатовый
   { id: "library",  icon: "fa-book-open",          color: "#ffa361", labelKey: "AGENTOS.App.library" },  // книги — тёплый янтарь
+  { id: "tools",    icon: "fa-terminal",           color: "#4dffb0", labelKey: "AGENTOS.App.tools" },    // дэймоны — токсично-зелёный
   { id: "arcade",   icon: "fa-gamepad",            color: "#c850ff", labelKey: "AGENTOS.App.arcade" },   // игры — пурпурный
   { id: "admin",    icon: "fa-screwdriver-wrench", color: "#d8eef5", labelKey: "AGENTOS.App.admin", gmOnly: true } // системный — стальной
 ];
