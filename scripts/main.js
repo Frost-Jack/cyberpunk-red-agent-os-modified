@@ -14,6 +14,7 @@ const WORLD_OBJECTS = {
   personalContacts: [],
   contactFolders: [],
   ncpdRecords: [],
+  ncpdFolders: [],
   mapMarkers: [],
   idProfiles: {},
   housingOptions: [],
@@ -76,7 +77,7 @@ Hooks.once("ready", async () => {
 
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
-    "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "garden",
+    "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "ncpd-folder", "ncpd-card", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
 

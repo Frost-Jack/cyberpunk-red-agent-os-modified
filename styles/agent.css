@@ -768,11 +768,21 @@ input.agentos-search, .agentos-search {
 .agentos-folder-header[draggable="true"] { cursor: grab; }
 .agentos-list-row[draggable="true"] { cursor: grab; }
 .agentos-folder[data-folder-drop].drop-over > .agentos-folder-header,
-.agentos-owner-folder[data-folder-drop].drop-over > .agentos-folder-header {
+.agentos-owner-folder[data-folder-drop].drop-over > .agentos-folder-header,
+.agentos-subfolder[data-ncpd-drop].drop-over > .agentos-folder-header {
   outline: 2px dashed var(--neon-accent);
   outline-offset: -2px;
   background: color-mix(in srgb, var(--neon-accent) 14%, transparent);
 }
+/* NCPD board root drop zone highlight */
+.agentos-ncpd-root { min-height: 40px; }
+.agentos-ncpd-root.drop-over {
+  outline: 2px dashed var(--neon-accent);
+  outline-offset: -4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--neon-accent) 6%, transparent);
+}
+.agentos-poster-card[draggable="true"] { cursor: grab; }
 
 /* ---- Chat ---- */
 
@@ -1465,6 +1475,188 @@ input.agentos-search, .agentos-search {
 .agentos-ncpd-form { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .agentos-ncpd-form input, .agentos-ncpd-form textarea { margin: 0 8px 4px; }
 .agentos-ncpd-form label { margin: 4px 8px 0; }
+.agentos-hint-inline { font-weight: 400; font-size: 0.7em; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
+
+/* ==========================================================================
+   NCPD — wanted board
+   ========================================================================== */
+.agentos-ncpd-boardbar {
+  display: flex; align-items: center;
+  padding: 6px 10px; margin: 4px 6px 0;
+}
+.agentos-ncpd-brand {
+  font-family: monospace; font-weight: 800; letter-spacing: 1px; font-size: 12px;
+  color: var(--neon-accent); text-shadow: 0 0 8px var(--frame-glow);
+}
+.agentos-ncpd-brand i { margin-right: 5px; }
+
+/* --- status chips (edit form) --- */
+.agentos-ncpd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 8px 4px; }
+.agentos-chassis .agentos-ncpd-chip {
+  margin: 0; padding: 4px 9px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  color: #dce3e8 !important;
+  cursor: pointer;
+}
+.agentos-chassis .agentos-ncpd-chip.st-wanted.active   { background: color-mix(in srgb, #ff2b55 26%, #000) !important; border-color: #ff2b55 !important; color: #fff !important; }
+.agentos-chassis .agentos-ncpd-chip.st-missing.active  { background: color-mix(in srgb, #38b6ff 26%, #000) !important; border-color: #38b6ff !important; color: #fff !important; }
+.agentos-chassis .agentos-ncpd-chip.st-poi.active      { background: color-mix(in srgb, #ffd23f 26%, #000) !important; border-color: #ffd23f !important; color: #fff !important; }
+.agentos-chassis .agentos-ncpd-chip.st-detained.active { background: color-mix(in srgb, #9d7bff 26%, #000) !important; border-color: #9d7bff !important; color: #fff !important; }
+.agentos-chassis .agentos-ncpd-chip.st-cleared.active  { background: color-mix(in srgb, #3df58a 26%, #000) !important; border-color: #3df58a !important; color: #fff !important; }
+.agentos-chassis .agentos-ncpd-chip.th-low.active,
+.agentos-chassis .agentos-ncpd-chip.th-medium.active,
+.agentos-chassis .agentos-ncpd-chip.th-high.active,
+.agentos-chassis .agentos-ncpd-chip.th-psycho.active { background: color-mix(in srgb, var(--neon-warn) 22%, #000) !important; border-color: var(--neon-warn) !important; color: #fff !important; }
+
+/* --- board grid of poster cards --- */
+.agentos-ncpd-board {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 8px 6px 12px;
+}
+.agentos-poster-card {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 0 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--st) 14%, rgba(0,0,0,0.4)), rgba(0,0,0,0.55));
+  border: 1px solid var(--st);
+  border-radius: 4px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--st) 40%, transparent), inset 0 0 16px rgba(0,0,0,0.5);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.agentos-poster-card:hover { transform: translateY(-3px); box-shadow: 0 4px 16px color-mix(in srgb, var(--st) 60%, transparent); }
+.agentos-poster-card-banner {
+  width: 100%;
+  text-align: center;
+  font-family: monospace; font-weight: 800; font-size: 9px; letter-spacing: 1.5px;
+  padding: 3px 4px;
+  background: var(--st);
+  color: #0a0204;
+  text-transform: uppercase;
+}
+.agentos-poster-card-banner i { margin-right: 3px; }
+.agentos-poster-card-mug {
+  width: 74px; height: 74px; object-fit: cover;
+  margin: 8px 0 6px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--st) 55%, transparent);
+  filter: saturate(0.75) contrast(1.15);
+}
+.agentos-poster-card-name {
+  font-weight: 800; font-size: 12px; letter-spacing: 0.5px; text-align: center;
+  padding: 0 6px;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.agentos-poster-card-sub {
+  font-size: 9.5px; color: var(--text-dim); text-align: center;
+  padding: 1px 6px 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.agentos-poster-card-bounty {
+  margin-top: 5px;
+  font-family: monospace; font-weight: 800; font-size: 11px;
+  color: var(--neon-gold); text-shadow: 0 0 6px color-mix(in srgb, var(--neon-gold) 55%, transparent);
+}
+.agentos-chassis .agentos-poster-card-del {
+  position: absolute; top: 22px; right: 4px;
+  width: 24px !important; height: 22px !important;
+  opacity: 0; transition: opacity 0.12s;
+}
+.agentos-poster-card:hover .agentos-poster-card-del { opacity: 0.85; }
+/* hidden-from-players record (GM view): dimmed with an eye-slash badge */
+.agentos-poster-card.gm-hidden { opacity: 0.6; }
+.agentos-poster-card-eye {
+  position: absolute; top: 22px; left: 4px; z-index: 2;
+  font-size: 10px; color: #fff;
+  background: rgba(0, 0, 0, 0.75); border-radius: 50%;
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+}
+
+/* classified folder */
+.agentos-folder-secret-tag {
+  font-family: monospace; font-size: 8px; letter-spacing: 1px;
+  color: var(--neon-warn); border: 1px solid color-mix(in srgb, var(--neon-warn) 55%, transparent);
+  border-radius: 3px; padding: 0 4px; margin-left: 4px;
+}
+.agentos-subfolder.is-secret > .agentos-folder-header { border-color: color-mix(in srgb, var(--neon-warn) 45%, transparent); }
+.agentos-subfolder.is-locked > .agentos-folder-header i:first-child { color: var(--neon-warn); }
+.agentos-folder-classified {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px; margin: 4px 0 6px 8px;
+  font-family: monospace; font-weight: 800; letter-spacing: 2px; font-size: 11px;
+  color: var(--neon-warn);
+  background: repeating-linear-gradient(45deg, rgba(255,43,85,0.06) 0, rgba(255,43,85,0.06) 8px, transparent 8px, transparent 16px);
+  border: 1px dashed color-mix(in srgb, var(--neon-warn) 45%, transparent);
+  border-radius: 4px;
+}
+.agentos-chassis .agentos-folder-tools .agentos-icon-btn.active { color: var(--neon-warn) !important; }
+
+/* --- detail poster --- */
+.agentos-poster {
+  margin: 4px 8px 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--st) 12%, rgba(0,0,0,0.4)), rgba(0,0,0,0.55));
+  border: 2px solid var(--st);
+  border-radius: 6px;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--st) 45%, transparent), inset 0 0 22px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.agentos-poster-banner {
+  text-align: center;
+  font-family: monospace; font-weight: 900; font-size: 15px; letter-spacing: 3px;
+  padding: 7px; text-transform: uppercase;
+  background: var(--st); color: #0a0204;
+}
+.agentos-poster-banner i { margin-right: 6px; }
+.agentos-poster-main { display: flex; gap: 12px; padding: 12px; }
+.agentos-poster-mug { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.agentos-poster-mug img {
+  width: 96px; height: 96px; object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--st);
+  filter: saturate(0.75) contrast(1.15);
+}
+.agentos-poster-case { font-family: monospace; font-size: 8px; color: var(--text-dim); letter-spacing: 0.5px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agentos-poster-info { flex: 1; min-width: 0; }
+.agentos-poster-name { font-weight: 900; font-size: 18px; letter-spacing: 0.5px; color: var(--text); }
+.agentos-poster-alias { font-style: italic; color: var(--st); font-size: 12px; margin-bottom: 4px; text-shadow: 0 0 6px color-mix(in srgb, var(--st) 50%, transparent); }
+.agentos-poster-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.agentos-poster-threat { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.agentos-poster-threat-label { font-family: monospace; font-size: 9px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+.agentos-threat-pips { display: flex; gap: 3px; }
+.agentos-threat-pips .pip { width: 12px; height: 7px; border-radius: 1px; background: transparent; border: 1px solid var(--text-dim); }
+.agentos-poster-threat.threat-low    .pip.on { background: #3df58a; border-color: #3df58a; box-shadow: 0 0 4px #3df58a; }
+.agentos-poster-threat.threat-medium .pip.on { background: #ffd23f; border-color: #ffd23f; box-shadow: 0 0 4px #ffd23f; }
+.agentos-poster-threat.threat-high   .pip.on { background: #ff7a2b; border-color: #ff7a2b; box-shadow: 0 0 4px #ff7a2b; }
+.agentos-poster-threat.threat-psycho .pip.on { background: #ff2b55; border-color: #ff2b55; box-shadow: 0 0 5px #ff2b55; }
+.agentos-poster-threat-name { font-family: monospace; font-weight: 800; font-size: 10px; letter-spacing: 1px; color: var(--text); text-transform: uppercase; }
+.agentos-poster-bounty {
+  display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  margin: 0 12px 10px; padding: 8px;
+  border: 1px dashed color-mix(in srgb, var(--neon-gold) 55%, transparent);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.agentos-poster-bounty-label { font-family: monospace; font-size: 10px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+.agentos-poster-bounty-val { font-family: monospace; font-weight: 900; font-size: 18px; color: var(--neon-gold); text-shadow: 0 0 8px color-mix(in srgb, var(--neon-gold) 60%, transparent); }
+.agentos-poster-section { margin: 0 12px 10px; }
+.agentos-poster-section h4 {
+  margin: 0 0 5px; font-family: monospace; font-size: 10px; letter-spacing: 2px;
+  color: var(--st); text-transform: uppercase; border-bottom: 1px solid color-mix(in srgb, var(--st) 40%, transparent); padding-bottom: 3px;
+}
+.agentos-crime-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.agentos-crime-list li {
+  font-size: 12px; color: var(--text);
+  padding: 3px 8px; border-radius: 3px; background: rgba(0, 0, 0, 0.3);
+  border-left: 2px solid var(--st);
+}
+.agentos-crime-list li i { color: var(--st); margin-right: 6px; font-size: 10px; }
 
 .agentos-ncpd-drop.over, .agentos-garden-drop.over, .agentos-blacklist-drop.over {
   outline: 2px dashed var(--neon-accent);

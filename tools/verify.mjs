@@ -95,6 +95,8 @@ console.log(`JS files checked: ${jsFiles.length}`);
 /* dynamic i18n keys built at runtime */
 ["stable", "wounded", "critical"].forEach(s => usedKeys.add("AGENTOS.Bio.State." + s));
 ["phone", "tablet", "pc"].forEach(s => usedKeys.add("AGENTOS.Mode." + s));
+["wanted", "missing", "poi", "detained", "cleared"].forEach(s => usedKeys.add("AGENTOS.Ncpd.Status." + s));
+["low", "medium", "high", "psycho"].forEach(s => usedKeys.add("AGENTOS.Ncpd.Threat." + s));
 ["chat", "datapool", "wallet", "contacts", "map", "bio", "chrome", "radio", "store", "id",
  "ncpd", "garden", "library", "tools", "arcade", "admin"].forEach(s => usedKeys.add("AGENTOS.AppShort." + s));
 

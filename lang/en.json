@@ -314,14 +314,46 @@
       "Cost": "Cost"
     },
     "Ncpd": {
-      "Search": "Search by name or faction…",
-      "Empty": "The database is empty.",
-      "Faction": "Faction",
-      "Status": "Status",
+      "Search": "Search by name, alias or status…",
+      "Empty": "The board is empty.",
+      "Faction": "Faction / Gang",
+      "Alias": "Alias / Street name",
+      "LastSeen": "Last seen",
+      "StatusField": "Status",
+      "Bounty": "Bounty",
+      "Crimes": "Charges",
+      "CrimesShort": "charges",
+      "CrimesHint": "one per line",
+      "ThreatLabel": "Threat level",
       "RapSheet": "Rap sheet",
       "PickImg": "Pick image",
       "DropHint": "Drop an Actor here to prefill name and photo.",
-      "DeleteConfirm": "Delete this record?"
+      "DeleteConfirm": "Remove this record from the board?",
+      "NoMatch": "No matching records.",
+      "NewFolder": "New folder",
+      "NewSubfolder": "New subfolder",
+      "RenameFolder": "Rename folder",
+      "DeleteFolder": "Delete folder",
+      "DeleteFolderConfirm": "Delete this folder? Its records move to the root.",
+      "FolderName": "Folder name",
+      "VisibleToPlayers": "Visible to players",
+      "HiddenTag": "Hidden from players",
+      "Classify": "Classify (hide contents from players)",
+      "Classified": "CLASSIFIED",
+      "AccessDenied": "ACCESS DENIED",
+      "Status": {
+        "wanted": "Wanted",
+        "missing": "Missing Person",
+        "poi": "Person of Interest",
+        "detained": "In Custody",
+        "cleared": "Cleared"
+      },
+      "Threat": {
+        "low": "Low",
+        "medium": "Moderate",
+        "high": "High",
+        "psycho": "Cyberpsycho"
+      }
     },
     "Garden": {
       "New": "New contact",

@@ -788,15 +788,29 @@ const OPS = {
     if (!requesterIsGM(userId)) return false;
     const list = getWorld("ncpdRecords") || [];
     const existing = record.id ? list.find(r => r.id === record.id) : null;
+    const STATUSES = ["wanted", "missing", "poi", "detained", "cleared"];
+    const THREATS = ["low", "medium", "high", "psycho"];
+    const crimes = (Array.isArray(record.crimes) ? record.crimes : String(record.crimes || "").split("\n"))
+      .map(c => String(c).trim()).filter(Boolean).slice(0, 30);
     const clean = {
       name: String(record.name || "UNKNOWN"),
       img: String(record.img || ""),
       description: String(record.description || ""),
       faction: String(record.faction || ""),
-      status: String(record.status || "")
+      alias: String(record.alias || ""),
+      lastSeen: String(record.lastSeen || ""),
+      status: STATUSES.includes(record.status) ? record.status : "wanted",
+      threat: THREATS.includes(record.threat) ? record.threat : "low",
+      bounty: Math.max(0, Math.round(Number(record.bounty) || 0)),
+      crimes,
+      hidden: !!record.hidden
     };
-    if (existing) Object.assign(existing, clean);
-    else list.push({ id: uid("ncpd"), ...clean, ts: Date.now() });
+    if (existing) {
+      Object.assign(existing, clean);
+      if (record.folderId !== undefined) existing.folderId = record.folderId || null;
+    } else {
+      list.push({ id: uid("ncpd"), ...clean, folderId: record.folderId || null, ts: Date.now() });
+    }
     await setWorld("ncpdRecords", list);
     return true;
   },
@@ -804,6 +818,83 @@ const OPS = {
   async "ncpd.delete"({ recordId }, userId) {
     if (!requesterIsGM(userId)) return false;
     await setWorld("ncpdRecords", (getWorld("ncpdRecords") || []).filter(r => r.id !== recordId));
+    return true;
+  },
+
+  async "ncpd.move"({ recordId, folderId }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const list = getWorld("ncpdRecords") || [];
+    const r = list.find(x => x.id === recordId);
+    if (!r) return false;
+    if (folderId && !(getWorld("ncpdFolders") || []).some(f => f.id === folderId)) return false;
+    r.folderId = folderId || null;
+    await setWorld("ncpdRecords", list);
+    return true;
+  },
+
+  /* ---- NCPD folders (GM only, flat namespace, nested) ---- */
+
+  async "ncpdFolder.create"({ name, parentId }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const folders = getWorld("ncpdFolders") || [];
+    if (parentId && !folders.some(f => f.id === parentId)) return false;
+    folders.push({ id: uid("nf"), name: String(name || "Folder").slice(0, 60), parentId: parentId || null, ts: Date.now() });
+    await setWorld("ncpdFolders", folders);
+    return true;
+  },
+
+  async "ncpdFolder.rename"({ folderId, name }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const folders = getWorld("ncpdFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    f.name = String(name || f.name).slice(0, 60);
+    await setWorld("ncpdFolders", folders);
+    return true;
+  },
+
+  /* Toggle "classified" — players see the folder but not its contents. */
+  async "ncpdFolder.setSecret"({ folderId, secret }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const folders = getWorld("ncpdFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    f.secret = !!secret;
+    await setWorld("ncpdFolders", folders);
+    return true;
+  },
+
+  async "ncpdFolder.move"({ folderId, parentId }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const folders = getWorld("ncpdFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (parentId) {
+      if (!folders.some(x => x.id === parentId)) return false;
+      // no cycles
+      let cur = folders.find(x => x.id === parentId);
+      while (cur) { if (cur.id === f.id) return false; cur = folders.find(x => x.id === cur.parentId); }
+    }
+    f.parentId = parentId || null;
+    await setWorld("ncpdFolders", folders);
+    return true;
+  },
+
+  async "ncpdFolder.delete"({ folderId }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    const folders = getWorld("ncpdFolders") || [];
+    if (!folders.some(f => f.id === folderId)) return false;
+    const doomed = new Set([folderId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const x of folders) if (x.parentId && doomed.has(x.parentId) && !doomed.has(x.id)) { doomed.add(x.id); grew = true; }
+    }
+    const records = getWorld("ncpdRecords") || [];
+    let touched = false;
+    for (const r of records) if (r.folderId && doomed.has(r.folderId)) { r.folderId = null; touched = true; }
+    if (touched) await setWorld("ncpdRecords", records);
+    await setWorld("ncpdFolders", folders.filter(x => !doomed.has(x.id)));
     return true;
   },
 

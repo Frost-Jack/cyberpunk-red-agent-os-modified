@@ -1,5 +1,6 @@
 {{#if viewing}}
 
+{{!-- ===== Detail: full wanted poster ===== --}}
 <div class="agentos-ncpd-view">
   <div class="agentos-toolbar">
     <button type="button" class="agentos-icon-btn" data-action="ncpd-back"><i class="fas fa-arrow-left"></i></button>
@@ -9,34 +10,111 @@
     <button type="button" class="agentos-icon-btn danger" data-action="ncpd-delete"><i class="fas fa-trash"></i></button>
     {{/if}}
   </div>
-  <div class="agentos-ncpd-head">
-    <img class="agentos-mugshot" src="{{#if record.img}}{{record.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
-    <div>
-      <div class="agentos-id-name">{{record.name}}</div>
-      {{#if record.faction}}<div class="agentos-tag">{{record.faction}}</div>{{/if}}
-      {{#if record.status}}<div class="agentos-tag warn">{{record.status}}</div>{{/if}}
+
+  <div class="agentos-poster status-{{record.status}}" style="--st: {{record.statusColor}};">
+    <div class="agentos-poster-banner">
+      <i class="fas {{record.statusIcon}}"></i>
+      <span>{{record.statusLabel}}</span>
     </div>
+    <div class="agentos-poster-main">
+      <div class="agentos-poster-mug">
+        <img src="{{#if record.img}}{{record.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+        <span class="agentos-poster-case">CASE #{{record.id}}</span>
+      </div>
+      <div class="agentos-poster-info">
+        <div class="agentos-poster-name">{{record.name}}</div>
+        {{#if record.alias}}<div class="agentos-poster-alias">"{{record.alias}}"</div>{{/if}}
+        <div class="agentos-poster-meta">
+          {{#if record.faction}}<span class="agentos-tag"><i class="fas fa-users"></i> {{record.faction}}</span>{{/if}}
+          {{#if record.lastSeen}}<span class="agentos-tag"><i class="fas fa-location-dot"></i> {{record.lastSeen}}</span>{{/if}}
+        </div>
+        <div class="agentos-poster-threat threat-{{record.threat}}">
+          <span class="agentos-poster-threat-label">{{localize "AGENTOS.Ncpd.ThreatLabel"}}</span>
+          <span class="agentos-threat-pips">
+            <i class="pip {{#if (agGt record.threatLevel 0)}}on{{/if}}"></i>
+            <i class="pip {{#if (agGt record.threatLevel 1)}}on{{/if}}"></i>
+            <i class="pip {{#if (agGt record.threatLevel 2)}}on{{/if}}"></i>
+            <i class="pip {{#if (agGt record.threatLevel 3)}}on{{/if}}"></i>
+          </span>
+          <span class="agentos-poster-threat-name">{{record.threatLabel}}</span>
+        </div>
+      </div>
+    </div>
+
+    {{#if record.bounty}}
+    <div class="agentos-poster-bounty">
+      <span class="agentos-poster-bounty-label">{{localize "AGENTOS.Ncpd.Bounty"}}</span>
+      <span class="agentos-poster-bounty-val">{{record.bountyFmt}} €$</span>
+    </div>
+    {{/if}}
+
+    {{#if record.crimeCount}}
+    <div class="agentos-poster-section">
+      <h4>{{localize "AGENTOS.Ncpd.Crimes"}}</h4>
+      <ul class="agentos-crime-list">
+        {{#each record.crimes}}
+        <li><i class="fas fa-gavel"></i> {{this}}</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    {{#if record.description}}
+    <div class="agentos-poster-section">
+      <h4>{{localize "AGENTOS.Ncpd.RapSheet"}}</h4>
+      <div class="agentos-ncpd-body">{{record.description}}</div>
+    </div>
+    {{/if}}
   </div>
-  <div class="agentos-ncpd-body">{{record.description}}</div>
 </div>
 
 {{else}}
 {{#if editing}}
 
+{{!-- ===== Edit form ===== --}}
 <div class="agentos-ncpd-form agentos-ncpd-drop">
   <p class="agentos-hint"><i class="fas fa-hand-pointer"></i> {{localize "AGENTOS.Ncpd.DropHint"}}</p>
   <div class="agentos-field-row">
     <img class="agentos-mugshot sm" src="{{#if editing.img}}{{editing.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
     <button type="button" class="agentos-icon-btn" data-action="ncpd-img" title="{{localize "AGENTOS.Ncpd.PickImg"}}"><i class="fas fa-image"></i></button>
   </div>
+
+  <label>{{localize "AGENTOS.Ncpd.StatusField"}}</label>
+  <div class="agentos-ncpd-chips">
+    {{#each statusOptions}}
+    <button type="button" class="agentos-ncpd-chip st-{{this.id}} {{#if this.active}}active{{/if}}" data-action="ncpd-status" data-status="{{this.id}}">{{this.label}}</button>
+    {{/each}}
+  </div>
+
+  <label class="agentos-check row">
+    <input type="checkbox" name="ncpd-hidden" {{#unless editing.hidden}}checked{{/unless}}>
+    <span>{{localize "AGENTOS.Ncpd.VisibleToPlayers"}}</span>
+  </label>
+
   <label>{{localize "AGENTOS.Contacts.Name"}}</label>
   <input type="text" name="ncpd-name" value="{{editing.name}}">
+  <label>{{localize "AGENTOS.Ncpd.Alias"}}</label>
+  <input type="text" name="ncpd-alias" value="{{editing.alias}}">
   <label>{{localize "AGENTOS.Ncpd.Faction"}}</label>
   <input type="text" name="ncpd-faction" value="{{editing.faction}}">
-  <label>{{localize "AGENTOS.Ncpd.Status"}}</label>
-  <input type="text" name="ncpd-status" value="{{editing.status}}">
+  <label>{{localize "AGENTOS.Ncpd.LastSeen"}}</label>
+  <input type="text" name="ncpd-lastseen" value="{{editing.lastSeen}}">
+  <label>{{localize "AGENTOS.Ncpd.Bounty"}} (€$)</label>
+  <input type="number" name="ncpd-bounty" min="0" step="50" value="{{editing.bounty}}">
+
+  <label>{{localize "AGENTOS.Ncpd.ThreatLabel"}}</label>
+  <div class="agentos-ncpd-chips">
+    {{#each threatOptions}}
+    <button type="button" class="agentos-ncpd-chip th-{{this.id}} {{#if this.active}}active{{/if}}" data-action="ncpd-threat" data-threat="{{this.id}}">{{this.label}}</button>
+    {{/each}}
+  </div>
+
+  <label>{{localize "AGENTOS.Ncpd.Crimes"}} <span class="agentos-hint-inline">{{localize "AGENTOS.Ncpd.CrimesHint"}}</span></label>
+  <textarea name="ncpd-crimes" rows="4">{{editing.crimesText}}</textarea>
+
   <label>{{localize "AGENTOS.Ncpd.RapSheet"}}</label>
-  <textarea name="ncpd-desc" rows="6">{{editing.description}}</textarea>
+  <textarea name="ncpd-desc" rows="5">{{editing.description}}</textarea>
+
   <div class="agentos-modal-actions">
     <button type="button" class="agentos-btn" data-action="ncpd-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
     <button type="button" class="agentos-btn primary" data-action="ncpd-save">{{localize "AGENTOS.Common.Save"}}</button>
@@ -45,31 +123,47 @@
 
 {{else}}
 
+{{!-- ===== Wanted board ===== --}}
 <div class="agentos-ncpd">
+  <div class="agentos-ncpd-boardbar">
+    <span class="agentos-ncpd-brand"><i class="fas fa-building-shield"></i> NCPD // MOST WANTED</span>
+  </div>
   <div class="agentos-toolbar">
     <input type="text" name="ncpd-search" class="agentos-search grow" value="{{search}}" placeholder="{{localize "AGENTOS.Ncpd.Search"}}">
     {{#if isGM}}
+    <button type="button" class="agentos-icon-btn" data-action="ncpd-folder-new" data-parent-id="" title="{{localize "AGENTOS.Ncpd.NewFolder"}}"><i class="fas fa-folder-plus"></i></button>
     <button type="button" class="agentos-btn primary" data-action="ncpd-new"><i class="fas fa-plus"></i></button>
     {{/if}}
   </div>
 
-  {{#if filtered.length}}
-  <ul class="agentos-list">
-    {{#each filtered}}
-    <li class="agentos-list-row" data-action="ncpd-open" data-record-id="{{this.id}}">
-      <img class="agentos-mugshot sm" src="{{#if this.img}}{{this.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
-      <div class="agentos-list-main">
-        <div class="agentos-list-title">{{this.name}}</div>
-        <div class="agentos-list-sub">{{this.faction}}{{#if this.status}} · {{this.status}}{{/if}}</div>
-      </div>
-      {{#if @root.isGM}}
-      <button type="button" class="agentos-icon-btn danger" data-action="ncpd-delete" data-record-id="{{this.id}}"><i class="fas fa-trash"></i></button>
-      {{/if}}
-    </li>
-    {{/each}}
-  </ul>
+  {{#if searching}}
+    {{#if filtered.length}}
+    <div class="agentos-ncpd-board">
+      {{#each filtered}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd-card.hbs" this}}
+      {{/each}}
+    </div>
+    {{else}}
+    <p class="agentos-empty">{{localize "AGENTOS.Ncpd.NoMatch"}}</p>
+    {{/if}}
   {{else}}
-  <p class="agentos-empty">{{localize "AGENTOS.Ncpd.Empty"}}</p>
+    {{#if hasAny}}
+    {{!-- Root board drop zone: dropping here files a card/folder at the top. --}}
+    <div class="agentos-ncpd-root" data-ncpd-drop="">
+      {{#each folders}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd-folder.hbs" this}}
+      {{/each}}
+      {{#if rootCards.length}}
+      <div class="agentos-ncpd-board">
+        {{#each rootCards}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd-card.hbs" this}}
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+    {{else}}
+    <p class="agentos-empty">{{localize "AGENTOS.Ncpd.Empty"}}</p>
+    {{/if}}
   {{/if}}
 </div>
 

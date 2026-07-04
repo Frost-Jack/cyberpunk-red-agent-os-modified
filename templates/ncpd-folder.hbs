@@ -1,0 +1,39 @@
+{{!-- A nested NCPD folder. Drop target; recurses into subfolders.
+      `locked` = a classified folder viewed by a player: shell only. --}}
+<div class="agentos-folder agentos-subfolder {{#if this.secret}}is-secret{{/if}} {{#if this.locked}}is-locked{{/if}}"
+     data-ncpd-drop="{{this.id}}"
+     {{#if @root.isGM}}draggable="true" data-ncpdfolder-drag="{{this.id}}"{{/if}}>
+  <div class="agentos-folder-header" data-action="ncpd-folder-toggle" data-folder-id="{{this.id}}">
+    <i class="fas {{#if this.locked}}fa-lock{{else}}{{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}{{/if}}"></i>
+    <span class="agentos-folder-name">{{this.name}}</span>
+    {{#if this.secret}}<span class="agentos-folder-secret-tag"><i class="fas fa-user-shield"></i> {{localize "AGENTOS.Ncpd.Classified"}}</span>{{/if}}
+    {{#unless this.locked}}<span class="agentos-folder-count">{{this.count}}</span>{{/unless}}
+    {{#if @root.isGM}}
+    <span class="agentos-folder-tools">
+      <button type="button" class="agentos-icon-btn {{#if this.secret}}active{{/if}}" data-action="ncpd-folder-secret" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Ncpd.Classify"}}"><i class="fas fa-user-shield"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="ncpd-folder-new" data-parent-id="{{this.id}}" title="{{localize "AGENTOS.Ncpd.NewSubfolder"}}"><i class="fas fa-folder-plus"></i></button>
+      <button type="button" class="agentos-icon-btn" data-action="ncpd-folder-rename" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Ncpd.RenameFolder"}}"><i class="fas fa-pen"></i></button>
+      <button type="button" class="agentos-icon-btn danger" data-action="ncpd-folder-delete" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Ncpd.DeleteFolder"}}"><i class="fas fa-trash"></i></button>
+    </span>
+    {{/if}}
+    {{#unless this.locked}}<i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>{{/unless}}
+  </div>
+  {{#if this.locked}}
+  <div class="agentos-folder-classified"><i class="fas fa-lock"></i> {{localize "AGENTOS.Ncpd.AccessDenied"}}</div>
+  {{else}}
+  {{#unless this.collapsed}}
+  <div class="agentos-folder-body">
+    {{#each this.subfolders}}
+    {{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd-folder.hbs" this}}
+    {{/each}}
+    {{#if this.cards.length}}
+    <div class="agentos-ncpd-board">
+      {{#each this.cards}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd-card.hbs" this}}
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  {{/unless}}
+  {{/if}}
+</div>

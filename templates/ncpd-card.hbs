@@ -1,0 +1,17 @@
+{{!-- One wanted-poster card. Draggable so the GM can file it into a folder. --}}
+<div class="agentos-poster-card status-{{this.status}} {{#if this.hidden}}gm-hidden{{/if}}" style="--st: {{this.statusColor}};"
+     data-action="ncpd-open" data-record-id="{{this.id}}"
+     {{#if @root.isGM}}draggable="true" data-ncpd-drag="{{this.id}}"{{/if}}>
+  {{#if this.hidden}}<span class="agentos-poster-card-eye" title="{{localize "AGENTOS.Ncpd.HiddenTag"}}"><i class="fas fa-eye-slash"></i></span>{{/if}}
+  <div class="agentos-poster-card-banner"><i class="fas {{this.statusIcon}}"></i> {{this.statusLabel}}</div>
+  <img class="agentos-poster-card-mug" src="{{#if this.img}}{{this.img}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="">
+  <div class="agentos-poster-card-name">{{this.name}}</div>
+  <div class="agentos-poster-card-sub">
+    {{#if this.faction}}{{this.faction}}{{/if}}
+    {{#if this.crimeCount}} · {{this.crimeCount}} {{localize "AGENTOS.Ncpd.CrimesShort"}}{{/if}}
+  </div>
+  {{#if this.bounty}}<div class="agentos-poster-card-bounty">{{this.bountyFmt}} €$</div>{{/if}}
+  {{#if @root.isGM}}
+  <button type="button" class="agentos-icon-btn danger agentos-poster-card-del" data-action="ncpd-delete" data-record-id="{{this.id}}"><i class="fas fa-trash"></i></button>
+  {{/if}}
+</div>
