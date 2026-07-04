@@ -2,6 +2,7 @@
 
 import { MODULE_ID, THEMES, loc } from "../constants.js";
 import { AgentAudio } from "../audio.js";
+import { applyVolume } from "./radio.js";
 
 export async function getData(app) {
   return {
@@ -21,7 +22,8 @@ export async function getData(app) {
       active: Math.abs(app.zoom - s) < 0.01
     })),
     soundsEnabled: game.settings.get(MODULE_ID, "soundsEnabled") !== false,
-    indicatorEnabled: game.settings.get(MODULE_ID, "messageIndicatorEnabled") !== false
+    indicatorEnabled: game.settings.get(MODULE_ID, "messageIndicatorEnabled") !== false,
+    radioVolume: Number(game.settings.get(MODULE_ID, "radioVolume") ?? 60)
   };
 }
 
@@ -53,5 +55,13 @@ export function activateListeners(app, html) {
 
   html.on("change", "[name='set-indicator']", async (ev) => {
     await game.settings.set(MODULE_ID, "messageIndicatorEnabled", ev.currentTarget.checked);
+  });
+
+  html.on("input", "[name='set-radio-volume']", async (ev) => {
+    const v = Math.max(0, Math.min(100, Number(ev.currentTarget.value) || 0));
+    await game.settings.set(MODULE_ID, "radioVolume", v);
+    applyVolume();
+    const lbl = html.find(".agentos-radio-vol-val")[0];
+    if (lbl) lbl.textContent = `${v}%`;
   });
 }

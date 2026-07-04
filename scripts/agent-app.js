@@ -18,6 +18,7 @@ import * as ContactsApp from "./apps/contacts.js";
 import * as MapApp from "./apps/map.js";
 import * as BioApp from "./apps/bio.js";
 import * as ChromeApp from "./apps/chrome.js";
+import * as RadioApp from "./apps/radio.js";
 import * as StoreApp from "./apps/store.js";
 import * as IdApp from "./apps/id.js";
 import * as NcpdApp from "./apps/ncpd.js";
@@ -30,7 +31,7 @@ import * as SettingsApp from "./apps/settings.js";
 
 const IMPL = {
   chat: ChatApp, datapool: DatapoolApp, wallet: WalletApp,
-  contacts: ContactsApp, map: MapApp, bio: BioApp, chrome: ChromeApp, store: StoreApp,
+  contacts: ContactsApp, map: MapApp, bio: BioApp, chrome: ChromeApp, radio: RadioApp, store: StoreApp,
   id: IdApp, ncpd: NcpdApp, garden: GardenApp, library: LibraryApp,
   tools: ToolsApp, arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp
 };
@@ -288,6 +289,8 @@ export class AgentOSApplication extends Application {
 
   async close(options) {
     if (this.currentApp && IMPL[this.currentApp]?.onClose) IMPL[this.currentApp].onClose(this);
+    // Radio may keep playing after close (per its in-app toggle); let it decide.
+    RadioApp.onDeviceClose?.();
     return super.close(options);
   }
 }

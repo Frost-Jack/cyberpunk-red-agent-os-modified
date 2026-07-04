@@ -1,0 +1,80 @@
+<div class="agentos-radio">
+
+  {{!-- GM broadcast banner (players) --}}
+  {{#if following}}
+  <div class="agentos-radio-banner">
+    <i class="fas fa-tower-broadcast"></i>
+    <span>{{localize "AGENTOS.Radio.GmBroadcast"}}</span>
+  </div>
+  {{/if}}
+
+  {{!-- Now playing --}}
+  <div class="agentos-radio-np {{#if hasStation}}on{{/if}}" style="--st-color: {{stationColor}};">
+    {{#if hasStation}}
+    <div class="agentos-radio-np-art">
+      {{#if npArtwork}}<img src="{{npArtwork}}" alt="">{{else}}<i class="fas fa-compact-disc {{#if playing}}spin{{/if}}"></i>{{/if}}
+    </div>
+    <div class="agentos-radio-np-info">
+      <div class="agentos-radio-np-station">{{stationName}}</div>
+      {{#if hasTrack}}
+      <div class="agentos-radio-np-title">{{npTitle}}</div>
+      <div class="agentos-radio-np-artist">{{npArtist}}</div>
+      {{else}}
+      <div class="agentos-radio-np-title">
+        {{#if loading}}{{localize "AGENTOS.Radio.Connecting"}}{{else}}{{stationGenre}}{{/if}}
+      </div>
+      {{/if}}
+    </div>
+    <div class="agentos-radio-eq {{#if playing}}live{{/if}}"><span></span><span></span><span></span><span></span></div>
+    {{else}}
+    <div class="agentos-radio-np-idle">
+      <i class="fas fa-radio"></i>
+      <span>{{localize "AGENTOS.Radio.PickStation"}}</span>
+    </div>
+    {{/if}}
+  </div>
+
+  {{!-- Transport --}}
+  <div class="agentos-radio-transport">
+    <button type="button" class="agentos-radio-stop" data-action="radio-stop" {{#unless hasStation}}disabled{{/unless}}>
+      <i class="fas fa-stop"></i>
+    </button>
+    <div class="agentos-radio-vol">
+      <i class="fas fa-volume-low"></i>
+      <input type="range" name="radio-volume" min="0" max="100" step="1" value="{{volume}}">
+      <span class="agentos-radio-vol-val">{{volume}}%</span>
+    </div>
+  </div>
+
+  {{!-- Toggles: keep-playing (all) + GM takeover (GM only) --}}
+  <div class="agentos-radio-toggles">
+    <button type="button" class="agentos-radio-toggle {{#if keepPlaying}}on{{/if}}" data-action="radio-toggle-keep">
+      <i class="fas {{#if keepPlaying}}fa-infinity{{else}}fa-power-off{{/if}}"></i>
+      <span>{{#if keepPlaying}}{{localize "AGENTOS.Radio.KeepOn"}}{{else}}{{localize "AGENTOS.Radio.KeepOff"}}{{/if}}</span>
+    </button>
+    {{#if isGM}}
+    <button type="button" class="agentos-radio-toggle takeover {{#if takeover}}on{{/if}}" data-action="radio-takeover">
+      <i class="fas fa-tower-broadcast"></i>
+      <span>{{#if takeover}}{{localize "AGENTOS.Radio.TakeoverOn"}}{{else}}{{localize "AGENTOS.Radio.TakeoverOff"}}{{/if}}</span>
+    </button>
+    {{/if}}
+  </div>
+
+  {{!-- Stations --}}
+  <div class="agentos-radio-grid">
+    {{#each stations}}
+    <button type="button" class="agentos-radio-card {{#if this.active}}active{{/if}} {{#if this.locked}}locked{{/if}}" data-action="radio-play" data-slug="{{this.slug}}"
+            style="--st-color: {{this.color}};">
+      <span class="agentos-radio-card-glyph">
+        <i class="fas {{#if this.locked}}fa-lock{{else}}{{#if this.playing}}fa-pause{{else}}fa-play{{/if}}{{/if}}"></i>
+      </span>
+      <span class="agentos-radio-card-main">
+        <span class="agentos-radio-card-name">{{this.name}}</span>
+        <span class="agentos-radio-card-genre">{{this.genre}}</span>
+      </span>
+      {{#if this.playing}}<span class="agentos-radio-card-live">● LIVE</span>{{/if}}
+    </button>
+    {{/each}}
+  </div>
+
+</div>

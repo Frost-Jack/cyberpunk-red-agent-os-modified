@@ -4,6 +4,7 @@ import { MODULE_ID, TPL, DEFAULT_HOUSING, DEFAULT_LIFESTYLES, DEFAULT_TRAUMA } f
 import { AgentAudio } from "./audio.js";
 import { initSocket } from "./socket.js";
 import { AgentOSApplication } from "./agent-app.js";
+import { syncBroadcast, applyVolume } from "./apps/radio.js";
 
 const WORLD_OBJECTS = {
   agentChats: {},
@@ -21,7 +22,8 @@ const WORLD_OBJECTS = {
   appConfig: {},
   libraryTree: [],
   toolMacros: [],
-  chromeLayout: {}
+  chromeLayout: {},
+  radioBroadcast: { active: false, slug: "", playing: false, ts: 0 }
 };
 
 Hooks.once("init", () => {
@@ -56,6 +58,9 @@ Hooks.once("init", () => {
     hint: "AGENTOS.Settings.MessageIndicatorHint",
     scope: "client", config: true, type: Boolean, default: true
   });
+  game.settings.register(MODULE_ID, "radioVolume", {
+    scope: "client", config: false, type: Number, default: 60
+  });
 
   registerHandlebarsHelpers();
   globalThis.AgentOSAudio = AgentAudio;
@@ -67,7 +72,7 @@ Hooks.once("ready", async () => {
 
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
-    "contacts", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "store", "id", "ncpd", "garden",
+    "contacts", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
 
@@ -117,8 +122,16 @@ const _rerenderDebounced = foundry.utils.debounce(() => {
 }, 100);
 
 Hooks.on("updateSetting", (setting) => {
-  if (setting.key?.startsWith(`${MODULE_ID}.`)) _rerenderDebounced();
+  if (!setting.key?.startsWith(`${MODULE_ID}.`)) return;
+  // GM radio takeover: reconcile local playback with the broadcast even when
+  // the Radio app isn't open, so players follow the GM's station live.
+  if (setting.key === `${MODULE_ID}.radioBroadcast`) syncBroadcast();
+  _rerenderDebounced();
 });
+
+/* Radio volume tracks Foundry's global music (playlist) volume — re-apply the
+ * scaled stream volume live whenever the player drags that slider. */
+Hooks.on("globalPlaylistVolumeChanged", () => applyVolume());
 
 /* Live wallet / biomonitor sync. */
 Hooks.on("updateActor", (actor) => {

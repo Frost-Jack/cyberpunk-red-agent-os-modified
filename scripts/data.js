@@ -800,6 +800,19 @@ const OPS = {
     return true;
   },
 
+  /* ---- radio broadcast (GM takeover; GM only) ---- */
+
+  async "radio.broadcast"({ active, slug, playing }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    await setWorld("radioBroadcast", {
+      active: !!active,
+      slug: String(slug || ""),
+      playing: !!playing,
+      ts: Date.now()
+    });
+    return true;
+  },
+
   /* ---- library (GM only; PDFs are downloaded by the GM client itself) ---- */
 
   async "library.setTree"({ tree }, userId) {

@@ -9,6 +9,7 @@
       "map": "City Map",
       "bio": "Biomonitor",
       "chrome": "Chrome",
+      "radio": "Radio",
       "store": "NC Mart",
       "id": "ID",
       "ncpd": "NCPD",
@@ -41,6 +42,7 @@
       "map": "Map",
       "bio": "Bio",
       "chrome": "Chrome",
+      "radio": "Radio",
       "store": "Mart",
       "id": "ID",
       "ncpd": "NCPD",
@@ -257,6 +259,17 @@
       "Borg": "BORGWARE",
       "Fashion": "FASHIONWARE"
     },
+    "Radio": {
+      "PickStation": "Select a station",
+      "Connecting": "Connecting…",
+      "StreamError": "Could not reach the stream.",
+      "KeepOn": "Plays after close",
+      "KeepOff": "Stops on close",
+      "TakeoverOn": "Broadcasting",
+      "TakeoverOff": "Takeover",
+      "GmBroadcast": "GM BROADCAST",
+      "Locked": "The GM controls the station right now."
+    },
     "Store": {
       "Loading": "Loading catalog…",
       "Search": "Search…",
@@ -375,7 +388,8 @@
       "MessageIndicator": "Message pop-ups",
       "MessageIndicatorHint": "Show floating notifications for new messages.",
       "CallAnimation": "Holophone call animation",
-      "CallAnimationHint": "Show the Sequencer call effect above tokens."
+      "CallAnimationHint": "Show the Sequencer call effect above tokens.",
+      "RadioVolume": "Radio volume"
     }
   }
 }

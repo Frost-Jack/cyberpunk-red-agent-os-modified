@@ -87,6 +87,10 @@ function buildItem(item, actor, catType, depth = 0, colorIdx = -1) {
     useIcon: isDefaultImg(item.img),
     iconClass: CAT_ICON[catType] || "fa-microchip",
     isUpgrade: item.type === "itemUpgrade",
+    // CPR's built-in "core" containers (the hidden internal/external/fashionware
+    // bases baked into the sheet). Opening their sheet corrupts the display, so
+    // they render as a non-interactive label.
+    isCore: !!sys.core,
     colorIdx,                       // this item's own palette colour (-1 = none)
     hasColor: colorIdx >= 0,
     size,
@@ -128,7 +132,10 @@ function implantCount(actor) {
 /** Foundational "units" and baseless items of one type, as display nodes. */
 function unitsOfType(actor, type) {
   const all = itemsOfType(actor, type);
-  const bases = all.filter(i => i.system?.isFoundational);
+  // Core containers are always bases even if their isFoundational flag was
+  // toggled off (e.g. by accidentally opening their sheet before).
+  const isBase = (i) => i.system?.isFoundational || i.system?.core;
+  const bases = all.filter(isBase);
 
   const claimed = new Set();
   const collect = (item) => {
@@ -140,7 +147,7 @@ function unitsOfType(actor, type) {
   };
   bases.forEach(collect);
 
-  const baseless = all.filter(i => !i.system?.isFoundational && !claimed.has(i.id));
+  const baseless = all.filter(i => !isBase(i) && !claimed.has(i.id));
 
   // A "unit" is one draggable/assignable card: a base (with its tree) or a
   // single baseless item. unitId is the item id either way.

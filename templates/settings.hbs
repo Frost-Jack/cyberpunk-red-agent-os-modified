@@ -37,4 +37,11 @@
     <span>{{localize "AGENTOS.Settings.MessageIndicator"}}</span>
   </label>
 
+  <div class="agentos-radio-vol settings">
+    <i class="fas fa-radio"></i>
+    <span class="agentos-radio-vol-label">{{localize "AGENTOS.Settings.RadioVolume"}}</span>
+    <input type="range" name="set-radio-volume" min="0" max="100" step="1" value="{{radioVolume}}">
+    <span class="agentos-radio-vol-val">{{radioVolume}}%</span>
+  </div>
+
 </div>

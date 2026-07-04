@@ -47,6 +47,10 @@
   flex-direction: column;
   width: 390px;
   height: 700px;
+  /* Scale with CSS `zoom` so layout box sizes (scroll/overflow of chat,
+     datapool, mart, etc.) shrink with the device — `transform: scale` would
+     leave them at full size and overflow. Pointer-coordinate maths in map /
+     arcade compensates for this zoom explicitly (see pointerFraction). */
   zoom: var(--agent-zoom, 1);
   max-height: calc(100vh - 64px);
   background: #050505;
@@ -2072,17 +2076,28 @@ input.agentos-search, .agentos-search {
 .agentos-chassis .agentos-hbtn i { line-height: 1; }
 
 /* Hidden GM markers: dimmed, dashed label, eye-slash badge */
-.agentos-map-marker.gm-hidden { opacity: 0.55; }
-.agentos-map-marker.gm-hidden .agentos-pin-label { border-style: dashed; color: #cfcfcf; }
+/* Hidden-from-players markers stay visible to the GM: full opacity, a dashed
+   label outline and a soft cyberpunk "eye-off" glyph (no ring). */
+.agentos-map-marker.gm-hidden { opacity: 1; }
+.agentos-map-marker.gm-hidden i:first-child {
+  filter: drop-shadow(0 0 3px #000);
+}
+.agentos-map-marker.gm-hidden .agentos-pin-label { border-style: dashed; color: #eaeaea; }
 .agentos-marker-hidden-badge {
   position: absolute;
-  left: 8px;
-  bottom: 12px;
-  font-size: 0.55rem !important;
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 50%;
-  padding: 2px;
+  left: 7px;
+  bottom: 11px;
+  font-size: 0.62rem !important;
+  /* crisp glyph with a cyberpunk chromatic-aberration tint (no blur, no black) */
+  color: var(--neon-warn);
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  text-shadow:
+    0 0 3px var(--neon-warn),
+    1px 0 0 rgba(56, 212, 255, 0.75),
+   -1px 0 0 rgba(255, 43, 85, 0.75);
   transform: none !important;
 }
 
@@ -3974,6 +3989,15 @@ input.agentos-search, .agentos-search {
   background: color-mix(in srgb, var(--neon-accent) 8%, rgba(0, 0, 0, 0.3));
   border-left: 2px solid var(--neon-accent);
 }
+/* CPR built-in core containers: read-only label, not clickable */
+.agentos-chrome-item.is-core { cursor: default; }
+.agentos-chrome-item.is-core:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: transparent;
+}
+.agentos-chrome-item.is-core.foundational:hover {
+  background: color-mix(in srgb, var(--neon-accent) 8%, rgba(0, 0, 0, 0.3));
+}
 .agentos-chrome-item-img {
   width: 20px; height: 20px;
   object-fit: cover;
@@ -4350,3 +4374,199 @@ input.agentos-search, .agentos-search {
 }
 .agentos-chassis.mode-tablet .agentos-chrome-scan,
 .agentos-chassis.mode-pc .agentos-chrome-scan { position: sticky; top: 0; }
+
+/* ==========================================================================
+   RADIO — rekt.network / nightride.fm streaming player
+   ========================================================================== */
+.agentos-radio { display: flex; flex-direction: column; gap: 8px; padding: 2px; }
+
+/* now playing */
+.agentos-radio-np {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  min-height: 68px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--st-color, var(--neon-accent)) 16%, transparent), rgba(0,0,0,0.4));
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+}
+.agentos-radio-np.on { border-color: color-mix(in srgb, var(--st-color) 55%, transparent); }
+.agentos-radio-np-idle {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text-dim); font-family: monospace; letter-spacing: 1px;
+}
+.agentos-radio-np-idle i { font-size: 22px; color: var(--neon-accent); }
+.agentos-radio-np-art {
+  width: 48px; height: 48px; flex: 0 0 auto;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid color-mix(in srgb, var(--st-color) 45%, transparent);
+  overflow: hidden;
+}
+.agentos-radio-np-art img { width: 100%; height: 100%; object-fit: cover; }
+.agentos-radio-np-art i { font-size: 24px; color: var(--st-color); }
+.agentos-radio-np-art i.spin { animation: agentos-radio-spin 3s linear infinite; }
+@keyframes agentos-radio-spin { to { transform: rotate(360deg); } }
+.agentos-radio-np-info { flex: 1; min-width: 0; }
+.agentos-radio-np-station {
+  font-family: monospace; font-size: 10px; letter-spacing: 1px;
+  color: var(--st-color); text-shadow: 0 0 6px color-mix(in srgb, var(--st-color) 60%, transparent);
+}
+.agentos-radio-np-title {
+  font-weight: 800; font-size: 13px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agentos-radio-np-artist {
+  font-size: 11px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* equalizer bars */
+.agentos-radio-eq { display: flex; align-items: flex-end; gap: 2px; height: 24px; flex: 0 0 auto; }
+.agentos-radio-eq span {
+  width: 3px; height: 30%;
+  background: var(--st-color);
+  border-radius: 1px;
+}
+.agentos-radio-eq.live span { animation: agentos-radio-eq 0.9s ease-in-out infinite; }
+.agentos-radio-eq.live span:nth-child(2) { animation-delay: 0.15s; }
+.agentos-radio-eq.live span:nth-child(3) { animation-delay: 0.35s; }
+.agentos-radio-eq.live span:nth-child(4) { animation-delay: 0.5s; }
+@keyframes agentos-radio-eq { 0%,100% { height: 25%; } 50% { height: 95%; } }
+
+/* transport row */
+.agentos-radio-transport {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+}
+/* NOTE: the global `.agentos-chassis button` neutralizer forces transparent
+   bg / no border / dim colour with !important, so these controls must re-assert
+   background, border and colour with !important to stay readable. */
+.agentos-chassis .agentos-radio-stop {
+  width: 34px !important; height: 34px !important; margin: 0 !important; flex: 0 0 auto;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 45%, transparent) !important;
+  background: rgba(0,0,0,0.5) !important;
+  color: #eef2f5 !important;   /* light regardless of theme text colour */
+  cursor: pointer;
+}
+.agentos-chassis .agentos-radio-stop:hover:not(:disabled) { color: var(--neon-warn) !important; border-color: var(--neon-warn) !important; }
+.agentos-chassis .agentos-radio-stop:disabled { opacity: 0.4; cursor: default; }
+
+/* toggle row: keep-playing + GM takeover — labeled so they read clearly */
+.agentos-radio-toggles { display: flex; gap: 6px; }
+.agentos-chassis .agentos-radio-toggle {
+  flex: 1; margin: 0 !important;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 40%, transparent) !important;
+  background: rgba(0,0,0,0.5) !important;
+  color: #eaf0f4 !important;   /* var(--text-dim) is near-black in some themes */
+  cursor: pointer;
+  font-size: 10px; letter-spacing: 1px;
+}
+.agentos-chassis .agentos-radio-toggle i { color: var(--neon-accent) !important; font-size: 12px; }
+.agentos-chassis .agentos-radio-toggle span { color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agentos-chassis .agentos-radio-toggle.on {
+  color: var(--neon-accent) !important;
+  border-color: var(--neon-accent) !important;
+  box-shadow: 0 0 8px var(--frame-glow);
+  background: color-mix(in srgb, var(--neon-accent) 14%, #000) !important;
+}
+.agentos-chassis .agentos-radio-toggle.on i { color: inherit !important; }
+.agentos-chassis .agentos-radio-toggle.takeover.on {
+  color: var(--neon-warn) !important;
+  border-color: var(--neon-warn) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--neon-warn) 60%, transparent);
+  background: color-mix(in srgb, var(--neon-warn) 16%, #000) !important;
+}
+
+/* GM broadcast banner (players) */
+.agentos-radio-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--neon-warn);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--neon-warn) 14%, transparent);
+  color: var(--neon-warn);
+  font-family: monospace; font-size: 11px; letter-spacing: 1px;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--neon-warn) 55%, transparent);
+}
+.agentos-radio-banner i { animation: agentos-radio-blink 1.4s steps(1) infinite; }
+.agentos-radio-vol { flex: 1; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.agentos-radio-vol i { flex: 0 0 auto; }
+.agentos-radio-vol input[type="range"] { flex: 1; min-width: 40px; accent-color: var(--neon-accent); }
+.agentos-radio-vol-val { font-family: monospace; font-size: 10px; min-width: 34px; text-align: right; }
+.agentos-radio-vol.settings { margin: 6px 2px 0; }
+.agentos-radio-vol.settings i { color: var(--neon-accent); }
+.agentos-radio-vol-label { flex: 0 0 auto; font-size: 12px; color: var(--text); }
+
+/* station grid */
+.agentos-radio-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.agentos-chassis .agentos-radio-card {
+  display: flex; align-items: center; gap: 10px;
+  width: auto; height: auto; margin: 0;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid color-mix(in srgb, var(--st-color) 70%, transparent);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.3);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.agentos-chassis .agentos-radio-card:hover {
+  background: color-mix(in srgb, var(--st-color) 12%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--st-color) 40%, transparent);
+}
+.agentos-chassis .agentos-radio-card.active {
+  background: color-mix(in srgb, var(--st-color) 16%, transparent);
+  border-color: color-mix(in srgb, var(--st-color) 60%, transparent);
+}
+/* soft-locked for a player following the GM broadcast */
+.agentos-chassis .agentos-radio-card.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.agentos-chassis .agentos-radio-card.locked:hover {
+  background: rgba(0,0,0,0.3);
+  box-shadow: none;
+}
+.agentos-chassis .agentos-radio-card.locked.active { opacity: 1; }
+.agentos-radio-card-glyph {
+  width: 26px; height: 26px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--st-color) 22%, transparent);
+  color: var(--st-color);
+  font-size: 11px;
+}
+.agentos-radio-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.agentos-radio-card-name {
+  font-weight: 800; font-size: 12px; letter-spacing: 1px;
+  /* the card body colour (var(--text)) is dark in some themes, so name the
+     station in its own vivid accent colour — always readable on the dark card */
+  color: var(--st-color);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--st-color) 45%, transparent);
+}
+.agentos-radio-card-genre {
+  font-size: 10px; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agentos-radio-card-live {
+  flex: 0 0 auto; font-family: monospace; font-size: 9px; letter-spacing: 1px;
+  color: var(--st-color); text-shadow: 0 0 6px color-mix(in srgb, var(--st-color) 60%, transparent);
+  animation: agentos-radio-blink 1.4s steps(1) infinite;
+}
+@keyframes agentos-radio-blink { 0%,60% { opacity: 1; } 61%,100% { opacity: 0.4; } }
+
+/* wide layouts: two columns of stations */
+.agentos-chassis.mode-tablet .agentos-radio-grid,
+.agentos-chassis.mode-pc .agentos-radio-grid { grid-template-columns: 1fr 1fr; }

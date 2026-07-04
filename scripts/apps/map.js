@@ -57,6 +57,47 @@ function applyTransform(st, container) {
     `translate(-50%, -50%) translate(${st.mapX || 0}px, ${st.mapY || 0}px) scale(${st.mapZoom || 1})`;
 }
 
+/**
+ * Pointer position inside `el`'s content box as fractions 0..1, robust to the
+ * chassis CSS `zoom`.
+ *
+ * In this Chromium build, `zoom` scales getBoundingClientRect() but NOT
+ * event.clientX/Y, so `(clientX - rect.left) / rect.width` mixes two spaces and
+ * lands the cursor "right and low". `offsetWidth/Height` are always unzoomed
+ * layout px, so `z = rect.width / offsetWidth` recovers the baked-in zoom; we
+ * divide the rect back into layout space (where clientX/Y already live). When a
+ * future build stops scaling the rect, z ≈ 1 and this reduces to the plain
+ * ratio, so it is correct either way.
+ */
+export function pointerFraction(ev, el) {
+  const rect = el.getBoundingClientRect();
+  const ow = el.offsetWidth || rect.width;
+  const oh = el.offsetHeight || rect.height;
+  const zx = rect.width / ow || 1;
+  const zy = rect.height / oh || 1;
+  return {
+    fx: (ev.clientX - rect.left / zx) / ow,
+    fy: (ev.clientY - rect.top / zy) / oh
+  };
+}
+
+/** Zoom toward an anchor point so it stays fixed under the pointer (like
+ *  Google Maps). The container is centred in the viewport, then panned by
+ *  (mapX, mapY) and scaled about its centre. Anchor (ax, ay) is measured from
+ *  the viewport centre; keeping the world point under it invariant means
+ *  new pan = anchor - (anchor - pan) * (newZoom / oldZoom). Passing (0, 0)
+ *  anchors on the centre (used by the +/- buttons). */
+function zoomAt(st, container, factor, ax = 0, ay = 0) {
+  const z = st.mapZoom || 1;
+  const nz = Math.min(6, Math.max(0.4, z * factor));
+  if (nz === z) return;
+  const ratio = nz / z;
+  st.mapX = ax - (ax - (st.mapX || 0)) * ratio;
+  st.mapY = ay - (ay - (st.mapY || 0)) * ratio;
+  st.mapZoom = nz;
+  applyTransform(st, container);
+}
+
 /** Shared pan/zoom wiring for a map viewport. onClick(pctX, pctY) fires only
  *  for non-drag clicks on the map image itself (not on pins/markers). */
 export function wireMapViewport(st, viewport, container, onClick) {
@@ -66,8 +107,16 @@ export function wireMapViewport(st, viewport, container, onClick) {
   viewport.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const factor = ev.deltaY < 0 ? 1.15 : 1 / 1.15;
-    st.mapZoom = Math.min(6, Math.max(0.4, (st.mapZoom || 1) * factor));
-    applyTransform(st, container);
+    // Anchor the zoom on the cursor: offset of the pointer from the viewport
+    // centre (the container's centred origin), so that spot stays put. clientX/Y
+    // are in unzoomed layout px; the rect is zoom-scaled, so convert the rect
+    // centre back to layout px before taking the offset.
+    const rect = viewport.getBoundingClientRect();
+    const sx = viewport.offsetWidth ? rect.width / viewport.offsetWidth : 1;
+    const sy = viewport.offsetHeight ? rect.height / viewport.offsetHeight : 1;
+    const ax = ev.clientX - (rect.left + rect.width / 2) / (sx || 1);
+    const ay = ev.clientY - (rect.top + rect.height / 2) / (sy || 1);
+    zoomAt(st, container, factor, ax, ay);
   }, { passive: false });
 
   viewport.addEventListener("pointerdown", (ev) => {
@@ -76,6 +125,8 @@ export function wireMapViewport(st, viewport, container, onClick) {
     ev.preventDefault();
     const startPageX = ev.clientX, startPageY = ev.clientY;
     const baseX = st.mapX || 0, baseY = st.mapY || 0;
+    // clientX/Y are unzoomed layout px, and the container's translate is in that
+    // same local space, so the drag delta maps 1:1 — no scale conversion needed.
     let moved = false;
     const move = (e) => {
       const dx = e.clientX - startPageX, dy = e.clientY - startPageY;
@@ -90,9 +141,8 @@ export function wireMapViewport(st, viewport, container, onClick) {
       if (!moved && onClick) {
         const img = container.querySelector("img");
         if (img && (e.target === img || img.contains(e.target))) {
-          const rect = img.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * 100;
-          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          const { fx, fy } = pointerFraction(e, img);
+          const x = fx * 100, y = fy * 100;
           if (x >= 0 && x <= 100 && y >= 0 && y <= 100) onClick(x, y);
         }
       }
@@ -124,14 +174,8 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
-  html.on("click", "[data-action='map-zoom-in']", () => {
-    st.mapZoom = Math.min(6, (st.mapZoom || 1) * 1.3);
-    applyTransform(st, container);
-  });
-  html.on("click", "[data-action='map-zoom-out']", () => {
-    st.mapZoom = Math.max(0.4, (st.mapZoom || 1) / 1.3);
-    applyTransform(st, container);
-  });
+  html.on("click", "[data-action='map-zoom-in']", () => zoomAt(st, container, 1.3));
+  html.on("click", "[data-action='map-zoom-out']", () => zoomAt(st, container, 1 / 1.3));
   html.on("click", "[data-action='map-reset']", () => {
     st.mapZoom = 1; st.mapX = 0; st.mapY = 0;
     applyTransform(st, container);

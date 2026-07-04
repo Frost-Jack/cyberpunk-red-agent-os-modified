@@ -4,6 +4,7 @@
 
 import { MODULE_ID } from "../constants.js";
 import { AgentAudio } from "../audio.js";
+import { pointerFraction } from "./map.js";
 
 const GAMES = [
   { id: "mine",      title: "MINEFIELD", icon: "fa-bomb",                     lower: true, suffix: "s" },
@@ -1250,8 +1251,7 @@ function setupDodge(html) {
     const s = _dodgeState;
     if (!s) return;
     if (s.dead) { reset(); return; }
-    const rect = canvas.getBoundingClientRect();
-    const px = (ev.clientX - rect.left) * (W / rect.width);
+    const px = pointerFraction(ev, canvas).fx * W;
     s.left = px < s.x; s.right = px >= s.x;
   });
   canvas.addEventListener("pointerup", () => { const s = _dodgeState; if (s) { s.left = s.right = false; } });
@@ -1484,17 +1484,16 @@ function setupFirewall(html) {
     ctx.restore();
   };
 
-  const movePad = (clientX) => {
+  const movePad = (ev) => {
     const s = _firewallState;
     if (!s) return;
-    const rect = canvas.getBoundingClientRect();
     // clamp the raw cursor to the canvas span so off-canvas movement still tracks the edges
-    const local = Math.max(0, Math.min(rect.width, clientX - rect.left)) * (W / rect.width);
+    const local = Math.max(0, Math.min(1, pointerFraction(ev, canvas).fx)) * W;
     s.px = Math.max(PAD_W / 2, Math.min(W - PAD_W / 2, local));
   };
   // track the mouse across the whole document so the paddle can reach both edges
-  addDocHandler("pointermove", (ev) => movePad(ev.clientX));
-  canvas.addEventListener("pointerdown", (ev) => { if (_firewallState?.dead) reset(); else movePad(ev.clientX); });
+  addDocHandler("pointermove", (ev) => movePad(ev));
+  canvas.addEventListener("pointerdown", (ev) => { if (_firewallState?.dead) reset(); else movePad(ev); });
   addDocHandler("keydown", (ev) => {
     if (isTypingTarget(ev.target)) return;
     const s = _firewallState;

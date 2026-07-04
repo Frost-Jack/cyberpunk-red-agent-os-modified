@@ -1,6 +1,7 @@
-{{!-- One implant row. Recurses into installed option-slot children. --}}
-<div class="agentos-chrome-item depth-{{this.depth}} {{#if this.isUpgrade}}is-upgrade{{/if}} {{#if this.isFoundational}}foundational{{/if}}"
-     data-action="chrome-item" data-item-id="{{this.id}}" title="{{this.name}}">
+{{!-- One implant row. Recurses into installed option-slot children.
+      Core containers are non-interactive (opening their sheet breaks display). --}}
+<div class="agentos-chrome-item depth-{{this.depth}} {{#if this.isUpgrade}}is-upgrade{{/if}} {{#if this.isFoundational}}foundational{{/if}} {{#if this.isCore}}is-core{{/if}}"
+     {{#unless this.isCore}}data-action="chrome-item" data-item-id="{{this.id}}"{{/unless}} title="{{this.name}}">
   {{#if this.hasColor}}<span class="agentos-chrome-item-tag c{{this.colorIdx}}"></span>{{/if}}
   {{#if this.useIcon}}
   <span class="agentos-chrome-item-glyph"><i class="fas {{this.iconClass}}"></i></span>
