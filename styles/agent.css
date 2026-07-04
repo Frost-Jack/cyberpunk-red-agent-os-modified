@@ -4470,17 +4470,50 @@ input.agentos-search, .agentos-search {
 /* the merged-pair placeholder stub sits with its type's block */
 .agentos-chassis.mode-phone .agentos-chrome-stub { display: none; }
 
-/* --- wide layouts (tablet / pc): true 3-column reference layout. Give the
-       centre more room so the portrait isn't tiny. --- */
-.agentos-chassis.mode-tablet .agentos-chrome-columns,
+/* --- PC: true 3-column reference layout (portrait was already fine here) --- */
 .agentos-chassis.mode-pc .agentos-chrome-columns {
-  grid-template-columns: 1fr 1.6fr 1fr;
+  grid-template-columns: 1fr 1.1fr 1fr;
   align-items: start;
 }
-.agentos-chassis.mode-tablet .agentos-chrome-scan-frame,
-.agentos-chassis.mode-pc .agentos-chrome-scan-frame { max-width: 100%; }
-.agentos-chassis.mode-tablet .agentos-chrome-scan,
 .agentos-chassis.mode-pc .agentos-chrome-scan { position: sticky; top: 0; }
+
+/* --- tablet: a squeezed centre column made the portrait tiny. Instead put the
+       portrait BIG on top (full width), then flow the implant panels into two
+       columns beneath it. --- */
+.agentos-chassis.mode-tablet .agentos-chrome-col { display: contents; }
+.agentos-chassis.mode-tablet .agentos-chrome-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 8px;
+}
+/* portrait spans both columns, at the top, and gets real size */
+.agentos-chassis.mode-tablet .agentos-chrome-scan {
+  grid-column: 1 / -1;
+  order: -1;
+}
+.agentos-chassis.mode-tablet .agentos-chrome-scan-frame {
+  max-width: 300px;
+  margin: 0 auto;
+}
+/* Two columns beneath the portrait: right-side panels in the left grid column,
+   left-side in the right one, each pair sharing a row so they line up. The
+   portrait occupies grid rows 1; panels start at row 2. */
+.agentos-chassis.mode-tablet .panel-cyberEye-r { grid-column: 1; grid-row: 2; }
+.agentos-chassis.mode-tablet .panel-cyberEye-l { grid-column: 2; grid-row: 2; }
+.agentos-chassis.mode-tablet .panel-cyberEye-paired { grid-column: 1 / -1; grid-row: 2; }
+.agentos-chassis.mode-tablet .panel-cyberArm-r { grid-column: 1; grid-row: 3; }
+.agentos-chassis.mode-tablet .panel-cyberArm-l { grid-column: 2; grid-row: 3; }
+.agentos-chassis.mode-tablet .panel-cyberArm-paired { grid-column: 1 / -1; grid-row: 3; }
+.agentos-chassis.mode-tablet .panel-cyberLeg-r { grid-column: 1; grid-row: 4; }
+.agentos-chassis.mode-tablet .panel-cyberLeg-l { grid-column: 2; grid-row: 4; }
+.agentos-chassis.mode-tablet .panel-cyberLeg-paired { grid-column: 1 / -1; grid-row: 4; }
+.agentos-chassis.mode-tablet .panel-cyberwareInternal { grid-column: 1; grid-row: 5; }
+.agentos-chassis.mode-tablet .panel-cyberwareExternal { grid-column: 2; grid-row: 5; }
+.agentos-chassis.mode-tablet .panel-borgware { grid-column: 1; grid-row: 6; }
+.agentos-chassis.mode-tablet .panel-fashionware { grid-column: 2; grid-row: 6; }
+/* paired-pair placeholder stub is redundant in this layout */
+.agentos-chassis.mode-tablet .agentos-chrome-stub { display: none; }
 
 /* ==========================================================================
    RADIO — rekt.network / nightride.fm streaming player
