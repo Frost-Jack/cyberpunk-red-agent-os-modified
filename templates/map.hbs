@@ -16,13 +16,16 @@
       {{#each pins}}
       <div class="agentos-map-pin" data-contact-id="{{this.id}}" style="left: {{this.mapX}}%; top: {{this.mapY}}%;"
            title="{{this.name}}{{#if this.ownerName}} ({{this.ownerName}}){{/if}}">
-        <i class="fas fa-user-circle" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
+        <i class="fas {{this.icon}}" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
         <div class="agentos-pin-label" style="border-color: {{this.color}};">
           {{this.name}}{{#if this.ownerName}} · {{this.ownerName}}{{/if}}
         </div>
       </div>
       {{/each}}
     </div>
+
+    {{!-- Live cursor position, top-centre, updated in real time on mouse move --}}
+    <div class="agentos-map-cursor"><i class="fas fa-crosshairs"></i> <span class="agentos-map-cursor-val">—</span></div>
 
     <div class="agentos-map-overlay">
       <div class="agentos-map-coords">
@@ -59,10 +62,12 @@
         <label>{{localize "AGENTOS.Map.MarkerColor"}}</label>
         <input type="color" name="marker-color" value="{{editMarker.color}}">
       </div>
+      {{#unless editMarker.forContact}}
       <label class="agentos-check row">
         <input type="checkbox" name="marker-visible" {{#unless editMarker.hidden}}checked{{/unless}}>
         <span>{{localize "AGENTOS.Map.MarkerVisible"}}</span>
       </label>
+      {{/unless}}
       <label>{{localize "AGENTOS.Map.MarkerIcon"}}</label>
       <div class="agentos-marker-icons">
         {{#each markerIcons}}

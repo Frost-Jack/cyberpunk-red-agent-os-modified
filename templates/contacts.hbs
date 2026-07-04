@@ -76,11 +76,15 @@
     <button type="button" class="agentos-btn primary" data-action="contact-new">
       <i class="fas fa-user-plus"></i> {{localize "AGENTOS.Contacts.New"}}
     </button>
+    <button type="button" class="agentos-btn" data-action="folder-new" data-parent-id="">
+      <i class="fas fa-folder-plus"></i> {{localize "AGENTOS.Contacts.NewFolder"}}
+    </button>
   </div>
 
   {{#if hasContacts}}
   {{#each groups}}
-  <div class="agentos-folder">
+  {{!-- Owner folder (Mine / player / GM). Its header is the root drop target. --}}
+  <div class="agentos-folder agentos-owner-folder" data-folder-owner="{{this.ownerId}}" data-folder-drop="">
     <div class="agentos-folder-header" data-action="contact-folder-toggle" data-owner-id="{{this.ownerId}}">
       <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
       <span class="agentos-folder-name">{{this.ownerName}}{{#if this.isGmOwner}} <span class="agentos-tag">GM</span>{{/if}}</span>
@@ -88,31 +92,18 @@
       <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
     </div>
     {{#unless this.collapsed}}
-    <ul class="agentos-list">
-      {{#each this.contacts}}
-      <li class="agentos-list-row static {{#if this.focused}}focused{{/if}}">
-        <span class="agentos-contact-glyph" style="color: {{this.color}}; border-color: {{this.color}};"><i class="fas fa-user"></i></span>
-        <div class="agentos-list-main">
-          <div class="agentos-list-title">
-            {{this.name}}
-            {{#if this.hasPin}}<i class="fas fa-map-pin agentos-pin-mark"></i>{{/if}}
-          </div>
-          <div class="agentos-list-sub">
-            {{#if this.address}}{{this.address}}{{/if}}
-            {{#if this.sharedCount}} · <i class="fas fa-share-nodes"></i> {{this.sharedCount}}{{/if}}
-          </div>
-          {{#if this.note}}<div class="agentos-list-note">{{this.note}}</div>{{/if}}
-        </div>
-        <div class="agentos-list-meta row">
-          <button type="button" class="agentos-icon-btn" data-action="contact-share-open" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.Share"}}"><i class="fas fa-share-nodes"></i></button>
-          {{#if this.canEdit}}
-          <button type="button" class="agentos-icon-btn" data-action="contact-edit" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Edit"}}"><i class="fas fa-pen"></i></button>
-          <button type="button" class="agentos-icon-btn danger" data-action="contact-delete" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}"><i class="fas fa-trash"></i></button>
-          {{/if}}
-        </div>
-      </li>
+    <div class="agentos-folder-body">
+      {{#each this.folders}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/contact-folder.hbs" this}}
       {{/each}}
-    </ul>
+      {{#if this.contacts.length}}
+      <ul class="agentos-list">
+        {{#each this.contacts}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/contact-row.hbs" this}}
+        {{/each}}
+      </ul>
+      {{/if}}
+    </div>
     {{/unless}}
   </div>
   {{/each}}

@@ -12,6 +12,7 @@ const WORLD_OBJECTS = {
   gardenContacts: [],
   agentShards: [],
   personalContacts: [],
+  contactFolders: [],
   ncpdRecords: [],
   mapMarkers: [],
   idProfiles: {},
@@ -61,6 +62,9 @@ Hooks.once("init", () => {
   game.settings.register(MODULE_ID, "radioVolume", {
     scope: "client", config: false, type: Number, default: 60
   });
+  game.settings.register(MODULE_ID, "mapMarkerScale", {
+    scope: "client", config: false, type: Number, default: 1
+  });
 
   registerHandlebarsHelpers();
   globalThis.AgentOSAudio = AgentAudio;
@@ -72,7 +76,7 @@ Hooks.once("ready", async () => {
 
   await loadTemplates([
     "shell", "home", "chat", "chat-thread", "datapool", "wallet",
-    "contacts", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "garden",
+    "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
 

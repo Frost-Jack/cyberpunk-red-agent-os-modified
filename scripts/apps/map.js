@@ -14,6 +14,14 @@ export function ownerColor(ownerUserId, isOwn) {
   return `hsl(${h}, 90%, 62%)`;
 }
 
+/** Per-user remembered map marker/pin scale (0.4–1.6). */
+function markerScaleSetting() {
+  try {
+    const v = Number(game.settings.get(MODULE_ID, "mapMarkerScale"));
+    return Number.isFinite(v) ? Math.max(0.4, Math.min(1.6, v)) : 1;
+  } catch (e) { return 1; }
+}
+
 /** Marker glyph choices (like the previous build's pin types). */
 export const MARKER_ICONS = [
   "fa-location-dot", "fa-skull", "fa-house", "fa-briefcase",
@@ -33,13 +41,16 @@ export async function getData(app) {
       mapX: c.mapX,
       mapY: c.mapY,
       ownerName: isGM ? c.ownerName : "",
-      color: ownerColor(c.ownerUserId, c.ownerUserId === game.user.id)
+      // a contact placed from the map carries its own icon/colour; otherwise
+      // fall back to the person glyph + per-owner colour
+      icon: c.icon || "fa-user-circle",
+      color: c.color || ownerColor(c.ownerUserId, c.ownerUserId === game.user.id)
     }));
   const editMarker = st.editMarker || null;
   const allMarkers = Data.getWorld("mapMarkers") || [];
   return {
     isGM,
-    markerScale: st.markerScale ?? 1,
+    markerScale: markerScaleSetting(),
     mapImage: game.settings.get(MODULE_ID, "mapImagePath"),
     pins,
     // Players only see revealed markers; the GM sees hidden ones dimmed.
@@ -133,6 +144,20 @@ export function wireMapViewport(st, viewport, container, onClick) {
     return (chassis && parseFloat(getComputedStyle(chassis).zoom)) || 1;
   };
 
+  // Live cursor position (X% / Y% over the map image), shown top-centre.
+  const readout = viewport.parentElement?.querySelector(".agentos-map-cursor-val")
+    || viewport.querySelector(".agentos-map-cursor-val");
+  if (readout) {
+    const img = container.querySelector("img");
+    viewport.addEventListener("pointermove", (ev) => {
+      if (!img) return;
+      const { fx, fy } = pointerFraction(ev, img);
+      if (fx < 0 || fx > 1 || fy < 0 || fy > 1) { readout.textContent = "—"; return; }
+      readout.textContent = `${(fx * 100).toFixed(1)} / ${(fy * 100).toFixed(1)}`;
+    });
+    viewport.addEventListener("pointerleave", () => { readout.textContent = "—"; });
+  }
+
   viewport.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const factor = ev.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -191,29 +216,33 @@ export function activateListeners(app, html) {
   const container = html.find(".agentos-map-container")[0];
 
   /* Marker-size slider (bottom-left): scales pins/markers via a CSS variable,
-   * live and without a re-render. */
+   * live and without a re-render. The chosen scale is remembered per user. */
   const mapEl = html.find(".agentos-map")[0];
   const applyMarkerScale = (v) => { if (mapEl) mapEl.style.setProperty("--marker-scale", v); };
-  applyMarkerScale(st.markerScale ?? 1);
+  applyMarkerScale(markerScaleSetting());
   html.on("input", "[name='marker-scale']", (ev) => {
     const v = Math.max(0.4, Math.min(1.6, Number(ev.currentTarget.value) || 1));
-    st.markerScale = v;
+    game.settings.set(MODULE_ID, "mapMarkerScale", v);
     applyMarkerScale(v);
   });
 
-  wireMapViewport(st, viewport, container, (x, y) => {
-    if (!isGM || !st.pinMode) return;
-    st.editMarker = {
-      label: "",
-      color: "#ffcc00",
-      icon: "fa-location-dot",
-      hidden: true,
-      x: Math.round(x * 10) / 10,
-      y: Math.round(y * 10) / 10
-    };
-    st.pinMode = false;
-    AgentAudio.play("tap");
-    app.render(false);
+  wireMapViewport(st, viewport, container, async (x, y) => {
+    if (!st.pinMode) return;
+    const px = Math.round(x * 10) / 10, py = Math.round(y * 10) / 10;
+    if (isGM) {
+      // GM places a world map marker (editor modal).
+      st.editMarker = { label: "", color: "#ffcc00", icon: "fa-location-dot", hidden: true, x: px, y: py };
+      st.pinMode = false;
+      AgentAudio.play("tap");
+      app.render(false);
+    } else {
+      // Player drops their own personal pin: same editor (label + colour +
+      // icon), but on save it becomes a personal contact, not a world marker.
+      st.editMarker = { label: "", color: "#2ff5d0", icon: "fa-location-dot", forContact: true, x: px, y: py };
+      st.pinMode = false;
+      AgentAudio.play("tap");
+      app.render(false);
+    }
   });
 
   html.on("click", "[data-action='map-zoom-in']", () => zoomAt(st, container, 1.3));
@@ -274,13 +303,26 @@ export function activateListeners(app, html) {
   html.on("click", "[data-action='marker-save']", (ev) => {
     ev.preventDefault();
     if (!st.editMarker) return;
+    const label = String(html.find("[name='marker-label']").val() || "").trim();
+    const color = String(html.find("[name='marker-color']").val() || "#2ff5d0");
+    if (!label) return AgentAudio.play("error");
+    const icon = st.editMarker.icon || "fa-location-dot";
+    if (st.editMarker.forContact) {
+      // Player pin → personal contact with its own icon & colour, filed under
+      // the auto "From map" folder.
+      const px = st.editMarker.x, py = st.editMarker.y;
+      st.editMarker = null;
+      AgentAudio.play("tap");
+      app.render(false);
+      app.mutate("contact.save", { contact: { name: label, hasPin: true, mapX: px, mapY: py, icon, color, fromMap: true } });
+      return;
+    }
     const marker = {
       ...st.editMarker,
-      label: String(html.find("[name='marker-label']").val() || "").trim(),
-      color: String(html.find("[name='marker-color']").val() || "#ffcc00"),
+      label,
+      color,
       hidden: !html.find("[name='marker-visible']").prop("checked")
     };
-    if (!marker.label) return AgentAudio.play("error");
     st.editMarker = null;
     AgentAudio.play("tap");
     app.render(false);

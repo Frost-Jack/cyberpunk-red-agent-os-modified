@@ -195,13 +195,22 @@
       "ShareWith": "Share contact with",
       "DeleteConfirm": "Delete this contact?",
       "Empty": "No contacts yet.",
-      "MyFolder": "My contacts"
+      "MyFolder": "My contacts",
+      "NewFolder": "New folder",
+      "NewSubfolder": "New subfolder",
+      "RenameFolder": "Rename folder",
+      "DeleteFolder": "Delete folder",
+      "DeleteFolderConfirm": "Delete this folder? Its contacts move to the root.",
+      "FolderName": "Folder name",
+      "MapFolder": "From map"
     },
     "Map": {
       "Reset": "Reset view",
       "CreatedBy": "Created by",
       "PinMode": "Marker mode: click the map to drop a marker",
       "PinModeHint": "MARKER MODE — CLICK THE MAP",
+      "MyPin": "Drop my marker: click the map",
+      "MyPinName": "Marker name",
       "NewMarker": "New marker",
       "EditMarker": "Edit marker",
       "MarkerLabel": "Label",

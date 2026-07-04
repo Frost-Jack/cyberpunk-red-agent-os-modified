@@ -1,0 +1,23 @@
+{{!-- One contact row. Draggable so it can be filed into a folder. --}}
+<li class="agentos-list-row static {{#if this.focused}}focused{{/if}}"
+    draggable="true" data-contact-drag="{{this.id}}">
+  <span class="agentos-contact-glyph" style="color: {{this.color}}; border-color: {{this.color}};"><i class="fas fa-user"></i></span>
+  <div class="agentos-list-main">
+    <div class="agentos-list-title">
+      {{this.name}}
+      {{#if this.hasPin}}<i class="fas fa-map-pin agentos-pin-mark"></i>{{/if}}
+    </div>
+    <div class="agentos-list-sub">
+      {{#if this.address}}{{this.address}}{{/if}}
+      {{#if this.sharedCount}} · <i class="fas fa-share-nodes"></i> {{this.sharedCount}}{{/if}}
+    </div>
+    {{#if this.note}}<div class="agentos-list-note">{{this.note}}</div>{{/if}}
+  </div>
+  <div class="agentos-list-meta row">
+    <button type="button" class="agentos-icon-btn" data-action="contact-share-open" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.Share"}}"><i class="fas fa-share-nodes"></i></button>
+    {{#if this.canEdit}}
+    <button type="button" class="agentos-icon-btn" data-action="contact-edit" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Edit"}}"><i class="fas fa-pen"></i></button>
+    <button type="button" class="agentos-icon-btn danger" data-action="contact-delete" data-contact-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}"><i class="fas fa-trash"></i></button>
+    {{/if}}
+  </div>
+</li>

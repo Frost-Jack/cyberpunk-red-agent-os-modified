@@ -163,6 +163,28 @@ export function contactsForUser(userId, isGM) {
   return list.filter(c => c.ownerUserId === userId || (c.sharedWith || []).includes(userId));
 }
 
+/** Sanitise a contact pin icon / colour (defaults when absent or malformed). */
+function validPinIcon(icon) {
+  const s = String(icon || "");
+  return /^fa-[\w-]+$/.test(s) ? s : "";
+}
+function validPinColor(color) {
+  const s = String(color || "");
+  return /^#[0-9a-fA-F]{3,8}$/.test(s) ? s : "";
+}
+
+/** Owner's auto "From map" folder id, creating it once. GM-side (server) only —
+ *  called from within contact.save which already runs on the primary GM. */
+async function ensureMapFolder(userId) {
+  const folders = getWorld("contactFolders") || [];
+  let f = folders.find(x => x.ownerUserId === userId && x.system === "map" && !x.parentId);
+  if (f) return f.id;
+  f = { id: uid("cf"), name: "AGENTOS.Contacts.MapFolder", system: "map", parentId: null, ownerUserId: userId, ts: Date.now() };
+  folders.push(f);
+  await game.settings.set(MODULE_ID, "contactFolders", folders);
+  return f.id;
+}
+
 export function unreadCounts() {
   const lastRead = game.user.getFlag(MODULE_ID, "lastRead") || {};
   const selfKey = participantKeyForUser(game.user.id);
@@ -616,7 +638,13 @@ const OPS = {
         mapX: Number(contact.mapX ?? existing.mapX ?? 50),
         mapY: Number(contact.mapY ?? existing.mapY ?? 50)
       });
+      if (contact.folderId !== undefined) existing.folderId = contact.folderId || null;
+      if (contact.icon !== undefined) existing.icon = validPinIcon(contact.icon);
+      if (contact.color !== undefined) existing.color = validPinColor(contact.color);
     } else {
+      // Map-dropped pins go into an auto-created "From map" folder for the owner.
+      let folderId = contact.folderId || null;
+      if (contact.fromMap) folderId = await ensureMapFolder(userId);
       list.push({
         id: uid("ct"),
         name: String(contact.name || "New Contact"),
@@ -625,6 +653,10 @@ const OPS = {
         hasPin: !!contact.hasPin,
         mapX: Number(contact.mapX ?? 50),
         mapY: Number(contact.mapY ?? 50),
+        icon: validPinIcon(contact.icon),
+        color: validPinColor(contact.color),
+        fromMap: !!contact.fromMap,
+        folderId,
         ownerUserId: userId,
         ownerName: game.users.get(userId)?.name || "?",
         sharedWith: [],
@@ -632,6 +664,97 @@ const OPS = {
       });
     }
     await setWorld("personalContacts", list);
+    return true;
+  },
+
+  async "contact.move"({ contactId, folderId }, userId) {
+    const list = getWorld("personalContacts") || [];
+    const c = list.find(x => x.id === contactId);
+    if (!c) return false;
+    if (!requesterIsGM(userId) && c.ownerUserId !== userId) return false;
+    // Target folder must belong to the contact's owner (or be root/null).
+    if (folderId) {
+      const folders = getWorld("contactFolders") || [];
+      const f = folders.find(x => x.id === folderId);
+      if (!f || f.ownerUserId !== c.ownerUserId) return false;
+    }
+    c.folderId = folderId || null;
+    await setWorld("personalContacts", list);
+    return true;
+  },
+
+  /* ---- contact folders (nested; owned per user) ---- */
+
+  async "folder.create"({ name, parentId }, userId) {
+    const folders = getWorld("contactFolders") || [];
+    // A parent (if any) must belong to this user.
+    if (parentId) {
+      const p = folders.find(f => f.id === parentId);
+      if (!p || (!requesterIsGM(userId) && p.ownerUserId !== userId)) return false;
+    }
+    folders.push({
+      id: uid("cf"),
+      name: String(name || "Folder").slice(0, 60),
+      parentId: parentId || null,
+      ownerUserId: userId,
+      ts: Date.now()
+    });
+    await setWorld("contactFolders", folders);
+    return true;
+  },
+
+  async "folder.rename"({ folderId, name }, userId) {
+    const folders = getWorld("contactFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    f.name = String(name || f.name).slice(0, 60);
+    await setWorld("contactFolders", folders);
+    return true;
+  },
+
+  async "folder.move"({ folderId, parentId }, userId) {
+    const folders = getWorld("contactFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    if (parentId) {
+      const p = folders.find(x => x.id === parentId);
+      if (!p || p.ownerUserId !== f.ownerUserId) return false;
+      // Prevent moving a folder into itself or one of its descendants.
+      let cur = p;
+      while (cur) {
+        if (cur.id === f.id) return false;
+        cur = folders.find(x => x.id === cur.parentId);
+      }
+    }
+    f.parentId = parentId || null;
+    await setWorld("contactFolders", folders);
+    return true;
+  },
+
+  async "folder.delete"({ folderId }, userId) {
+    const folders = getWorld("contactFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    // Collect this folder and all descendants.
+    const doomed = new Set([folderId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const x of folders) {
+        if (x.parentId && doomed.has(x.parentId) && !doomed.has(x.id)) { doomed.add(x.id); grew = true; }
+      }
+    }
+    // Contacts in any deleted folder fall back to the owner's root (folderId null).
+    const contacts = getWorld("personalContacts") || [];
+    let touched = false;
+    for (const c of contacts) {
+      if (c.folderId && doomed.has(c.folderId)) { c.folderId = null; touched = true; }
+    }
+    if (touched) await setWorld("personalContacts", contacts);
+    await setWorld("contactFolders", folders.filter(x => !doomed.has(x.id)));
     return true;
   },
 

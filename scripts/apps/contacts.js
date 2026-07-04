@@ -6,6 +6,12 @@ import * as Data from "../data.js";
 import { AgentAudio } from "../audio.js";
 import { wireMapViewport, ownerColor } from "./map.js";
 
+/** Folder display name — the auto "from map" folder stores an i18n key. */
+function folderName(folder) {
+  const n = folder?.name || "";
+  return n.startsWith("AGENTOS.") ? loc(n) : n;
+}
+
 export async function getData(app) {
   const isGM = game.user.isGM;
   const st = app.state;
@@ -16,31 +22,71 @@ export async function getData(app) {
       isOwn: c.ownerUserId === game.user.id,
       canEdit: isGM || c.ownerUserId === game.user.id,
       sharedCount: (c.sharedWith || []).length,
-      color: ownerColor(c.ownerUserId, c.ownerUserId === game.user.id)
+      color: c.color || ownerColor(c.ownerUserId, c.ownerUserId === game.user.id)
     }));
 
-  /* Group by creator: own folder first, then the rest alphabetically. */
+  /* Top level = owner folders (Mine / players / GM). Inside each owner, a
+   * nested folder tree from contactFolders + contacts filed into them. */
+  const allFolders = Data.getWorld("contactFolders") || [];
+  const collapsed = st.collapsed || {};
+  const focusId = st.focusContactId || null;
+
   const byOwner = new Map();
   for (const c of list) {
     if (!byOwner.has(c.ownerUserId)) byOwner.set(c.ownerUserId, []);
     byOwner.get(c.ownerUserId).push(c);
   }
-  const collapsed = st.collapsed || {};
-  const focusId = st.focusContactId || null;
+
+  const contactNode = (c) => ({ ...c, focused: c.id === focusId });
+
+  // Recursively build a folder and its subtree for one owner. Returns null when
+  // it should be hidden: a player never sees a folder that holds no contact
+  // visible to them (own or shared) — only the GM (and the folder's owner for
+  // their own tree) keeps empty folders as organisation.
+  const buildFolder = (folder, ownerFolders, ownerContacts, isOwn) => {
+    const subfolders = ownerFolders
+      .filter(f => f.parentId === folder.id)
+      .sort((a, b) => folderName(a).localeCompare(folderName(b)))
+      .map(f => buildFolder(f, ownerFolders, ownerContacts, isOwn))
+      .filter(Boolean);
+    const contacts = ownerContacts.filter(c => (c.folderId || null) === folder.id).map(contactNode);
+    // Hide empty folders from other players' shared trees (keep own + GM view).
+    if (!isGM && !isOwn && contacts.length === 0 && subfolders.length === 0) return null;
+    const descHasFocus = subfolders.some(s => s.hasFocus) || contacts.some(c => c.focused);
+    return {
+      id: folder.id,
+      name: folderName(folder),
+      isMapFolder: folder.system === "map",
+      canEdit: isOwn || isGM,
+      collapsed: descHasFocus ? false : !!collapsed[folder.id],
+      subfolders,
+      contacts,
+      count: contacts.length + subfolders.reduce((n, s) => n + s.count, 0),
+      hasFocus: descHasFocus
+    };
+  };
+
   const groups = [...byOwner.entries()].map(([ownerId, contacts]) => {
     const owner = game.users.get(ownerId);
-    const hasFocus = focusId ? contacts.some(c => c.id === focusId) : false;
-    if (hasFocus) contacts = contacts.map(c => ({ ...c, focused: c.id === focusId }));
+    const isOwn = ownerId === game.user.id;
+    const ownerFolders = allFolders.filter(f => f.ownerUserId === ownerId);
+    const rootFolders = ownerFolders
+      .filter(f => !f.parentId)
+      .sort((a, b) => folderName(a).localeCompare(folderName(b)))
+      .map(f => buildFolder(f, ownerFolders, contacts, isOwn))
+      .filter(Boolean);
+    const rootContacts = contacts.filter(c => !c.folderId).map(contactNode);
+    const hasFocus = rootFolders.some(f => f.hasFocus) || rootContacts.some(c => c.focused);
     return {
       ownerId,
-      ownerName: ownerId === game.user.id
-        ? loc("AGENTOS.Contacts.MyFolder")
-        : (owner?.name || contacts[0]?.ownerName || "?"),
+      ownerName: isOwn ? loc("AGENTOS.Contacts.MyFolder") : (owner?.name || contacts[0]?.ownerName || "?"),
       isGmOwner: owner?.isGM ?? false,
-      isOwn: ownerId === game.user.id,
-      collapsed: hasFocus ? false : !!collapsed[ownerId],   // auto-expand the focused folder
+      isOwn,
+      canEdit: isOwn || isGM,
+      collapsed: hasFocus ? false : !!collapsed[ownerId],
       count: contacts.length,
-      contacts
+      folders: rootFolders,
+      contacts: rootContacts
     };
   }).sort((a, b) => (b.isOwn - a.isOwn) || a.ownerName.localeCompare(b.ownerName));
 
@@ -97,6 +143,79 @@ export function activateListeners(app, html) {
     const ownerId = ev.currentTarget.dataset.ownerId;
     st.collapsed = st.collapsed || {};
     st.collapsed[ownerId] = !st.collapsed[ownerId];
+    app.render(false);
+  });
+
+  /* ---- nested folders ---- */
+
+  html.on("click", "[data-action='folder-toggle']", (ev) => {
+    ev.stopPropagation();
+    const id = ev.currentTarget.dataset.folderId;
+    st.collapsed = st.collapsed || {};
+    st.collapsed[id] = !st.collapsed[id];
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='folder-new']", async (ev) => {
+    ev.stopPropagation();
+    const parentId = ev.currentTarget.dataset.parentId || null;
+    const name = await app.promptText(loc("AGENTOS.Contacts.NewFolder"), "", loc("AGENTOS.Contacts.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    if (parentId) { st.collapsed = st.collapsed || {}; st.collapsed[parentId] = false; }
+    await app.mutate("folder.create", { name: name.trim(), parentId });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='folder-rename']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    const cur = (Data.getWorld("contactFolders") || []).find(f => f.id === folderId);
+    const name = await app.promptText(loc("AGENTOS.Contacts.RenameFolder"), cur?.name || "", loc("AGENTOS.Contacts.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    await app.mutate("folder.rename", { folderId, name: name.trim() });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='folder-delete']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    if (!(await app.confirm(loc("AGENTOS.Contacts.DeleteFolderConfirm")))) return;
+    AgentAudio.play("tap");
+    await app.mutate("folder.delete", { folderId });
+    app.render(false);
+  });
+
+  /* Drag a contact or a folder onto a folder header (or an owner root) to file
+   * it there. */
+  html.on("dragstart", "[data-contact-drag], [data-folder-drag]", (ev) => {
+    const el = ev.currentTarget;
+    ev.stopPropagation();
+    const payload = el.dataset.contactDrag
+      ? { contact: el.dataset.contactDrag }
+      : { folder: el.dataset.folderDrag };
+    ev.originalEvent.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    ev.originalEvent.dataTransfer.effectAllowed = "move";
+  });
+
+  const dropTargets = html.find("[data-folder-drop]");
+  dropTargets.on("dragover", (ev) => { ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.classList.add("drop-over"); });
+  dropTargets.on("dragleave", (ev) => ev.currentTarget.classList.remove("drop-over"));
+  dropTargets.on("drop", async (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.currentTarget.classList.remove("drop-over");
+    let data;
+    try { data = JSON.parse(ev.originalEvent.dataTransfer.getData("text/plain")); }
+    catch (e) { return; }
+    const targetFolderId = ev.currentTarget.dataset.folderDrop || null;   // "" = owner root
+    AgentAudio.play("tap");
+    if (data.contact) {
+      await app.mutate("contact.move", { contactId: data.contact, folderId: targetFolderId });
+    } else if (data.folder && data.folder !== targetFolderId) {
+      await app.mutate("folder.move", { folderId: data.folder, parentId: targetFolderId });
+    }
     app.render(false);
   });
 

@@ -1,0 +1,33 @@
+{{!-- A nested contact folder. Drop target; recurses into subfolders. --}}
+<div class="agentos-folder agentos-subfolder {{#if this.isMapFolder}}is-map{{/if}}"
+     data-folder-drop="{{this.id}}" {{#if this.canEdit}}draggable="true" data-folder-drag="{{this.id}}"{{/if}}>
+  <div class="agentos-folder-header" data-action="folder-toggle" data-folder-id="{{this.id}}">
+    <i class="fas {{#if this.isMapFolder}}fa-map-location-dot{{else}}{{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}{{/if}}"></i>
+    <span class="agentos-folder-name">{{this.name}}</span>
+    <span class="agentos-folder-count">{{this.count}}</span>
+    {{#if this.canEdit}}
+    <span class="agentos-folder-tools">
+      <button type="button" class="agentos-icon-btn" data-action="folder-new" data-parent-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.NewSubfolder"}}"><i class="fas fa-folder-plus"></i></button>
+      {{#unless this.isMapFolder}}
+      <button type="button" class="agentos-icon-btn" data-action="folder-rename" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.RenameFolder"}}"><i class="fas fa-pen"></i></button>
+      {{/unless}}
+      <button type="button" class="agentos-icon-btn danger" data-action="folder-delete" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Contacts.DeleteFolder"}}"><i class="fas fa-trash"></i></button>
+    </span>
+    {{/if}}
+    <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+  </div>
+  {{#unless this.collapsed}}
+  <div class="agentos-folder-body">
+    {{#each this.subfolders}}
+    {{> "modules/cyberpunk-red-agent-os-modified/templates/contact-folder.hbs" this}}
+    {{/each}}
+    {{#if this.contacts.length}}
+    <ul class="agentos-list">
+      {{#each this.contacts}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/contact-row.hbs" this}}
+      {{/each}}
+    </ul>
+    {{/if}}
+  </div>
+  {{/unless}}
+</div>
