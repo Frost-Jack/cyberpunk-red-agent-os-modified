@@ -876,7 +876,8 @@ input.agentos-search, .agentos-search {
 }
 .agentos-bubble-wrap:hover .agentos-msg-del { display: flex; }
 
-.agentos-attach-img { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; margin-bottom: 4px; }
+.agentos-attach-img { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; margin-bottom: 4px; cursor: zoom-in; transition: box-shadow 0.12s; }
+.agentos-attach-img:hover { box-shadow: 0 0 10px var(--frame-glow); }
 .agentos-attach-video { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; margin-bottom: 4px; }
 .agentos-attach-audio { width: 200px; display: block; margin-bottom: 4px; }
 
@@ -1067,7 +1068,8 @@ input.agentos-search, .agentos-search {
   width: 1000px;
   transform: translate(-50%, -50%);
   transform-origin: center center;
-  transition: transform 0.05s ease-out;
+  /* no transform transition: it would leave getBoundingClientRect() mid-animation
+     right after a zoom, misplacing a marker placed on the next click */
 }
 .mode-pc .agentos-map-container { width: 1300px; }
 
@@ -1096,7 +1098,10 @@ input.agentos-search, .agentos-search {
   position: absolute;
   left: 0;
   bottom: 0;
-  transform: translate(-50%, 0);
+  /* --marker-scale (set on .agentos-map by the on-map slider) resizes pins and
+     markers without touching the map zoom. Anchor stays at the pin's tip. */
+  transform: translate(-50%, 0) scale(var(--marker-scale, 1));
+  transform-origin: 50% 100%;
   font-size: 1.05rem;
   line-height: 1;
 }
@@ -1104,7 +1109,8 @@ input.agentos-search, .agentos-search {
   position: absolute;
   left: 0;
   top: 3px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(var(--marker-scale, 1));
+  transform-origin: 50% 0;
   font-size: 0.55rem;
   color: #fff;
   background: rgba(0, 0, 0, 0.7);
@@ -1903,6 +1909,50 @@ input.agentos-search, .agentos-search {
   box-shadow: 0 0 14px var(--neon-gold);
 }
 .agentos-map-pinmode-hint { color: var(--neon-gold); animation: agentos-blink 1.2s infinite; }
+
+/* Marker-size slider, bottom-left, cyberpunk HUD styling */
+.agentos-map-markerscale {
+  position: absolute;
+  left: 12px;
+  bottom: 14px;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  background: linear-gradient(120deg, rgba(6, 10, 14, 0.92), rgba(6, 10, 14, 0.7));
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 55%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--frame-glow) 50%, transparent), inset 0 0 8px rgba(0, 0, 0, 0.6);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.agentos-map-markerscale > i {
+  color: var(--neon-accent);
+  font-size: 0.8rem;
+  text-shadow: 0 0 6px var(--frame-glow);
+}
+.agentos-map-markerscale input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 96px;
+  height: 4px;
+  margin: 0;
+  background: linear-gradient(90deg, var(--neon-accent), color-mix(in srgb, var(--neon-accent) 25%, transparent));
+  border: 1px solid color-mix(in srgb, var(--neon-accent) 40%, transparent);
+  border-radius: 0;
+  cursor: pointer;
+}
+.agentos-map-markerscale input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 16px;
+  background: var(--neon-accent);
+  border: 1px solid #04121a;
+  box-shadow: 0 0 8px var(--frame-glow);
+  clip-path: polygon(0 0, 100% 3px, 100% calc(100% - 3px), 0 100%);
+  cursor: grab;
+}
+.agentos-map-markerscale input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
 .agentos-chassis input[type="color"] {
   width: 44px;
   height: 30px;
@@ -4202,10 +4252,14 @@ input.agentos-search, .agentos-search {
   mix-blend-mode: screen;
   opacity: 0;
 }
-/* moving RGB tear band */
+/* moving RGB tear band — a full-width horizontal band sweeping top→bottom */
 .agentos-chrome-glitch {
-  background: linear-gradient(transparent 40%,
+  left: 0; right: 0; width: 100%;
+  background-image: linear-gradient(transparent 40%,
     color-mix(in srgb, var(--neon-warn) 45%, transparent) 50%, transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 100% 220%;      /* wider than the box so the band can travel */
+  background-position: 0 -60%;
   mix-blend-mode: screen;
   opacity: 0;
 }
@@ -4243,7 +4297,7 @@ input.agentos-search, .agentos-search {
 /* Level 1 (29–20): faint static + a rare micro-jitter (no doubling). The ghost
    just shivers a couple of px so it reads as a faint signal wobble. */
 .psycho-1 .agentos-chrome-scanlines { opacity: 0.12; }
-.psycho-1 .agentos-chrome-ghost.g1 { opacity: 0.16; animation: agentos-psycho-jitter 6s steps(1) infinite; }
+.psycho-1 .agentos-chrome-ghost.g1 { opacity: 0.3; animation: agentos-psycho-jitter 3s steps(1) infinite; }
 
 /* Level 2 (19–10): visible static + a clear periodic DOUBLE — one ghost jumps
    a short random distance and rejoins. */
@@ -4277,31 +4331,34 @@ input.agentos-search, .agentos-search {
 
 /* jitter: a couple-px shiver, no drift (level 1) */
 @keyframes agentos-psycho-jitter {
-  0%, 90%, 100% { transform: translate(0, 0); }
-  92% { transform: translate(-2px, 1px); }
-  94% { transform: translate(2px, -2px); }
-  96% { transform: translate(-1px, 2px); }
-  98% { transform: translate(1px, -1px); }
+  0%, 70%, 100% { transform: translate(0, 0); }
+  74% { transform: translate(-3px, 2px); }
+  78% { transform: translate(4px, -3px); }
+  82% { transform: translate(-2px, 3px); }
+  86% { transform: translate(3px, 1px); }
+  90% { transform: translate(-4px, -2px); }
+  94% { transform: translate(2px, 2px); }
+  98% { transform: translate(-1px, -1px); }
 }
 /* Split A: brief burst — jumps a SHORT random-ish distance in varied
    directions (up-left, down-left, right…) then rejoins. Offsets kept small
    (≤18%) so the double never reaches the implant panels. */
 @keyframes agentos-psycho-splitA {
   0%, 62%, 100% { opacity: 0; transform: translate(0, 0); }
-  66% { opacity: 0.75; transform: translate(-16%, -9%); }
-  72% { opacity: 0.7;  transform: translate(-11%, 12%); }
-  78% { opacity: 0.6;  transform: translate(-17%, 4%); }
-  86% { opacity: 0.4;  transform: translate(-6%, -5%); }
-  93% { opacity: 0.18; transform: translate(-2%, 1%); }
+  66% { opacity: 0.75; transform: translate(-8%, -5%); }
+  72% { opacity: 0.7;  transform: translate(-6%, 6%); }
+  78% { opacity: 0.6;  transform: translate(-9%, 2%); }
+  86% { opacity: 0.4;  transform: translate(-4%, -3%); }
+  93% { opacity: 0.18; transform: translate(-1%, 1%); }
 }
 /* Split B: the third image — different random directions. */
 @keyframes agentos-psycho-splitB {
   0%, 58%, 100% { opacity: 0; transform: translate(0, 0); }
-  63% { opacity: 0.7;  transform: translate(15%, 10%); }
-  70% { opacity: 0.62; transform: translate(9%, -13%); }
-  77% { opacity: 0.55; transform: translate(17%, -3%); }
-  86% { opacity: 0.38; transform: translate(5%, 6%); }
-  93% { opacity: 0.16; transform: translate(2%, -1%); }
+  63% { opacity: 0.7;  transform: translate(8%, 5%); }
+  70% { opacity: 0.62; transform: translate(5%, -7%); }
+  77% { opacity: 0.55; transform: translate(9%, -2%); }
+  86% { opacity: 0.38; transform: translate(3%, 3%); }
+  93% { opacity: 0.16; transform: translate(1%, -1%); }
 }
 @keyframes agentos-psycho-tear {
   0%, 100% { opacity: 0; background-position: 0 -40%; }
@@ -4366,12 +4423,62 @@ input.agentos-search, .agentos-search {
 }
 .agentos-chrome-total i { margin-right: 4px; }
 
-/* --- wide layouts (tablet / pc): true 3-column reference layout --- */
+/* --- phone: portrait on top, implants below, sides staggered & interleaved --- */
+.agentos-chassis.mode-phone .agentos-chrome-grid { display: flex; flex-direction: column; }
+/* the columns block (which holds the portrait) rises above the neural/audio
+   top bar so the character image leads the layout */
+.agentos-chassis.mode-phone .agentos-chrome-columns {
+  order: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agentos-chassis.mode-phone .agentos-chrome-topbar { order: 1; margin-top: 6px; }
+/* dissolve the two side columns so their panels become direct flex children of
+   .columns and can be re-ordered/interleaved freely */
+.agentos-chassis.mode-phone .agentos-chrome-col { display: contents; }
+/* portrait scan first, big and centred */
+.agentos-chassis.mode-phone .agentos-chrome-scan { order: 0; align-self: center; }
+.agentos-chassis.mode-phone .agentos-chrome-scan-frame { max-width: 200px; }
+
+/* interleave sides by type: R eye, L eye, R arm, L arm, R leg, L leg, then the
+   single-side categories. Right panels nudge right of centre, left panels left,
+   so the two sides read distinctly rather than stacked dead-centre. */
+.agentos-chassis.mode-phone .agentos-chrome-panel { width: 88%; }
+.agentos-chassis.mode-phone .agentos-chrome-panel[data-chrome-drop="right"],
+.agentos-chassis.mode-phone .panel-cyberEye-r,
+.agentos-chassis.mode-phone .panel-cyberArm-r,
+.agentos-chassis.mode-phone .panel-cyberLeg-r { align-self: flex-end; }
+.agentos-chassis.mode-phone .agentos-chrome-panel[data-chrome-drop="left"],
+.agentos-chassis.mode-phone .panel-cyberEye-l,
+.agentos-chassis.mode-phone .panel-cyberArm-l,
+.agentos-chassis.mode-phone .panel-cyberLeg-l { align-self: flex-start; }
+
+.agentos-chassis.mode-phone .panel-cyberEye-r,
+.agentos-chassis.mode-phone .panel-cyberEye-paired { order: 1; }
+.agentos-chassis.mode-phone .panel-cyberEye-l { order: 2; }
+.agentos-chassis.mode-phone .panel-cyberArm-r,
+.agentos-chassis.mode-phone .panel-cyberArm-paired { order: 3; }
+.agentos-chassis.mode-phone .panel-cyberArm-l { order: 4; }
+.agentos-chassis.mode-phone .panel-cyberLeg-r,
+.agentos-chassis.mode-phone .panel-cyberLeg-paired { order: 5; }
+.agentos-chassis.mode-phone .panel-cyberLeg-l { order: 6; }
+.agentos-chassis.mode-phone .panel-cyberwareInternal { order: 7; }
+.agentos-chassis.mode-phone .panel-cyberwareExternal { order: 8; }
+.agentos-chassis.mode-phone .panel-borgware { order: 9; }
+.agentos-chassis.mode-phone .panel-fashionware { order: 10; }
+/* the merged-pair placeholder stub sits with its type's block */
+.agentos-chassis.mode-phone .agentos-chrome-stub { display: none; }
+
+/* --- wide layouts (tablet / pc): true 3-column reference layout. Give the
+       centre more room so the portrait isn't tiny. --- */
 .agentos-chassis.mode-tablet .agentos-chrome-columns,
 .agentos-chassis.mode-pc .agentos-chrome-columns {
-  grid-template-columns: 1fr 1.1fr 1fr;
+  grid-template-columns: 1fr 1.6fr 1fr;
   align-items: start;
 }
+.agentos-chassis.mode-tablet .agentos-chrome-scan-frame,
+.agentos-chassis.mode-pc .agentos-chrome-scan-frame { max-width: 100%; }
 .agentos-chassis.mode-tablet .agentos-chrome-scan,
 .agentos-chassis.mode-pc .agentos-chrome-scan { position: sticky; top: 0; }
 

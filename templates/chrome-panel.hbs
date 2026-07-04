@@ -1,6 +1,6 @@
 {{!-- One cyberware category panel. For paired types it is a drop target and
       each unit card is draggable between the two sides. --}}
-<div class="agentos-chrome-panel {{#if this.empty}}is-empty{{/if}} {{#if this.paired}}is-paired{{/if}}"
+<div class="agentos-chrome-panel panel-{{this.type}} {{#if this.empty}}is-empty{{/if}} {{#if this.paired}}is-paired{{/if}}"
      {{#if this.side}}data-chrome-drop="{{this.side}}" data-pair-type="{{this.pairType}}"{{/if}}>
   <div class="agentos-chrome-panel-head">
     <span class="agentos-chrome-panel-title">{{localize this.labelKey}}</span>

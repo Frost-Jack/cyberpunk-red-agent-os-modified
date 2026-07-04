@@ -195,6 +195,16 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
+  /* Open a chat image (incl. animated gif/webp) in Foundry's image viewer. */
+  html.on("click", "[data-action='chat-open-image']", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const src = ev.currentTarget.dataset.src;
+    if (!src) return;
+    AgentAudio.play("tap");
+    new ImagePopout(src, { title: "", shareable: true }).render(true);
+  });
+
   html.on("click", "[data-action='chat-new']", () => {
     st.creating = true;
     st.selectedKeys = [];

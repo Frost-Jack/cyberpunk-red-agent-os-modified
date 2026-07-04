@@ -39,6 +39,7 @@ export async function getData(app) {
   const allMarkers = Data.getWorld("mapMarkers") || [];
   return {
     isGM,
+    markerScale: st.markerScale ?? 1,
     mapImage: game.settings.get(MODULE_ID, "mapImagePath"),
     pins,
     // Players only see revealed markers; the GM sees hidden ones dimmed.
@@ -58,26 +59,44 @@ function applyTransform(st, container) {
 }
 
 /**
- * Pointer position inside `el`'s content box as fractions 0..1, robust to the
- * chassis CSS `zoom`.
+ * How the chassis CSS `zoom` maps event.clientX/Y vs getBoundingClientRect().
  *
- * In this Chromium build, `zoom` scales getBoundingClientRect() but NOT
- * event.clientX/Y, so `(clientX - rect.left) / rect.width` mixes two spaces and
- * lands the cursor "right and low". `offsetWidth/Height` are always unzoomed
- * layout px, so `z = rect.width / offsetWidth` recovers the baked-in zoom; we
- * divide the rect back into layout space (where clientX/Y already live). When a
- * future build stops scaling the rect, z ≈ 1 and this reduces to the plain
- * ratio, so it is correct either way.
+ * Chromium is inconsistent here across builds: in some, getBoundingClientRect()
+ * is zoom-scaled but event.clientX/Y are NOT — so a plain rect ratio lands the
+ * cursor off (e.g. "right and low" at 130%). We measure the convention live:
+ * find the `.agentos-chassis` ancestor, whose offsetWidth is always unzoomed
+ * layout px. If its rect is zoom-scaled, `rect.width/offsetWidth` = the zoom and
+ * clientX/Y are in that same (visual) space → factor 1, no correction. If its
+ * rect is NOT zoom-scaled (ratio ≈ 1) yet CSS zoom is set, then clientX/Y ARE
+ * visual and must be divided by the CSS zoom. Returns the factor to divide
+ * client coords by so they share the rect's space.
+ */
+function clientToRectScale(el) {
+  const chassis = el.closest?.(".agentos-chassis");
+  if (!chassis) return 1;
+  const cssZoom = parseFloat(getComputedStyle(chassis).zoom) || 1;
+  if (cssZoom === 1) return 1;
+  const rectW = chassis.getBoundingClientRect().width;
+  const layoutW = chassis.offsetWidth || rectW;
+  const rectCarriesZoom = Math.abs(rectW / layoutW - cssZoom) < Math.abs(rectW / layoutW - 1);
+  // rect zoom-scaled  → clientX already matches rect  → divide by 1
+  // rect NOT scaled   → clientX is visual (×zoom)     → divide by cssZoom
+  return rectCarriesZoom ? 1 : cssZoom;
+}
+
+/**
+ * Pointer position inside `el`'s rendered box as fractions 0..1, corrected for
+ * the chassis CSS `zoom` convention (see clientToRectScale). The element's own
+ * transforms (e.g. the map container's `scale`) are already in its rect, so
+ * they need no separate handling.
  */
 export function pointerFraction(ev, el) {
   const rect = el.getBoundingClientRect();
-  const ow = el.offsetWidth || rect.width;
-  const oh = el.offsetHeight || rect.height;
-  const zx = rect.width / ow || 1;
-  const zy = rect.height / oh || 1;
+  const k = clientToRectScale(el);
+  const cx = ev.clientX / k, cy = ev.clientY / k;
   return {
-    fx: (ev.clientX - rect.left / zx) / ow,
-    fy: (ev.clientY - rect.top / zy) / oh
+    fx: (cx - rect.left) / rect.width,
+    fy: (cy - rect.top) / rect.height
   };
 }
 
@@ -104,18 +123,25 @@ export function wireMapViewport(st, viewport, container, onClick) {
   if (!viewport || !container) return;
   applyTransform(st, container);
 
+  // Visual scale of a local pixel on screen: the chassis CSS `zoom`. screen px =
+  // local px × zoom. mapX/mapY live in the container's LOCAL space, so screen
+  // offsets/deltas must be divided by this before using them there. Read the
+  // computed zoom directly — it is the true visual scale regardless of how this
+  // Chromium build reports getBoundingClientRect().
+  const chassisScale = () => {
+    const chassis = viewport.closest(".agentos-chassis");
+    return (chassis && parseFloat(getComputedStyle(chassis).zoom)) || 1;
+  };
+
   viewport.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const factor = ev.deltaY < 0 ? 1.15 : 1 / 1.15;
-    // Anchor the zoom on the cursor: offset of the pointer from the viewport
-    // centre (the container's centred origin), so that spot stays put. clientX/Y
-    // are in unzoomed layout px; the rect is zoom-scaled, so convert the rect
-    // centre back to layout px before taking the offset.
+    // Anchor the zoom on the cursor: its offset from the viewport centre (the
+    // container's centred origin), converted from screen px to local px.
     const rect = viewport.getBoundingClientRect();
-    const sx = viewport.offsetWidth ? rect.width / viewport.offsetWidth : 1;
-    const sy = viewport.offsetHeight ? rect.height / viewport.offsetHeight : 1;
-    const ax = ev.clientX - (rect.left + rect.width / 2) / (sx || 1);
-    const ay = ev.clientY - (rect.top + rect.height / 2) / (sy || 1);
+    const s = chassisScale() || 1;
+    const ax = (ev.clientX - (rect.left + rect.width / 2)) / s;
+    const ay = (ev.clientY - (rect.top + rect.height / 2)) / s;
     zoomAt(st, container, factor, ax, ay);
   }, { passive: false });
 
@@ -125,12 +151,11 @@ export function wireMapViewport(st, viewport, container, onClick) {
     ev.preventDefault();
     const startPageX = ev.clientX, startPageY = ev.clientY;
     const baseX = st.mapX || 0, baseY = st.mapY || 0;
-    // clientX/Y are unzoomed layout px, and the container's translate is in that
-    // same local space, so the drag delta maps 1:1 — no scale conversion needed.
+    const s = chassisScale() || 1;   // screen-px drag → local-px translate
     let moved = false;
     const move = (e) => {
-      const dx = e.clientX - startPageX, dy = e.clientY - startPageY;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+      const dx = (e.clientX - startPageX) / s, dy = (e.clientY - startPageY) / s;
+      if (Math.abs(dx * s) > 4 || Math.abs(dy * s) > 4) moved = true;
       st.mapX = baseX + dx;
       st.mapY = baseY + dy;
       applyTransform(st, container);
@@ -141,9 +166,14 @@ export function wireMapViewport(st, viewport, container, onClick) {
       if (!moved && onClick) {
         const img = container.querySelector("img");
         if (img && (e.target === img || img.contains(e.target))) {
+          // pointerFraction reads the image's rendered rect (which already
+          // includes the map's own scale AND the chassis zoom) and corrects the
+          // clientX↔rect convention, so this is exact at any device/map zoom.
           const { fx, fy } = pointerFraction(e, img);
           const x = fx * 100, y = fy * 100;
-          if (x >= 0 && x <= 100 && y >= 0 && y <= 100) onClick(x, y);
+          if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+            onClick(Math.round(x * 10) / 10, Math.round(y * 10) / 10);
+          }
         }
       }
     };
@@ -159,6 +189,18 @@ export function activateListeners(app, html) {
 
   const viewport = html.find(".agentos-map-viewport")[0];
   const container = html.find(".agentos-map-container")[0];
+
+  /* Marker-size slider (bottom-left): scales pins/markers via a CSS variable,
+   * live and without a re-render. */
+  const mapEl = html.find(".agentos-map")[0];
+  const applyMarkerScale = (v) => { if (mapEl) mapEl.style.setProperty("--marker-scale", v); };
+  applyMarkerScale(st.markerScale ?? 1);
+  html.on("input", "[name='marker-scale']", (ev) => {
+    const v = Math.max(0.4, Math.min(1.6, Number(ev.currentTarget.value) || 1));
+    st.markerScale = v;
+    applyMarkerScale(v);
+  });
+
   wireMapViewport(st, viewport, container, (x, y) => {
     if (!isGM || !st.pinMode) return;
     st.editMarker = {

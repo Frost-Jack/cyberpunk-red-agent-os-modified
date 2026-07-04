@@ -96,7 +96,9 @@
         <div class="agentos-bubble">
           {{#if this.attachment}}
             {{#if (agEq this.attachment.kind "image")}}
-              <img class="agentos-attach-img" src="{{this.attachment.src}}" alt="">
+              <img class="agentos-attach-img" src="{{this.attachment.src}}" alt=""
+                   data-action="chat-open-image" data-src="{{this.attachment.src}}"
+                   title="{{localize "AGENTOS.Chat.OpenImage"}}">
             {{/if}}
             {{#if (agEq this.attachment.kind "audio")}}
               <div class="agentos-attach-row">

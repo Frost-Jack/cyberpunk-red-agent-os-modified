@@ -129,6 +129,7 @@
       "AttachImage": "Attach image",
       "AttachAudio": "Attach audio",
       "AttachVideo": "Attach video",
+      "OpenImage": "Open image",
       "InputPlaceholder": "Message…",
       "GmNoNpcHint": "Add a Garden contact to this chat to speak as them.",
       "NotMemberHint": "Your character is not a member of this chat.",
