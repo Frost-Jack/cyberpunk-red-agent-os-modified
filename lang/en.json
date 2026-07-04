@@ -105,6 +105,11 @@
     },
     "Chat": {
       "NewChat": "New chat",
+      "NewFolder": "New folder",
+      "RenameFolder": "Rename folder",
+      "DeleteFolder": "Delete folder",
+      "DeleteFolderConfirm": "Delete this folder? Its chats move back to the list.",
+      "FolderName": "Folder name",
       "NamePlaceholder": "Chat name (optional)",
       "Empty": "No conversations yet.",
       "NoActorHint": "You have no assigned character — ask the GM to assign one.",

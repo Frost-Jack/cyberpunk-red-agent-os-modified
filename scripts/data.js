@@ -334,6 +334,63 @@ const OPS = {
     return id;
   },
 
+  /* File a chat into one of the viewer's folders (per-viewer: folderIds[uid]).
+   * folderId "" / null files it back at the root. */
+  async "chat.setFolder"({ chatId, folderId }, userId) {
+    const chats = getWorld("agentChats") || {};
+    const chat = chats[chatId];
+    if (!chat) return false;
+    // The viewer must be a participant (or GM) to file the chat.
+    const isGM = requesterIsGM(userId);
+    const mine = participantKeyForUser(userId);
+    if (!isGM && !(chat.participants || []).some(p => p.key === mine)) return false;
+    const fid = folderId || null;
+    if (fid) {
+      const f = (getWorld("chatFolders") || []).find(x => x.id === fid);
+      if (!f || f.ownerUserId !== userId) return false;
+    }
+    chat.folderIds = chat.folderIds || {};
+    if (fid) chat.folderIds[userId] = fid;
+    else delete chat.folderIds[userId];
+    await setWorld("agentChats", chats);
+    return true;
+  },
+
+  /* ---- chat folders (flat, per-user) ---- */
+
+  async "chatFolder.create"({ name }, userId) {
+    const folders = getWorld("chatFolders") || [];
+    folders.push({ id: uid("chf"), name: String(name || "Folder").slice(0, 60), ownerUserId: userId, ts: Date.now() });
+    await setWorld("chatFolders", folders);
+    return true;
+  },
+
+  async "chatFolder.rename"({ folderId, name }, userId) {
+    const folders = getWorld("chatFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    f.name = String(name || f.name).slice(0, 60);
+    await setWorld("chatFolders", folders);
+    return true;
+  },
+
+  async "chatFolder.delete"({ folderId }, userId) {
+    const folders = getWorld("chatFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    // Chats filed here (for this owner) fall back to the root.
+    const chats = getWorld("agentChats") || {};
+    let touched = false;
+    for (const c of Object.values(chats)) {
+      if (c.folderIds && c.folderIds[f.ownerUserId] === folderId) { delete c.folderIds[f.ownerUserId]; touched = true; }
+    }
+    if (touched) await setWorld("agentChats", chats);
+    await setWorld("chatFolders", folders.filter(x => x.id !== folderId));
+    return true;
+  },
+
   async "chat.rename"({ chatId, name, img }, userId) {
     const chats = getWorld("agentChats") || {};
     const chat = chats[chatId];

@@ -786,6 +786,24 @@ input.agentos-search, .agentos-search {
 }
 .agentos-inbox-folder > .agentos-folder-header i:first-child { color: var(--neon-accent); }
 .agentos-shard-list .agentos-list-row[draggable="true"] { cursor: grab; }
+
+/* chat folders: drop feedback + draggable rows */
+.agentos-folder[data-chat-drop].drop-over > .agentos-folder-header {
+  outline: 2px dashed var(--neon-accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--neon-accent) 14%, transparent);
+}
+.agentos-chat-root { min-height: 40px; }
+.agentos-chat-root.drop-over {
+  outline: 2px dashed var(--neon-accent);
+  outline-offset: -4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--neon-accent) 6%, transparent);
+}
+.agentos-chat-list .agentos-list-row[draggable="true"] { cursor: grab; }
+/* keep the unread badge inline in a chat folder header, before the count */
+.agentos-folder-header .agentos-badge { margin-left: auto; }
+.agentos-folder-header .agentos-badge + .agentos-folder-count { margin-left: 6px; }
 /* NCPD board root drop zone highlight */
 .agentos-ncpd-root { min-height: 40px; }
 .agentos-ncpd-root.drop-over {

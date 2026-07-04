@@ -8,6 +8,7 @@
     <button type="button" class="agentos-btn primary" data-action="chat-new">
       <i class="fas fa-plus"></i> {{localize "AGENTOS.Chat.NewChat"}}
     </button>
+    <button type="button" class="agentos-icon-btn" data-action="chat-folder-new" title="{{localize "AGENTOS.Chat.NewFolder"}}"><i class="fas fa-folder-plus"></i></button>
     {{/if}}
   </div>
 
@@ -15,27 +16,43 @@
   <p class="agentos-hint">{{localize "AGENTOS.Chat.NoActorHint"}}</p>
   {{/if}}
 
-  {{#if chats.length}}
-  <ul class="agentos-list">
-    {{#each chats}}
-    <li class="agentos-list-row" data-action="chat-open" data-chat-id="{{this.id}}">
-      <img class="agentos-avatar" src="{{this.img}}" alt="">
-      <div class="agentos-list-main">
-        <div class="agentos-list-title">{{this.name}}</div>
-        <div class="agentos-list-sub">{{this.lastText}}</div>
-      </div>
-      <div class="agentos-list-meta">
-        <span class="agentos-list-time">{{agTime this.lastTs}}</span>
+  {{#if hasChats}}
+  {{!-- Root drop zone: dropping a chat here un-files it. --}}
+  <div class="agentos-chat-root" data-chat-drop="">
+
+    {{!-- Folders: header carries the folder's total unread badge. --}}
+    {{#each folders}}
+    <div class="agentos-folder" data-chat-drop="{{this.id}}">
+      <div class="agentos-folder-header" data-action="chat-folder-toggle" data-folder-id="{{this.id}}">
+        <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
+        <span class="agentos-folder-name">{{this.name}}</span>
         {{#if this.unread}}<span class="agentos-badge">{{this.unread}}</span>{{/if}}
-        {{#if @root.isGM}}
-        <button type="button" class="agentos-icon-btn danger" data-action="chat-delete" data-chat-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}">
-          <i class="fas fa-trash"></i>
-        </button>
-        {{/if}}
+        <span class="agentos-folder-count">{{this.count}}</span>
+        <span class="agentos-folder-tools">
+          <button type="button" class="agentos-icon-btn" data-action="chat-folder-rename" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Chat.RenameFolder"}}"><i class="fas fa-pen"></i></button>
+          <button type="button" class="agentos-icon-btn danger" data-action="chat-folder-delete" data-folder-id="{{this.id}}" title="{{localize "AGENTOS.Chat.DeleteFolder"}}"><i class="fas fa-trash"></i></button>
+        </span>
+        <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
       </div>
-    </li>
+      {{#unless this.collapsed}}
+      <ul class="agentos-list">
+        {{#each this.chats}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/chat-row.hbs" this}}
+        {{/each}}
+      </ul>
+      {{/unless}}
+    </div>
     {{/each}}
-  </ul>
+
+    {{!-- Ungrouped chats at the root. --}}
+    {{#if rootChats.length}}
+    <ul class="agentos-list">
+      {{#each rootChats}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/chat-row.hbs" this}}
+      {{/each}}
+    </ul>
+    {{/if}}
+  </div>
   {{else}}
   <p class="agentos-empty">{{localize "AGENTOS.Chat.Empty"}}</p>
   {{/if}}

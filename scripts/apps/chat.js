@@ -152,8 +152,10 @@ export async function getData(app) {
   }
 
   /* ---- chat list ---- */
+  const uid = game.user.id;
   const unreads = Data.unreadCounts();
-  const chats = (isGM ? Data.allChats() : Data.chatsForUser(game.user.id)).map(c => {
+  const rawChats = isGM ? Data.allChats() : Data.chatsForUser(uid);
+  const chats = rawChats.map(c => {
     const disp = chatDisplay(c);
     const msgs = Data.getMessages(c.id);
     const last = msgs[msgs.length - 1];
@@ -164,13 +166,35 @@ export async function getData(app) {
       lastText: last ? (last.text || "📎") : "",
       lastTs: last?.ts || c.ts,
       unread: unreads[c.id] || 0,
-      count: c.participants.length
+      count: c.participants.length,
+      folderId: (c.folderIds || {})[uid] || null
     };
   });
 
+  /* Group chats into the viewer's folders; unfiled chats sit at the root.
+   * A folder carries the sum of unread counts of the chats inside it. */
+  const myFolders = (Data.getWorld("chatFolders") || []).filter(f => f.ownerUserId === uid);
+  const collapsed = st.collapsed || {};
+  const folders = myFolders
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(f => {
+      const items = chats.filter(c => c.folderId === f.id);
+      return {
+        id: f.id, name: f.name,
+        collapsed: !!collapsed[f.id],
+        chats: items,
+        count: items.length,
+        unread: items.reduce((n, c) => n + c.unread, 0)
+      };
+    });
+  const rootChats = chats.filter(c => !c.folderId || !myFolders.some(f => f.id === c.folderId));
+
   return {
     thread: false,
-    chats,
+    isGM,
+    hasChats: chats.length > 0,
+    folders,
+    rootChats,
     creating: !!st.creating,
     newChatName: st.newChatName || "",
     candidateGroups: st.creating ? groupCandidates(
@@ -192,6 +216,67 @@ export function activateListeners(app, html) {
   html.on("click", "[data-action='chat-open']", (ev) => {
     app.state = { chatId: ev.currentTarget.dataset.chatId };
     AgentAudio.play("tap");
+    app.render(false);
+  });
+
+  /* ---- chat folders ---- */
+
+  html.on("click", "[data-action='chat-folder-toggle']", (ev) => {
+    ev.stopPropagation();
+    const id = ev.currentTarget.dataset.folderId;
+    st.collapsed = st.collapsed || {};
+    st.collapsed[id] = !st.collapsed[id];
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='chat-folder-new']", async (ev) => {
+    ev.stopPropagation();
+    const name = await app.promptText(loc("AGENTOS.Chat.NewFolder"), "", loc("AGENTOS.Chat.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    await app.mutate("chatFolder.create", { name: name.trim() });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='chat-folder-rename']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    const cur = (Data.getWorld("chatFolders") || []).find(f => f.id === folderId);
+    const name = await app.promptText(loc("AGENTOS.Chat.RenameFolder"), cur?.name || "", loc("AGENTOS.Chat.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    await app.mutate("chatFolder.rename", { folderId, name: name.trim() });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='chat-folder-delete']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    if (!(await app.confirm(loc("AGENTOS.Chat.DeleteFolderConfirm")))) return;
+    AgentAudio.play("tap");
+    await app.mutate("chatFolder.delete", { folderId });
+    app.render(false);
+  });
+
+  /* Drag a chat row onto a folder header (or the root) to file it. */
+  html.on("dragstart", "[data-chat-drag]", (ev) => {
+    ev.stopPropagation();
+    ev.originalEvent.dataTransfer.setData("text/plain", JSON.stringify({ chat: ev.currentTarget.dataset.chatDrag }));
+    ev.originalEvent.dataTransfer.effectAllowed = "move";
+  });
+  const drops = html.find("[data-chat-drop]");
+  drops.on("dragover", (ev) => { ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.classList.add("drop-over"); });
+  drops.on("dragleave", (ev) => ev.currentTarget.classList.remove("drop-over"));
+  drops.on("drop", async (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.currentTarget.classList.remove("drop-over");
+    let data;
+    try { data = JSON.parse(ev.originalEvent.dataTransfer.getData("text/plain")); } catch (e) { return; }
+    if (!data.chat) return;
+    const folderId = ev.currentTarget.dataset.chatDrop || "";   // "" = root
+    AgentAudio.play("tap");
+    await app.mutate("chat.setFolder", { chatId: data.chat, folderId });
     app.render(false);
   });
 

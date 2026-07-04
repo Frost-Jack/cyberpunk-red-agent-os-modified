@@ -1,0 +1,18 @@
+{{!-- One chat row. Draggable so it can be filed into a folder. --}}
+<li class="agentos-list-row" data-action="chat-open" data-chat-id="{{this.id}}"
+    draggable="true" data-chat-drag="{{this.id}}">
+  <img class="agentos-avatar" src="{{this.img}}" alt="">
+  <div class="agentos-list-main">
+    <div class="agentos-list-title">{{this.name}}</div>
+    <div class="agentos-list-sub">{{this.lastText}}</div>
+  </div>
+  <div class="agentos-list-meta">
+    <span class="agentos-list-time">{{agTime this.lastTs}}</span>
+    {{#if this.unread}}<span class="agentos-badge">{{this.unread}}</span>{{/if}}
+    {{#if @root.viewData.isGM}}
+    <button type="button" class="agentos-icon-btn danger" data-action="chat-delete" data-chat-id="{{this.id}}" title="{{localize "AGENTOS.Common.Delete"}}">
+      <i class="fas fa-trash"></i>
+    </button>
+    {{/if}}
+  </div>
+</li>

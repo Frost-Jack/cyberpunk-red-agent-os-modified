@@ -9,6 +9,7 @@ import { syncBroadcast, applyVolume } from "./apps/radio.js";
 const WORLD_OBJECTS = {
   agentChats: {},
   agentMessages: {},
+  chatFolders: [],
   gardenContacts: [],
   agentShards: [],
   datapoolFolders: [],
@@ -77,7 +78,7 @@ Hooks.once("ready", async () => {
   globalThis.AgentOS = { ui: new AgentOSApplication() };
 
   await loadTemplates([
-    "shell", "home", "chat", "chat-thread", "datapool", "datapool-folder", "datapool-row", "wallet",
+    "shell", "home", "chat", "chat-thread", "chat-row", "datapool", "datapool-folder", "datapool-row", "wallet",
     "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "ncpd-folder", "ncpd-card", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));
