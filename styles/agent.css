@@ -2759,6 +2759,66 @@ input.agentos-search, .agentos-search {
 .agentos-chassis .agentos-breach-cell.sel:hover { background: color-mix(in srgb, var(--neon-accent) 18%, transparent); }
 .agentos-chassis .agentos-breach-cell.used { opacity: 0.3; }
 
+/* --- DECRYPT --- */
+.agentos-decrypt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 8px;
+  width: 100%;
+  max-width: 300px;
+}
+.agentos-decrypt-board { display: flex; flex-direction: column; gap: 4px; min-height: 60px; }
+.agentos-decrypt-row { display: flex; align-items: center; gap: 6px; }
+.agentos-decrypt-byte {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 15px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text);
+}
+.agentos-decrypt-pips { display: flex; gap: 3px; margin-left: 6px; align-items: center; }
+.agentos-decrypt-pips .pip {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block;
+}
+.agentos-decrypt-pips .pip.locked { background: var(--neon-good); box-shadow: 0 0 6px var(--neon-good); }
+.agentos-decrypt-pips .pip.float {
+  background: transparent;
+  border: 2px solid var(--neon-gold);
+  box-shadow: 0 0 5px var(--neon-gold);
+}
+.agentos-decrypt-input { display: flex; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid var(--glass-border); }
+.agentos-chassis .agentos-decrypt-dial {
+  width: 34px; height: 34px;
+  margin: 0;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--neon-accent);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--neon-accent);
+  cursor: pointer;
+  text-shadow: 0 0 5px var(--frame-glow);
+}
+.agentos-chassis .agentos-decrypt-dial:hover { background: color-mix(in srgb, var(--neon-accent) 18%, transparent); }
+.agentos-chassis .agentos-decrypt-go {
+  width: 34px; height: 34px;
+  margin: 0 0 0 auto;
+  border-radius: 4px;
+  border: 1px solid var(--neon-good);
+  background: color-mix(in srgb, var(--neon-good) 14%, transparent);
+  color: var(--neon-good);
+  cursor: pointer;
+  font-size: 13px;
+}
+.agentos-chassis .agentos-decrypt-go:hover { background: color-mix(in srgb, var(--neon-good) 26%, transparent); }
+
 /* ==========================================================================
    GLOBAL CORE-STYLE NEUTRALIZER
    Foundry core paints every <button> light, full-width, fixed-height and

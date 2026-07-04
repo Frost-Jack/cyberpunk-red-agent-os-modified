@@ -295,9 +295,16 @@
       "SimonHint": "Repeat the pad sequence.",
       "G2077Hint": "Arrows / WASD — slide and merge.",
       "BreachHint": "Pick codes alternating row and column to match the sequence.",
+      "DodgeHint": "A/D or arrows — steer. Hold a side of the screen to slide.",
+      "DecryptHint": "Left/right click a dial to cycle. Solid = right slot, ring = right byte wrong slot.",
+      "FirewallHint": "Mouse or A/D — move the paddle. Break every layer.",
+      "HeistHint": "WASD or arrows — grab shards, dodge the ICE.",
+      "SprawlHint": "SPACE / click — drop the floor. Overhang is sheared off.",
       "NewRecord": "NEW RECORD",
       "Boom": "FLATLINED",
       "Win": "FIELD CLEARED",
+      "Cracked": "DECRYPTED",
+      "Locked": "LOCKED OUT",
       "GameOver": "FLATLINED"
     },
     "Admin": {

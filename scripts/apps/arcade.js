@@ -13,7 +13,12 @@ const GAMES = [
   { id: "quickhack", title: "QUICKHACK", icon: "fa-bolt" },
   { id: "simon",     title: "SIMON.EXE", icon: "fa-circle-nodes" },
   { id: "g2077",     title: "2077",      icon: "fa-table-cells" },
-  { id: "breach",    title: "BREACH",    icon: "fa-terminal" }
+  { id: "breach",    title: "BREACH",    icon: "fa-terminal" },
+  { id: "dodge",     title: "NEON DODGE", icon: "fa-meteor",         suffix: "s" },
+  { id: "decrypt",   title: "DECRYPT",   icon: "fa-key",             lower: true, suffix: "t" },
+  { id: "firewall",  title: "FIREWALL",  icon: "fa-shield-halved" },
+  { id: "heist",     title: "DATA HEIST", icon: "fa-vault" },
+  { id: "sprawl",    title: "SPRAWL",    icon: "fa-city" }
 ];
 
 /* ---------------- records ---------------- */
@@ -44,7 +49,8 @@ async function saveRecord(gameId, value, lowerIsBetter = false) {
 /** Game-over helper: writes the record, updates status + REC display. */
 function finishGame(html, gameId, statusEl, score) {
   const over = game.i18n.localize("AGENTOS.Arcade.GameOver");
-  saveRecord(gameId, score).then((isNew) => {
+  const lower = !!GAMES.find(g => g.id === gameId)?.lower;
+  saveRecord(gameId, score, lower).then((isNew) => {
     if (statusEl) {
       statusEl.textContent = `${over} — ${score}` + (isNew ? ` · ${game.i18n.localize("AGENTOS.Arcade.NewRecord")}` : "");
     }
@@ -67,6 +73,11 @@ let _qhState = null;
 let _simonState = null;
 let _g2077State = null;
 let _breachState = null;
+let _dodgeState = null;
+let _decryptState = null;
+let _firewallState = null;
+let _heistState = null;
+let _sprawlState = null;
 
 let _rafCancels = [];
 
@@ -99,6 +110,7 @@ function teardownGames() {
 
 function clearStates(st) {
   _snakeState = _runnerState = _duelState = _qhState = _simonState = _g2077State = _breachState = null;
+  _dodgeState = _decryptState = _firewallState = _heistState = _sprawlState = null;
   st.mine = null;
 }
 
@@ -156,6 +168,11 @@ export function activateListeners(app, html) {
     case "simon": setupSimon(html); break;
     case "g2077": setup2077(html); break;
     case "breach": setupBreach(html); break;
+    case "dodge": setupDodge(html); break;
+    case "decrypt": setupDecrypt(html); break;
+    case "firewall": setupFirewall(html); break;
+    case "heist": setupHeist(html); break;
+    case "sprawl": setupSprawl(html); break;
   }
 }
 
@@ -1138,4 +1155,610 @@ function setupBreach(html) {
     if (status) status.textContent = _breachState.dead ? "…" : String(_breachState.score);
     draw();
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* NEON DODGE — steer a drone along the bottom, dodge falling debris.   */
+/* Record: seconds survived.                                            */
+/* ------------------------------------------------------------------ */
+
+function setupDodge(html) {
+  const canvas = html.find(".agentos-game-canvas")[0];
+  const status = html.find(".agentos-game-status")[0];
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const colors = getComputedStyle(canvas);
+  const cAccent = colors.getPropertyValue("--neon-accent").trim() || "#0ff";
+  const cWarn = colors.getPropertyValue("--neon-warn").trim() || "#f35";
+  const DRONE = { w: 22, h: 12 };
+
+  const reset = () => {
+    _dodgeState = {
+      x: W / 2, left: false, right: false,
+      blocks: [], spawnIn: 20, startTs: 0, elapsed: 0, dead: false
+    };
+    if (status) status.textContent = "0";
+  };
+
+  const tick = () => {
+    const s = _dodgeState;
+    if (!s || s.dead) return;
+    if (!s.startTs) s.startTs = Date.now();
+    s.elapsed = Math.round((Date.now() - s.startTs) / 1000);
+    if (status) status.textContent = String(s.elapsed);
+
+    const move = 4.2;
+    if (s.left) s.x -= move;
+    if (s.right) s.x += move;
+    s.x = Math.max(DRONE.w / 2, Math.min(W - DRONE.w / 2, s.x));
+
+    const fall = 2.4 + Math.min(4.5, s.elapsed * 0.12);
+    if (--s.spawnIn <= 0) {
+      const bw = 14 + Math.random() * 22;
+      s.blocks.push({ x: Math.random() * (W - bw), y: -20, w: bw, h: 12 + Math.random() * 10 });
+      s.spawnIn = Math.max(9, 22 - Math.floor(s.elapsed / 3));
+    }
+
+    const dy = H - 16;
+    const dl = s.x - DRONE.w / 2, dr = s.x + DRONE.w / 2, dt = dy - DRONE.h / 2, db = dy + DRONE.h / 2;
+    for (const b of s.blocks) {
+      b.y += fall;
+      if (b.x < dr && b.x + b.w > dl && b.y < db && b.y + b.h > dt) {
+        s.dead = true;
+        return finishGame(html, "dodge", status, s.elapsed);
+      }
+    }
+    s.blocks = s.blocks.filter(b => b.y < H + 20);
+
+    ctx.fillStyle = "rgba(2,2,8,0.96)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(47,245,208,0.06)";
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < W; gx += 28) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+
+    ctx.save();
+    ctx.shadowColor = cWarn; ctx.shadowBlur = 7; ctx.fillStyle = cWarn;
+    for (const b of s.blocks) ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowColor = cAccent; ctx.shadowBlur = 10; ctx.fillStyle = cAccent;
+    ctx.beginPath();
+    ctx.moveTo(s.x, dt);
+    ctx.lineTo(dr, db);
+    ctx.lineTo(dl, db);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  addDocHandler("keydown", (ev) => {
+    if (isTypingTarget(ev.target)) return;
+    const s = _dodgeState;
+    if (s?.dead && [" ", "a", "d", "ArrowLeft", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); reset(); return; }
+    if (["a", "ArrowLeft"].includes(ev.key)) { ev.preventDefault(); if (s) s.left = true; }
+    if (["d", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); if (s) s.right = true; }
+  });
+  addDocHandler("keyup", (ev) => {
+    const s = _dodgeState;
+    if (!s) return;
+    if (["a", "ArrowLeft"].includes(ev.key)) s.left = false;
+    if (["d", "ArrowRight"].includes(ev.key)) s.right = false;
+  });
+  canvas.addEventListener("pointerdown", (ev) => {
+    const s = _dodgeState;
+    if (!s) return;
+    if (s.dead) { reset(); return; }
+    const rect = canvas.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) * (W / rect.width);
+    s.left = px < s.x; s.right = px >= s.x;
+  });
+  canvas.addEventListener("pointerup", () => { const s = _dodgeState; if (s) { s.left = s.right = false; } });
+  canvas.addEventListener("pointerleave", () => { const s = _dodgeState; if (s) { s.left = s.right = false; } });
+
+  html.find("[data-action='game-reset']").on("click", () => reset());
+
+  if (!_dodgeState) reset();
+  else if (status) status.textContent = _dodgeState.dead ? "…" : String(_dodgeState.elapsed);
+  addInterval(tick, 24);
+}
+
+/* ------------------------------------------------------------------ */
+/* DECRYPT — Mastermind on 4 hex nibbles. Feedback: locked / floating.  */
+/* Record: fewest guesses to crack the code.                            */
+/* ------------------------------------------------------------------ */
+
+function setupDecrypt(html) {
+  const root = html.find(".agentos-decrypt-board")[0];
+  const rowEl = html.find(".agentos-decrypt-input")[0];
+  const status = html.find(".agentos-game-status")[0];
+  if (!root) return;
+  const SYMBOLS = ["0", "1", "2", "5", "7", "A", "C", "F"];
+  const LEN = 4, MAX = 8;
+
+  const reset = () => {
+    const code = Array.from({ length: LEN }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    _decryptState = { code, guesses: [], cur: Array(LEN).fill(0), done: false };
+    if (status) status.textContent = "0";
+    draw();
+  };
+
+  const scoreGuess = (guess, code) => {
+    let locked = 0, floating = 0;
+    const cRest = [], gRest = [];
+    for (let i = 0; i < LEN; i++) {
+      if (guess[i] === code[i]) locked++;
+      else { cRest.push(code[i]); gRest.push(guess[i]); }
+    }
+    for (const g of gRest) {
+      const idx = cRest.indexOf(g);
+      if (idx >= 0) { floating++; cRest.splice(idx, 1); }
+    }
+    return { locked, floating };
+  };
+
+  const submit = () => {
+    const s = _decryptState;
+    if (!s || s.done) return;
+    const guess = s.cur.map(i => SYMBOLS[i]);
+    const res = scoreGuess(guess, s.code);
+    s.guesses.push({ guess, ...res });
+    if (res.locked === LEN) {
+      s.done = true;
+      if (status) status.textContent = String(s.guesses.length);
+      AgentAudio.play("cash");
+      const lower = true;
+      saveRecord("decrypt", s.guesses.length, lower).then((isNew) => {
+        if (status) {
+          status.textContent = `${game.i18n.localize("AGENTOS.Arcade.Cracked")} — ${s.guesses.length}` +
+            (isNew ? ` · ${game.i18n.localize("AGENTOS.Arcade.NewRecord")}` : "");
+        }
+        const recEl = html.find(".agentos-arcade-rec")[0];
+        if (recEl) recEl.textContent = `REC ${recordLabel("decrypt")}`;
+      });
+    } else if (s.guesses.length >= MAX) {
+      s.done = true;
+      if (status) status.textContent = `${game.i18n.localize("AGENTOS.Arcade.Locked")} — ${s.code.join("")}`;
+      AgentAudio.play("error");
+    } else {
+      AgentAudio.play("tap");
+    }
+    draw();
+  };
+
+  const draw = () => {
+    const s = _decryptState;
+    if (!s) return;
+    root.innerHTML = "";
+    for (const row of s.guesses) {
+      const line = document.createElement("div");
+      line.className = "agentos-decrypt-row";
+      for (const c of row.guess) {
+        const b = document.createElement("span");
+        b.className = "agentos-decrypt-byte";
+        b.textContent = c;
+        line.appendChild(b);
+      }
+      const pips = document.createElement("span");
+      pips.className = "agentos-decrypt-pips";
+      for (let i = 0; i < row.locked; i++) { const p = document.createElement("i"); p.className = "pip locked"; pips.appendChild(p); }
+      for (let i = 0; i < row.floating; i++) { const p = document.createElement("i"); p.className = "pip float"; pips.appendChild(p); }
+      line.appendChild(pips);
+      root.appendChild(line);
+    }
+    if (!rowEl) return;
+    rowEl.innerHTML = "";
+    if (s.done) return;
+    s.cur.forEach((symIdx, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "agentos-decrypt-dial";
+      b.textContent = SYMBOLS[symIdx];
+      b.addEventListener("click", () => {
+        s.cur[i] = (s.cur[i] + 1) % SYMBOLS.length;
+        b.textContent = SYMBOLS[s.cur[i]];
+        AgentAudio.play("tap");
+      });
+      b.addEventListener("contextmenu", (ev) => {
+        ev.preventDefault();
+        s.cur[i] = (s.cur[i] - 1 + SYMBOLS.length) % SYMBOLS.length;
+        b.textContent = SYMBOLS[s.cur[i]];
+      });
+      rowEl.appendChild(b);
+    });
+    const go = document.createElement("button");
+    go.type = "button";
+    go.className = "agentos-decrypt-go";
+    go.textContent = "▶";
+    go.addEventListener("click", submit);
+    rowEl.appendChild(go);
+  };
+
+  html.find("[data-action='game-reset']").on("click", () => reset());
+
+  if (!_decryptState) reset();
+  else draw();
+}
+
+/* ------------------------------------------------------------------ */
+/* FIREWALL — breakout. Bounce the ICE packet, break the firewall rows. */
+/* Record: score.                                                       */
+/* ------------------------------------------------------------------ */
+
+function setupFirewall(html) {
+  const canvas = html.find(".agentos-game-canvas")[0];
+  const status = html.find(".agentos-game-status")[0];
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const colors = getComputedStyle(canvas);
+  const cAccent = colors.getPropertyValue("--neon-accent").trim() || "#0ff";
+  const cWarn = colors.getPropertyValue("--neon-warn").trim() || "#f35";
+  const cGold = colors.getPropertyValue("--neon-gold").trim() || "#fd3";
+  const COLS = 8, ROWS = 4, MARGIN = 8;
+  const BW = (W - MARGIN * 2) / COLS, BH = 12, PAD_W = 52, PAD_H = 7;
+
+  const buildBricks = () => {
+    const bricks = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      bricks.push({ x: MARGIN + c * BW, y: 26 + r * (BH + 4), row: r, alive: true });
+    }
+    return bricks;
+  };
+
+  const reset = () => {
+    _firewallState = {
+      px: W / 2, bricks: buildBricks(),
+      bx: W / 2, by: H - 40, bvx: 2.4, bvy: -3.2,
+      score: 0, dead: false, prevT: 0, left: false, right: false
+    };
+    if (status) status.textContent = "0";
+  };
+
+  const tick = (t) => {
+    const s = _firewallState;
+    if (!s || s.dead) return;
+    const dt = s.prevT ? Math.min(2, (t - s.prevT) / 16.667) : 1;
+    s.prevT = t;
+
+    const pad = 6 * dt;
+    if (s.left) s.px -= pad;
+    if (s.right) s.px += pad;
+    s.px = Math.max(PAD_W / 2, Math.min(W - PAD_W / 2, s.px));
+
+    s.bx += s.bvx * dt;
+    s.by += s.bvy * dt;
+    if (s.bx < 5) { s.bx = 5; s.bvx = Math.abs(s.bvx); }
+    if (s.bx > W - 5) { s.bx = W - 5; s.bvx = -Math.abs(s.bvx); }
+    if (s.by < 5) { s.by = 5; s.bvy = Math.abs(s.bvy); }
+
+    const padY = H - 14;
+    if (s.bvy > 0 && s.by >= padY - 4 && s.by <= padY + 4 &&
+        s.bx >= s.px - PAD_W / 2 && s.bx <= s.px + PAD_W / 2) {
+      s.bvy = -Math.abs(s.bvy);
+      s.bvx += (s.bx - s.px) * 0.05;
+      s.bvx = Math.max(-4.5, Math.min(4.5, s.bvx));
+      AgentAudio.play("tap");
+    }
+
+    if (s.by > H + 8) {
+      s.dead = true;
+      return finishGame(html, "firewall", status, s.score);
+    }
+
+    for (const b of s.bricks) {
+      if (!b.alive) continue;
+      if (s.bx > b.x && s.bx < b.x + BW && s.by > b.y && s.by < b.y + BH) {
+        b.alive = false;
+        s.bvy = -s.bvy;
+        s.score += 10;
+        if (status) status.textContent = String(s.score);
+        AgentAudio.play("tap");
+        break;
+      }
+    }
+    if (s.bricks.every(b => !b.alive)) {
+      s.bricks = buildBricks();
+      s.bvy = -Math.abs(s.bvy) * 1.04;
+      AgentAudio.play("cash");
+    }
+
+    ctx.fillStyle = "rgba(2,2,8,0.96)";
+    ctx.fillRect(0, 0, W, H);
+    const rowColors = [cWarn, cGold, cAccent, cAccent];
+    for (const b of s.bricks) {
+      if (!b.alive) continue;
+      ctx.save();
+      ctx.shadowColor = rowColors[b.row] || cAccent;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = rowColors[b.row] || cAccent;
+      ctx.fillRect(b.x + 1, b.y, BW - 2, BH);
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.shadowColor = cAccent; ctx.shadowBlur = 8; ctx.fillStyle = cAccent;
+    ctx.fillRect(s.px - PAD_W / 2, padY, PAD_W, PAD_H);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(s.bx - 3, s.by - 3, 6, 6);
+    ctx.restore();
+  };
+
+  const movePad = (clientX) => {
+    const s = _firewallState;
+    if (!s) return;
+    const rect = canvas.getBoundingClientRect();
+    // clamp the raw cursor to the canvas span so off-canvas movement still tracks the edges
+    const local = Math.max(0, Math.min(rect.width, clientX - rect.left)) * (W / rect.width);
+    s.px = Math.max(PAD_W / 2, Math.min(W - PAD_W / 2, local));
+  };
+  // track the mouse across the whole document so the paddle can reach both edges
+  addDocHandler("pointermove", (ev) => movePad(ev.clientX));
+  canvas.addEventListener("pointerdown", (ev) => { if (_firewallState?.dead) reset(); else movePad(ev.clientX); });
+  addDocHandler("keydown", (ev) => {
+    if (isTypingTarget(ev.target)) return;
+    const s = _firewallState;
+    if (!s) return;
+    if (s.dead && [" ", "a", "d", "ArrowLeft", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); reset(); return; }
+    if (["a", "ArrowLeft"].includes(ev.key)) { ev.preventDefault(); s.left = true; }
+    if (["d", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); s.right = true; }
+  });
+  addDocHandler("keyup", (ev) => {
+    const s = _firewallState;
+    if (!s) return;
+    if (["a", "ArrowLeft"].includes(ev.key)) s.left = false;
+    if (["d", "ArrowRight"].includes(ev.key)) s.right = false;
+  });
+
+  html.find("[data-action='game-reset']").on("click", () => reset());
+
+  if (!_firewallState) reset();
+  else { _firewallState.prevT = 0; if (status) status.textContent = _firewallState.dead ? "…" : String(_firewallState.score); }
+  addRaf(tick);
+}
+
+/* ------------------------------------------------------------------ */
+/* DATA HEIST — grab shards in a maze while ICE demons hunt you.        */
+/* Record: shards collected across the run.                             */
+/* ------------------------------------------------------------------ */
+
+function setupHeist(html) {
+  const canvas = html.find(".agentos-game-canvas")[0];
+  const status = html.find(".agentos-game-status")[0];
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const colors = getComputedStyle(canvas);
+  const cAccent = colors.getPropertyValue("--neon-accent").trim() || "#0ff";
+  const cWarn = colors.getPropertyValue("--neon-warn").trim() || "#f35";
+  const cGold = colors.getPropertyValue("--neon-gold").trim() || "#fd3";
+  // Hand-built 15x11 maze: 1 = wall, 0 = corridor.
+  const MAP = [
+    "111111111111111",
+    "100000010000001",
+    "101110010111101",
+    "101000000000101",
+    "101011111010101",
+    "100010000010001",
+    "101011111010101",
+    "101000000000101",
+    "101110010111101",
+    "100000010000001",
+    "111111111111111"
+  ];
+  const ROWS = MAP.length, COLS = MAP[0].length;
+  const TS = Math.floor(Math.min(W / COLS, H / ROWS));
+  const OX = Math.floor((W - TS * COLS) / 2), OY = Math.floor((H - TS * ROWS) / 2);
+  const wall = (cx, cy) => cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS || MAP[cy][cx] === "1";
+
+  const scatterShards = () => {
+    const cells = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (MAP[y][x] === "0") cells.push({ x, y });
+    return cells;
+  };
+
+  const reset = () => {
+    _heistState = {
+      px: 7, py: 5, dir: { x: 0, y: 0 }, next: { x: 0, y: 0 },
+      shards: scatterShards().filter(c => !(c.x === 7 && c.y === 5)),
+      demons: [{ x: 1, y: 1 }, { x: 13, y: 9 }, { x: 13, y: 1 }],
+      score: 0, moveT: 0, demonT: 0, dead: false
+    };
+    if (status) status.textContent = "0";
+  };
+
+  const stepDemon = (d, s) => {
+    const opts = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]
+      .filter(o => !wall(d.x + o.x, d.y + o.y));
+    if (!opts.length) return;
+    // 65% chase the player, else random — keeps them beatable
+    let pick;
+    if (Math.random() < 0.65) {
+      opts.sort((a, b) =>
+        (Math.abs(d.x + a.x - s.px) + Math.abs(d.y + a.y - s.py)) -
+        (Math.abs(d.x + b.x - s.px) + Math.abs(d.y + b.y - s.py)));
+      pick = opts[0];
+    } else pick = opts[Math.floor(Math.random() * opts.length)];
+    d.x += pick.x; d.y += pick.y;
+  };
+
+  const tick = () => {
+    const s = _heistState;
+    if (!s || s.dead) return;
+
+    if (++s.moveT >= 6) {
+      s.moveT = 0;
+      if (!wall(s.px + s.next.x, s.py + s.next.y)) s.dir = { ...s.next };
+      if (!wall(s.px + s.dir.x, s.py + s.dir.y)) { s.px += s.dir.x; s.py += s.dir.y; }
+      const hit = s.shards.findIndex(c => c.x === s.px && c.y === s.py);
+      if (hit >= 0) {
+        s.shards.splice(hit, 1);
+        s.score++;
+        if (status) status.textContent = String(s.score);
+        AgentAudio.play("tap");
+        if (!s.shards.length) { s.shards = scatterShards().filter(c => !(c.x === s.px && c.y === s.py)); AgentAudio.play("cash"); }
+      }
+    }
+    if (++s.demonT >= 9) {
+      s.demonT = 0;
+      for (const d of s.demons) stepDemon(d, s);
+    }
+    if (s.demons.some(d => d.x === s.px && d.y === s.py)) {
+      s.dead = true;
+      return finishGame(html, "heist", status, s.score);
+    }
+
+    ctx.fillStyle = "rgba(2,2,8,0.96)";
+    ctx.fillRect(0, 0, W, H);
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (MAP[y][x] !== "1") continue;
+      ctx.save();
+      ctx.shadowColor = cAccent; ctx.shadowBlur = 4;
+      ctx.fillStyle = "rgba(47,245,208,0.12)";
+      ctx.strokeStyle = "rgba(47,245,208,0.4)";
+      ctx.fillRect(OX + x * TS, OY + y * TS, TS, TS);
+      ctx.strokeRect(OX + x * TS + 0.5, OY + y * TS + 0.5, TS - 1, TS - 1);
+      ctx.restore();
+    }
+    ctx.fillStyle = cGold;
+    for (const c of s.shards) {
+      ctx.beginPath();
+      ctx.arc(OX + c.x * TS + TS / 2, OY + c.y * TS + TS / 2, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.save();
+    ctx.shadowColor = cAccent; ctx.shadowBlur = 8; ctx.fillStyle = cAccent;
+    ctx.beginPath();
+    ctx.arc(OX + s.px * TS + TS / 2, OY + s.py * TS + TS / 2, TS / 2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.shadowColor = cWarn; ctx.shadowBlur = 8; ctx.fillStyle = cWarn;
+    for (const d of s.demons) {
+      ctx.fillRect(OX + d.x * TS + 2, OY + d.y * TS + 2, TS - 4, TS - 4);
+    }
+    ctx.restore();
+  };
+
+  addDocHandler("keydown", (ev) => {
+    if (isTypingTarget(ev.target)) return;
+    const s = _heistState;
+    if (s?.dead && [" ", "w", "a", "s", "d", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) { ev.preventDefault(); reset(); return; }
+    const map = {
+      ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
+      ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+      w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 }
+    };
+    const nd = map[ev.key];
+    if (!nd || !s) return;
+    ev.preventDefault();
+    s.next = nd;
+  });
+  canvas.addEventListener("pointerdown", () => { if (_heistState?.dead) reset(); });
+
+  html.find("[data-action='game-reset']").on("click", () => reset());
+
+  if (!_heistState) reset();
+  else if (status) status.textContent = _heistState.dead ? "…" : String(_heistState.score);
+  addInterval(tick, 40);
+}
+
+/* ------------------------------------------------------------------ */
+/* SPRAWL — stack sliding megabuilding floors. Overhang gets sheared.   */
+/* Record: floors stacked.                                              */
+/* ------------------------------------------------------------------ */
+
+function setupSprawl(html) {
+  const canvas = html.find(".agentos-game-canvas")[0];
+  const status = html.find(".agentos-game-status")[0];
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const colors = getComputedStyle(canvas);
+  const cAccent = colors.getPropertyValue("--neon-accent").trim() || "#0ff";
+  const cGold = colors.getPropertyValue("--neon-gold").trim() || "#fd3";
+  const cWarn = colors.getPropertyValue("--neon-warn").trim() || "#f35";
+  const FH = 16;                                   // floor height
+
+  const reset = () => {
+    _sprawlState = {
+      floors: [{ x: W / 2 - 55, w: 110 }],           // base floor
+      curX: 0, curW: 110, vx: 2.6, camY: 0,
+      score: 0, dead: false
+    };
+    if (status) status.textContent = "0";
+  };
+
+  const drop = () => {
+    const s = _sprawlState;
+    if (!s) return;
+    if (s.dead) { reset(); return; }
+    const top = s.floors[s.floors.length - 1];
+    const left = Math.max(s.curX, top.x);
+    const right = Math.min(s.curX + s.curW, top.x + top.w);
+    const overlap = right - left;
+    if (overlap <= 0) {
+      s.dead = true;
+      return finishGame(html, "sprawl", status, s.score);
+    }
+    s.floors.push({ x: left, w: overlap });
+    s.curW = overlap;
+    s.score++;
+    if (status) status.textContent = String(s.score);
+    AgentAudio.play(overlap >= top.w - 2 ? "cash" : "tap");
+    // speed up + spawn the next slider from an alternating side
+    s.vx = (Math.random() < 0.5 ? -1 : 1) * (2.6 + Math.min(3, s.score * 0.12));
+    s.curX = s.vx > 0 ? 0 : W - s.curW;
+  };
+
+  const tick = () => {
+    const s = _sprawlState;
+    if (!s || s.dead) return;
+    s.curX += s.vx;
+    if (s.curX <= 0) { s.curX = 0; s.vx = Math.abs(s.vx); }
+    if (s.curX + s.curW >= W) { s.curX = W - s.curW; s.vx = -Math.abs(s.vx); }
+
+    // camera follows the growing tower so the top stays visible
+    const stackTop = H - 10 - s.floors.length * FH;
+    const targetCam = Math.min(0, stackTop - 40);
+    s.camY += (targetCam - s.camY) * 0.15;
+
+    ctx.fillStyle = "rgba(2,2,8,0.96)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(47,245,208,0.06)";
+    for (let gy = (-s.camY % 24); gy < H; gy += 24) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+    s.floors.forEach((f, i) => {
+      const y = H - 10 - (i + 1) * FH - s.camY;
+      ctx.save();
+      ctx.shadowColor = i === s.floors.length - 1 ? cGold : cAccent;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = i === s.floors.length - 1 ? cGold : cAccent;
+      ctx.fillRect(f.x, y, f.w, FH - 2);
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      for (let wx = f.x + 4; wx < f.x + f.w - 3; wx += 8) ctx.fillRect(wx, y + 4, 3, FH - 8);
+      ctx.restore();
+    });
+
+    const sy = H - 10 - (s.floors.length + 1) * FH - s.camY;
+    ctx.save();
+    ctx.shadowColor = cWarn; ctx.shadowBlur = 8; ctx.fillStyle = cWarn;
+    ctx.fillRect(s.curX, sy, s.curW, FH - 2);
+    ctx.restore();
+  };
+
+  addDocHandler("keydown", (ev) => {
+    if (isTypingTarget(ev.target)) return;
+    if (![" ", "ArrowDown"].includes(ev.key)) return;
+    ev.preventDefault();
+    if (ev.repeat) return;
+    drop();
+  });
+  canvas.addEventListener("pointerdown", drop);
+
+  html.find("[data-action='game-reset']").on("click", () => reset());
+
+  if (!_sprawlState) reset();
+  else if (status) status.textContent = _sprawlState.dead ? "…" : String(_sprawlState.score);
+  addInterval(tick, 20);
 }

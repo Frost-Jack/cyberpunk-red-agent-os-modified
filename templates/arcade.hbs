@@ -61,6 +61,34 @@
   </div>
   <p class="agentos-hint">{{localize "AGENTOS.Arcade.BreachHint"}}</p>
   {{/if}}
+
+  {{#if (agEq game "dodge")}}
+  <canvas class="agentos-game-canvas" width="330" height="240"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.DodgeHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "decrypt")}}
+  <div class="agentos-decrypt">
+    <div class="agentos-decrypt-board"></div>
+    <div class="agentos-decrypt-input"></div>
+  </div>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.DecryptHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "firewall")}}
+  <canvas class="agentos-game-canvas" width="330" height="220"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.FirewallHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "heist")}}
+  <canvas class="agentos-game-canvas" width="330" height="242"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.HeistHint"}}</p>
+  {{/if}}
+
+  {{#if (agEq game "sprawl")}}
+  <canvas class="agentos-game-canvas" width="300" height="300"></canvas>
+  <p class="agentos-hint">{{localize "AGENTOS.Arcade.SprawlHint"}}</p>
+  {{/if}}
 </div>
 
 {{else}}
