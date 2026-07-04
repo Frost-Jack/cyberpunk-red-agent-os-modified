@@ -11,6 +11,7 @@ const WORLD_OBJECTS = {
   agentMessages: {},
   gardenContacts: [],
   agentShards: [],
+  datapoolFolders: [],
   personalContacts: [],
   contactFolders: [],
   ncpdRecords: [],
@@ -76,7 +77,7 @@ Hooks.once("ready", async () => {
   globalThis.AgentOS = { ui: new AgentOSApplication() };
 
   await loadTemplates([
-    "shell", "home", "chat", "chat-thread", "datapool", "wallet",
+    "shell", "home", "chat", "chat-thread", "datapool", "datapool-folder", "datapool-row", "wallet",
     "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "ncpd-folder", "ncpd-card", "garden",
     "library", "tools", "tools-card", "arcade", "admin", "settings"
   ].map(TPL));

@@ -1,0 +1,21 @@
+{{!-- One data-shard row. Draggable so it can be filed into a folder. --}}
+<li class="agentos-list-row" data-action="shard-open" data-shard-id="{{this.id}}"
+    draggable="true" data-shard-drag="{{this.id}}">
+  <span class="agentos-shard-icon {{#if this.isAuthored}}authored{{else}}received{{/if}}">
+    <i class="fas {{#if this.isAuthored}}fa-file-pen{{else}}fa-file-arrow-down{{/if}}"></i>
+  </span>
+  <div class="agentos-list-main">
+    <div class="agentos-list-title">{{this.title}}</div>
+    <div class="agentos-list-sub">
+      {{this.authorName}}
+      {{#if @root.viewData.isGM}} · {{localize "AGENTOS.Data.By"}} {{this.creatorName}} · <i class="fas fa-users"></i> {{this.recipientCount}}{{/if}}
+    </div>
+  </div>
+  <div class="agentos-list-meta">
+    <span class="agentos-tag {{#if this.isAuthored}}authored{{else}}received{{/if}}">
+      {{#if this.isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
+    </span>
+    {{#if (agAnd @root.viewData.isGM this.isCopy)}}<span class="agentos-tag">{{localize "AGENTOS.Data.Copy"}}</span>{{/if}}
+    <span class="agentos-list-time">{{agDate this.ts}}</span>
+  </div>
+</li>

@@ -88,15 +88,22 @@ function recipientCandidates(isGM, excludeUserId) {
 export async function getData(app) {
   const isGM = game.user.isGM;
   const st = app.state;
-  const shards = Data.shardsForUser(game.user.id, isGM)
+  const uid = game.user.id;
+  const shards = Data.shardsForUser(uid, isGM)
     .slice().sort((a, b) => b.ts - a.ts);
 
-  /* The folder a shard lives in FOR THE CURRENT VIEWER. */
-  const folderOf = (s) => {
-    if (!s.isCopy && (isGM || s.createdBy === game.user.id)) return (s.folder || "").trim();
-    return ((s.recipientFolders || {})[game.user.id] || "").trim();
-  };
-  const allFolders = [...new Set(shards.map(folderOf).filter(Boolean))].sort();
+  /* Whether this shard is one the viewer OWNS (authored original) vs a copy
+   * they RECEIVED. Owned shards file via s.folderId; received via
+   * recipientFolderIds[uid]. Received copies with no folder = the Inbox. */
+  const isOwned = (s) => !s.isCopy && (isGM || s.createdBy === uid);
+  const folderIdOf = (s) => isOwned(s)
+    ? (s.folderId || null)
+    : ((s.recipientFolderIds || {})[uid] || null);
+  const isReceived = (s) => !isOwned(s);
+
+  /* This viewer's folders, and a display name for a folderId. */
+  const myFolders = (Data.getWorld("datapoolFolders") || []).filter(f => f.ownerUserId === uid);
+  const folderNameById = (id) => myFolders.find(f => f.id === id)?.name || "";
 
   if (st.shardId) {
     const shard = shards.find(s => s.id === st.shardId);
@@ -105,9 +112,9 @@ export async function getData(app) {
     /* GM sees WHO got a copy and WHEN (recipients keyed by userId → ts). */
     let recipients = [];
     if (isGM) {
-      recipients = Object.entries(shard.recipients || {}).map(([uid, ts]) => ({
-        name: Data.playerIdentity(uid).name,
-        userName: game.users.get(uid)?.name || "?",
+      recipients = Object.entries(shard.recipients || {}).map(([rid, ts]) => ({
+        name: Data.playerIdentity(rid).name,
+        userName: game.users.get(rid)?.name || "?",
         ts
       })).sort((a, b) => a.ts - b.ts);
       for (const gid of (shard.gardenRecipients || [])) {
@@ -116,6 +123,7 @@ export async function getData(app) {
       }
     }
 
+    const curFid = folderIdOf(shard);
     return {
       viewing: true,
       shard,
@@ -124,8 +132,7 @@ export async function getData(app) {
       canDelete: isGM || shard.createdBy === game.user.id,
       canSend: !shard.isCopy && (isGM || shard.createdBy === game.user.id),
       canEdit: !shard.isCopy && (isGM || shard.createdBy === game.user.id),
-      currentFolder: folderOf(shard),
-      folders: allFolders,
+      currentFolder: curFid ? folderNameById(curFid) : (isReceived(shard) ? loc("AGENTOS.Data.Inbox") : ""),
       recipients,
       hasRecipients: recipients.length > 0,
       sending: !!st.sending,
@@ -135,7 +142,7 @@ export async function getData(app) {
     };
   }
 
-  const mapped = shards.map(s => ({
+  const mapShard = (s) => ({
     id: s.id,
     title: s.title,
     authorName: s.authorName,
@@ -143,22 +150,32 @@ export async function getData(app) {
     isCopy: !!s.isCopy,
     isAuthored: s.createdBy === game.user.id && !s.isCopy,
     creatorName: isGM ? (game.users.get(s.createdBy)?.name || "?") : "",
-    recipientCount: Object.keys(s.recipients || {}).length + (s.gardenRecipients || []).length,
-    folder: folderOf(s)
-  }));
+    recipientCount: Object.keys(s.recipients || {}).length + (s.gardenRecipients || []).length
+  });
 
-  /* Group into collapsible folders; ungrouped bucket first. */
-  const noFolder = loc("AGENTOS.Data.NoFolder");
-  const byFolder = new Map();
-  for (const s of mapped) {
-    const key = s.folder || noFolder;
-    if (!byFolder.has(key)) byFolder.set(key, []);
-    byFolder.get(key).push(s);
-  }
   const collapsed = st.collapsed || {};
-  const groups = [...byFolder.entries()]
-    .sort((a, b) => (a[0] === noFolder ? -1 : b[0] === noFolder ? 1 : a[0].localeCompare(b[0])))
-    .map(([name, items]) => ({ name, collapsed: !!collapsed[name], count: items.length, shards: items }));
+
+  /* Received copies with no personal folder live in the virtual Inbox — which
+   * never holds subfolders (messages only arrive there). Everything else is
+   * placed by its viewer folderId; unfiled owned shards sit at root. */
+  const inboxShards = shards.filter(s => isReceived(s) && !folderIdOf(s)).map(mapShard);
+  const rootShards = shards.filter(s => isOwned(s) && !folderIdOf(s)).map(mapShard);
+
+  const buildFolder = (folder) => {
+    const subfolders = myFolders
+      .filter(f => f.parentId === folder.id)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(buildFolder);
+    const items = shards.filter(s => folderIdOf(s) === folder.id).map(mapShard);
+    return {
+      id: folder.id, name: folder.name,
+      collapsed: !!collapsed[folder.id],
+      subfolders, shards: items,
+      count: items.length + subfolders.reduce((n, f) => n + f.count, 0)
+    };
+  };
+  const rootFolders = myFolders.filter(f => !f.parentId)
+    .sort((a, b) => a.name.localeCompare(b.name)).map(buildFolder);
 
   return {
     viewing: false,
@@ -167,8 +184,10 @@ export async function getData(app) {
     compose: st.compose || { title: "", body: "", format: "plain", authorName: "" },
     isGM,
     gardenAuthors: isGM ? Data.visibleGardenContacts(true) : [],
-    hasShards: mapped.length > 0,
-    groups
+    hasShards: shards.length > 0,
+    inbox: { shards: inboxShards, count: inboxShards.length, collapsed: !!collapsed["__inbox"] },
+    folders: rootFolders,
+    rootShards
   };
 }
 
@@ -189,27 +208,105 @@ export function activateListeners(app, html) {
   /* ---- folders ---- */
 
   html.on("click", "[data-action='shard-folder-toggle']", (ev) => {
-    const name = ev.currentTarget.dataset.folder;
+    ev.stopPropagation();
+    const id = ev.currentTarget.dataset.folderId;
     st.collapsed = st.collapsed || {};
-    st.collapsed[name] = !st.collapsed[name];
+    st.collapsed[id] = !st.collapsed[id];
     app.render(false);
   });
 
-  /* Move the currently-open shard into a folder (author's original or the
-   * recipient's own copy — the op figures out which). */
+  /* Detail-view "move" — pick a destination folder from a dialog. */
   html.on("click", "[data-action='shard-move']", async () => {
-    const folder = await app.promptText(loc("AGENTOS.Data.MoveToFolder"),
-      (await getData(app)).currentFolder || "", loc("AGENTOS.Data.FolderPlaceholder"));
-    if (folder === null) return;
-    await app.mutate("shard.setFolder", { shardId: st.shardId, folder: folder.trim() });
+    const mine = (Data.getWorld("datapoolFolders") || []).filter(f => f.ownerUserId === game.user.id);
+    const shard = Data.shardsForUser(game.user.id, game.user.isGM).find(s => s.id === st.shardId);
+    const received = shard && !(!shard.isCopy && (game.user.isGM || shard.createdBy === game.user.id));
+    const esc = Handlebars.escapeExpression;
+    const opts = [
+      received
+        ? `<button type="button" class="agentos-btn block" data-fid="">${esc(loc("AGENTOS.Data.Inbox"))}</button>`
+        : `<button type="button" class="agentos-btn block" data-fid="">${esc(loc("AGENTOS.Data.RootLevel"))}</button>`,
+      ...mine.map(f => `<button type="button" class="agentos-btn block" data-fid="${f.id}">${esc(f.name)}</button>`)
+    ].join("");
+    const content = `<div class="agentos-move-picker" style="display:flex;flex-direction:column;gap:4px;">${opts}</div>`;
+    const dlg = new Dialog({
+      title: loc("AGENTOS.Data.MoveToFolder"),
+      content,
+      buttons: { cancel: { label: loc("AGENTOS.Common.Cancel") } },
+      render: (h) => h.find("[data-fid]").on("click", async (ev) => {
+        const fid = ev.currentTarget.dataset.fid;
+        dlg.close();
+        await app.mutate("shard.setFolder", { shardId: st.shardId, folderId: fid });
+      })
+    });
+    dlg.render(true);
+  });
+
+  html.on("click", "[data-action='datapool-folder-new']", async (ev) => {
+    ev.stopPropagation();
+    const parentId = ev.currentTarget.dataset.parentId || null;
+    const name = await app.promptText(loc("AGENTOS.Data.NewFolder"), "", loc("AGENTOS.Data.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    if (parentId) { st.collapsed = st.collapsed || {}; st.collapsed[parentId] = false; }
+    await app.mutate("datapoolFolder.create", { name: name.trim(), parentId });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='datapool-folder-rename']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    const cur = (Data.getWorld("datapoolFolders") || []).find(f => f.id === folderId);
+    const name = await app.promptText(loc("AGENTOS.Data.RenameFolder"), cur?.name || "", loc("AGENTOS.Data.FolderName"));
+    if (name === null || !name.trim()) return;
+    AgentAudio.play("tap");
+    await app.mutate("datapoolFolder.rename", { folderId, name: name.trim() });
+    app.render(false);
+  });
+
+  html.on("click", "[data-action='datapool-folder-delete']", async (ev) => {
+    ev.stopPropagation();
+    const folderId = ev.currentTarget.dataset.folderId;
+    if (!(await app.confirm(loc("AGENTOS.Data.DeleteFolderConfirm")))) return;
+    AgentAudio.play("tap");
+    await app.mutate("datapoolFolder.delete", { folderId });
+    app.render(false);
+  });
+
+  /* Drag a shard row or a folder onto a folder header (or Inbox/root). */
+  html.on("dragstart", "[data-shard-drag], [data-datapoolfolder-drag]", (ev) => {
+    ev.stopPropagation();
+    const el = ev.currentTarget;
+    const payload = el.dataset.shardDrag ? { shard: el.dataset.shardDrag } : { folder: el.dataset.datapoolfolderDrag };
+    ev.originalEvent.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    ev.originalEvent.dataTransfer.effectAllowed = "move";
+  });
+  const drops = html.find("[data-datapool-drop]");
+  drops.on("dragover", (ev) => { ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.classList.add("drop-over"); });
+  drops.on("dragleave", (ev) => ev.currentTarget.classList.remove("drop-over"));
+  drops.on("drop", async (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.currentTarget.classList.remove("drop-over");
+    let data;
+    try { data = JSON.parse(ev.originalEvent.dataTransfer.getData("text/plain")); } catch (e) { return; }
+    const target = ev.currentTarget.dataset.datapoolDrop;   // "" = root, "__inbox" = Inbox, else folderId
+    AgentAudio.play("tap");
+    if (data.shard) {
+      // Dropping into Inbox is only meaningful for received copies → clears their folder (null).
+      const folderId = (target === "__inbox" || target === "") ? "" : target;
+      await app.mutate("shard.setFolder", { shardId: data.shard, folderId });
+    } else if (data.folder && target !== "__inbox" && data.folder !== target) {
+      // folders can't nest under Inbox
+      await app.mutate("datapoolFolder.move", { folderId: data.folder, parentId: target || null });
+    }
+    app.render(false);
   });
 
   const readCompose = () => ({
     title: String(html.find("[name='shard-title']").val() ?? st.compose?.title ?? ""),
     body: String(html.find("[name='shard-body']").val() ?? st.compose?.body ?? ""),
     format: String(html.find("[name='shard-format']").val() ?? st.compose?.format ?? "plain"),
-    authorName: String(html.find("[name='shard-author']").val() ?? st.compose?.authorName ?? ""),
-    folder: String(html.find("[name='shard-folder']").val() ?? st.compose?.folder ?? "")
+    authorName: String(html.find("[name='shard-author']").val() ?? st.compose?.authorName ?? "")
   });
 
   html.on("click", "[data-action='shard-compose']", () => {
@@ -239,7 +336,7 @@ export function activateListeners(app, html) {
   });
 
   /* Keep the compose draft synced so background re-renders never wipe it. */
-  html.on("input change", "[name='shard-title'], [name='shard-body'], [name='shard-format'], [name='shard-author'], [name='shard-folder']", () => {
+  html.on("input change", "[name='shard-title'], [name='shard-body'], [name='shard-format'], [name='shard-author']", () => {
     st.compose = readCompose();
   });
 
@@ -253,7 +350,7 @@ export function activateListeners(app, html) {
 
   html.on("click", "[data-action='shard-create']", (ev) => {
     ev.preventDefault();
-    const { title, body, format, authorName, folder } = readCompose();
+    const { title, body, format, authorName } = readCompose();
     if (!title.trim() || !body) return AgentAudio.play("error");
     const editShardId = st.editShardId;
     st.composing = false;
@@ -264,7 +361,7 @@ export function activateListeners(app, html) {
     if (editShardId) {
       app.mutate("shard.update", { shardId: editShardId, patch: { title: title.trim(), body, format, authorName: authorName.trim() } });
     } else {
-      app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim(), folder: (folder || "").trim() } });
+      app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim() } });
     }
   });
 

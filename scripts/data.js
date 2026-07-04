@@ -537,33 +537,111 @@ const OPS = {
       authorName: isGM ? String(shard.authorName || "???") : playerIdentity(userId).name,
       createdBy: userId,
       recipients: {},
-      folder: String(shard.folder || "").trim(),
+      folderId: null,
       ts: Date.now()
     });
     await setWorld("agentShards", list);
     return true;
   },
 
-  /* Move a shard into a folder. Folders are per-viewer: the author sets the
-   * folder on originals they own; a recipient files their delivered COPY via
-   * `recipientFolders[userId]`. */
-  async "shard.setFolder"({ shardId, folder }, userId) {
+  /* File a shard into one of the viewer's folders (or Inbox root = null).
+   * Folders are per-viewer: the author files originals they own via
+   * `folderId`; a recipient files their delivered COPY via
+   * `recipientFolderIds[userId]`. */
+  async "shard.setFolder"({ shardId, folderId }, userId) {
     const list = getWorld("agentShards") || [];
     const shard = list.find(s => s.id === shardId);
     if (!shard) return false;
     const isGM = requesterIsGM(userId);
-    const f = String(folder || "").trim().slice(0, 100);
+    // The target folder (if any) must belong to the viewer doing the filing.
+    const fid = folderId || null;
+    if (fid) {
+      const f = (getWorld("datapoolFolders") || []).find(x => x.id === fid);
+      if (!f || f.ownerUserId !== userId) return false;
+    }
     const owns = shard.createdBy === userId && !shard.isCopy;
     if (isGM || owns) {
-      shard.folder = f;
+      shard.folderId = fid;
     } else if (shard.recipients && shard.recipients[userId]) {
-      shard.recipientFolders = shard.recipientFolders || {};
-      if (f) shard.recipientFolders[userId] = f;
-      else delete shard.recipientFolders[userId];
+      shard.recipientFolderIds = shard.recipientFolderIds || {};
+      if (fid) shard.recipientFolderIds[userId] = fid;
+      else delete shard.recipientFolderIds[userId];
     } else {
       return false;
     }
     await setWorld("agentShards", list);
+    return true;
+  },
+
+  /* ---- datapool folders (per-user, nested; Inbox is virtual, no subfolders) ---- */
+
+  async "datapoolFolder.create"({ name, parentId }, userId) {
+    const folders = getWorld("datapoolFolders") || [];
+    if (parentId) {
+      const p = folders.find(f => f.id === parentId);
+      if (!p || (!requesterIsGM(userId) && p.ownerUserId !== userId)) return false;
+    }
+    folders.push({
+      id: uid("df"),
+      name: String(name || "Folder").slice(0, 60),
+      parentId: parentId || null,
+      ownerUserId: userId,
+      ts: Date.now()
+    });
+    await setWorld("datapoolFolders", folders);
+    return true;
+  },
+
+  async "datapoolFolder.rename"({ folderId, name }, userId) {
+    const folders = getWorld("datapoolFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    f.name = String(name || f.name).slice(0, 60);
+    await setWorld("datapoolFolders", folders);
+    return true;
+  },
+
+  async "datapoolFolder.move"({ folderId, parentId }, userId) {
+    const folders = getWorld("datapoolFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    if (parentId) {
+      const p = folders.find(x => x.id === parentId);
+      if (!p || p.ownerUserId !== f.ownerUserId) return false;
+      let cur = p;
+      while (cur) { if (cur.id === f.id) return false; cur = folders.find(x => x.id === cur.parentId); }
+    }
+    f.parentId = parentId || null;
+    await setWorld("datapoolFolders", folders);
+    return true;
+  },
+
+  async "datapoolFolder.delete"({ folderId }, userId) {
+    const folders = getWorld("datapoolFolders") || [];
+    const f = folders.find(x => x.id === folderId);
+    if (!f) return false;
+    if (!requesterIsGM(userId) && f.ownerUserId !== userId) return false;
+    const doomed = new Set([folderId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const x of folders) if (x.parentId && doomed.has(x.parentId) && !doomed.has(x.id)) { doomed.add(x.id); grew = true; }
+    }
+    // Shards in a deleted folder fall back to root/Inbox.
+    const shards = getWorld("agentShards") || [];
+    let touched = false;
+    for (const s of shards) {
+      if (s.folderId && doomed.has(s.folderId)) { s.folderId = null; touched = true; }
+      if (s.recipientFolderIds) {
+        for (const [uid, fid] of Object.entries(s.recipientFolderIds)) {
+          if (doomed.has(fid)) { delete s.recipientFolderIds[uid]; touched = true; }
+        }
+      }
+    }
+    if (touched) await setWorld("agentShards", shards);
+    await setWorld("datapoolFolders", folders.filter(x => !doomed.has(x.id)));
     return true;
   },
 

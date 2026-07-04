@@ -71,44 +71,46 @@
     <button type="button" class="agentos-btn primary" data-action="shard-compose">
       <i class="fas fa-plus"></i> {{localize "AGENTOS.Data.NewShard"}}
     </button>
+    <button type="button" class="agentos-icon-btn" data-action="datapool-folder-new" data-parent-id="" title="{{localize "AGENTOS.Data.NewFolder"}}"><i class="fas fa-folder-plus"></i></button>
   </div>
 
   {{#if hasShards}}
-  {{#each groups}}
-  <div class="agentos-folder">
-    <div class="agentos-folder-header" data-action="shard-folder-toggle" data-folder="{{this.name}}">
-      <i class="fas {{#if this.collapsed}}fa-folder{{else}}fa-folder-open{{/if}}"></i>
-      <span class="agentos-folder-name">{{this.name}}</span>
-      <span class="agentos-folder-count">{{this.count}}</span>
-      <i class="fas {{#if this.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+  {{!-- Root drop zone: dropping here files a shard/folder at the top. --}}
+  <div class="agentos-datapool-root" data-datapool-drop="">
+
+    {{!-- Inbox: received messages, no subfolders (a drop target only for shards). --}}
+    {{#if inbox.count}}
+    <div class="agentos-folder agentos-inbox-folder" data-datapool-drop="__inbox">
+      <div class="agentos-folder-header" data-action="shard-folder-toggle" data-folder-id="__inbox">
+        <i class="fas fa-inbox"></i>
+        <span class="agentos-folder-name">{{localize "AGENTOS.Data.Inbox"}}</span>
+        <span class="agentos-folder-count">{{inbox.count}}</span>
+        <i class="fas {{#if inbox.collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}} agentos-folder-chevron"></i>
+      </div>
+      {{#unless inbox.collapsed}}
+      <ul class="agentos-list">
+        {{#each inbox.shards}}
+        {{> "modules/cyberpunk-red-agent-os-modified/templates/datapool-row.hbs" this}}
+        {{/each}}
+      </ul>
+      {{/unless}}
     </div>
-    {{#unless this.collapsed}}
+    {{/if}}
+
+    {{!-- The viewer's own nested folders. --}}
+    {{#each folders}}
+    {{> "modules/cyberpunk-red-agent-os-modified/templates/datapool-folder.hbs" this}}
+    {{/each}}
+
+    {{!-- Loose authored shards at root. --}}
+    {{#if rootShards.length}}
     <ul class="agentos-list">
-      {{#each this.shards}}
-      <li class="agentos-list-row" data-action="shard-open" data-shard-id="{{this.id}}">
-        <span class="agentos-shard-icon {{#if this.isAuthored}}authored{{else}}received{{/if}}">
-          <i class="fas {{#if this.isAuthored}}fa-file-pen{{else}}fa-file-arrow-down{{/if}}"></i>
-        </span>
-        <div class="agentos-list-main">
-          <div class="agentos-list-title">{{this.title}}</div>
-          <div class="agentos-list-sub">
-            {{this.authorName}}
-            {{#if @root.viewData.isGM}} · {{localize "AGENTOS.Data.By"}} {{this.creatorName}} · <i class="fas fa-users"></i> {{this.recipientCount}}{{/if}}
-          </div>
-        </div>
-        <div class="agentos-list-meta">
-          <span class="agentos-tag {{#if this.isAuthored}}authored{{else}}received{{/if}}">
-            {{#if this.isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
-          </span>
-          {{#if (agAnd @root.viewData.isGM this.isCopy)}}<span class="agentos-tag">{{localize "AGENTOS.Data.Copy"}}</span>{{/if}}
-          <span class="agentos-list-time">{{agDate this.ts}}</span>
-        </div>
-      </li>
+      {{#each rootShards}}
+      {{> "modules/cyberpunk-red-agent-os-modified/templates/datapool-row.hbs" this}}
       {{/each}}
     </ul>
-    {{/unless}}
+    {{/if}}
   </div>
-  {{/each}}
   {{else}}
   <p class="agentos-empty">{{localize "AGENTOS.Data.Empty"}}</p>
   {{/if}}
@@ -136,9 +138,6 @@
       <option value="html" {{#if (agEq compose.format "html")}}selected{{/if}}>HTML</option>
     </select>
     <textarea name="shard-body" rows="8" placeholder="{{localize "AGENTOS.Data.BodyPlaceholder"}}">{{compose.body}}</textarea>
-    {{#unless isEditing}}
-    <input type="text" name="shard-folder" value="{{compose.folder}}" placeholder="{{localize "AGENTOS.Data.FolderPlaceholder"}}">
-    {{/unless}}
     <div class="agentos-modal-actions">
       <button type="button" class="agentos-btn" data-action="shard-compose-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
       <button type="button" class="agentos-btn primary" data-action="shard-create">{{#if isEditing}}{{localize "AGENTOS.Common.Save"}}{{else}}{{localize "AGENTOS.Common.Create"}}{{/if}}</button>

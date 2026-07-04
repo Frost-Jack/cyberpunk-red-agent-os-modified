@@ -769,11 +769,23 @@ input.agentos-search, .agentos-search {
 .agentos-list-row[draggable="true"] { cursor: grab; }
 .agentos-folder[data-folder-drop].drop-over > .agentos-folder-header,
 .agentos-owner-folder[data-folder-drop].drop-over > .agentos-folder-header,
-.agentos-subfolder[data-ncpd-drop].drop-over > .agentos-folder-header {
+.agentos-subfolder[data-ncpd-drop].drop-over > .agentos-folder-header,
+.agentos-subfolder[data-datapool-drop].drop-over > .agentos-folder-header,
+.agentos-inbox-folder[data-datapool-drop].drop-over > .agentos-folder-header {
   outline: 2px dashed var(--neon-accent);
   outline-offset: -2px;
   background: color-mix(in srgb, var(--neon-accent) 14%, transparent);
 }
+/* datapool root drop zone + Inbox accent */
+.agentos-datapool-root { min-height: 40px; }
+.agentos-datapool-root.drop-over {
+  outline: 2px dashed var(--neon-accent);
+  outline-offset: -4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--neon-accent) 6%, transparent);
+}
+.agentos-inbox-folder > .agentos-folder-header i:first-child { color: var(--neon-accent); }
+.agentos-shard-list .agentos-list-row[draggable="true"] { cursor: grab; }
 /* NCPD board root drop zone highlight */
 .agentos-ncpd-root { min-height: 40px; }
 .agentos-ncpd-root.drop-over {
