@@ -4,18 +4,19 @@ import { MODULE_ID, APPS, STORE_CATEGORIES } from "../constants.js";
 import * as Data from "../data.js";
 import { invalidateCatalog } from "./store.js";
 import { AgentAudio } from "../audio.js";
+import { rarityChoices } from "../store-rules.js";
 
 function storeCfg() {
   return foundry.utils.mergeObject({
-    maxPrice: 100, sourceFilter: "all", lockedCategories: [],
-    blacklist: [], extraPacks: [], markup: 0, playerMaxPrice: {}, playerMarkup: {}
+    maxPrice: 0, maxRarity: "premium", sourceFilter: "all", lockedCategories: [],
+    blacklist: [], extraPacks: [], markup: 0, playerMaxPrice: {}, playerMarkup: {}, playerMaxRarity: {}
   }, Data.getWorld("storeConfig") || {});
 }
 
 async function saveStoreCfg(patch) {
   const cfg = { ...storeCfg(), ...patch };
   await game.settings.set(MODULE_ID, "storeConfig", cfg);
-  invalidateCatalog();
+  if (patch.extraPacks) invalidateCatalog();
 }
 
 export async function getData(app) {
@@ -40,10 +41,12 @@ export async function getData(app) {
   return {
     mapImagePath: game.settings.get(MODULE_ID, "mapImagePath"),
     maxPrice: cfg.maxPrice,
+    rarities: rarityChoices(cfg.maxRarity),
     playerPrices: game.users.filter(u => !u.isGM).map(u => ({
       id: u.id,
       name: u.name,
       value: (cfg.playerMaxPrice || {})[u.id] ?? "",
+      rarities: rarityChoices(cfg.playerMaxRarity[u.id] ?? "inherit", true),
       markup: (cfg.playerMarkup || {})[u.id] ?? ""
     })),
     markup: cfg.markup,
@@ -92,6 +95,19 @@ export function activateListeners(app, html) {
 
   html.on("change", "[name='admin-max-price']", async (ev) => {
     await saveStoreCfg({ maxPrice: Math.max(0, Number(ev.currentTarget.value || 0)) });
+  });
+
+  html.on("change", "[name='admin-max-rarity']", async (ev) => {
+    await saveStoreCfg({ maxRarity: ev.currentTarget.value });
+  });
+
+  html.on("change", "[data-action='admin-player-rarity']", async (ev) => {
+    const cfg = storeCfg();
+    const map = { ...cfg.playerMaxRarity };
+    const userId = ev.currentTarget.dataset.userId;
+    if (ev.currentTarget.value === "inherit") delete map[userId];
+    else map[userId] = ev.currentTarget.value;
+    await saveStoreCfg({ playerMaxRarity: map });
   });
 
   /* Per-player price cap. Empty input → fall back to the global cap. */

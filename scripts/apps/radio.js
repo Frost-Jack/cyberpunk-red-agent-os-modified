@@ -42,6 +42,7 @@ const engine = {
   sse: null,            // EventSource on /meta
   meta: {},             // slug -> { artist, title, artwork }
   onUpdate: null,       // callback to re-render the open app, if any
+  wasFollowing: false,
   optOutTs: 0           // player: broadcast ts the user locally stopped (soft-lock)
 };
 
@@ -55,30 +56,41 @@ function broadcast() {
 
 /** True when a GM broadcast is dictating this (non-GM) client's station. */
 function following() {
-  return !game.user.isGM && broadcast().active;
+  return !game.user.isGM && broadcast().active && !ignoreBroadcast();
+}
+
+function ignoreBroadcast() {
+  return game.user.getFlag(MODULE_ID, "radioIgnoreBroadcast") === true;
 }
 
 /**
  * Reconcile local playback with the GM broadcast. Called on every
  * `radioBroadcast` change (via main.js) so a player's audio follows the GM
- * even when the Radio app isn't open. Soft-lock: a player may stop locally,
- * but the GM's *next* command (new ts) re-engages them.
+ * even when the Radio app isn't open. A personal opt-out lasts until the
+ * player enables sync again; stopping one command remains a soft opt-out.
  */
 export function syncBroadcast() {
   if (game.user.isGM) { engine.onUpdate?.(); return; }
   const b = broadcast();
-  if (!b.active) {
-    // takeover released — stop the forced stream (leave the player free again)
-    engine.optOutTs = 0;
-    if (engine.slug) stop(true);
+  if (ignoreBroadcast()) {
+    engine.wasFollowing = false;
     engine.onUpdate?.();
     return;
   }
-  // A newer command overrides any local opt-out.
+  if (!b.active) {
+    // Releasing a broadcast must not stop independently selected local music.
+    engine.optOutTs = 0;
+    if (engine.wasFollowing && engine.slug) stop(true);
+    engine.wasFollowing = false;
+    engine.onUpdate?.();
+    return;
+  }
+  engine.wasFollowing = true;
+  // A newer command only overrides the one-command pause, not the preference.
   if (b.ts > engine.optOutTs) engine.optOutTs = 0;
   const optedOut = engine.optOutTs === b.ts && b.ts !== 0;
   if (b.playing && b.slug && !optedOut) {
-    if (engine.slug !== b.slug || !engine.playing) playStation(b.slug, true);
+    if (engine.slug !== b.slug || (!engine.playing && !engine.loading)) playStation(b.slug, true);
   } else if (!b.playing && engine.slug) {
     stop(true);
   }
@@ -223,11 +235,13 @@ export async function getData(app) {
   const isGM = game.user.isGM;
   const b = broadcast();
   const isFollowing = following();
-  // players can't switch stations while the GM broadcast is on (soft-lock)
+  // Station controls lock only while this player chooses to follow the GM.
   const locked = isFollowing;
   return {
     isGM,
     takeover: isGM && b.active,          // GM: takeover currently engaged
+    broadcastActive: !isGM && b.active,
+    followGM: !ignoreBroadcast(),
     following: isFollowing,              // player: currently under GM broadcast
     locked,
     stations: STATIONS.map(s => ({
@@ -261,7 +275,7 @@ export function activateListeners(app, html) {
 
   html.on("click", "[data-action='radio-play']", async (ev) => {
     const slug = ev.currentTarget.dataset.slug;
-    // Players may not switch stations while a GM broadcast is running.
+    // Players who opted out retain independent station controls.
     if (following()) { AgentAudio.play("error"); ui.notifications.info(loc("AGENTOS.Radio.Locked")); return; }
     AgentAudio.play("tap");
     if (engine.slug === slug && engine.playing) stop();
@@ -284,6 +298,14 @@ export function activateListeners(app, html) {
     AgentAudio.play("tap");
     await pushBroadcast(!broadcast().active);
     app.render(false);
+  });
+
+  html.on("click", "[data-action='radio-follow-toggle']", async () => {
+    if (game.user.isGM) return;
+    engine.optOutTs = 0;
+    AgentAudio.play("tap");
+    // The updateUser hook reconciles playback, including this user's other clients.
+    await game.user.setFlag(MODULE_ID, "radioIgnoreBroadcast", !ignoreBroadcast());
   });
 
   html.on("click", "[data-action='radio-toggle-keep']", async () => {

@@ -38,6 +38,8 @@ export async function getData(app) {
     lifestyle,
     trauma,
     housingId: prof.housingId || "",
+    housingRent: prof.housingRent ?? "",
+    customRent: prof.housingRent !== undefined && prof.housingRent !== null && prof.housingRent !== "",
     lifestyleId: prof.lifestyleId || "",
     traumaId: prof.traumaId || "",
     housingName: housing.find(h => h.id === prof.housingId)?.name || "—",
@@ -76,13 +78,15 @@ export function activateListeners(app, html) {
       realName: String(html.find("[name='id-real-name']").val() || "").trim(),
       housingId: String(html.find("[name='id-housing']").val() || ""),
       lifestyleId: String(html.find("[name='id-lifestyle']").val() || ""),
-      traumaId: String(html.find("[name='id-trauma']").val() || "")
+      traumaId: String(html.find("[name='id-trauma']").val() || ""),
+      housingRent: String(html.find("[name='id-rent']").val() ?? "").trim()
     };
     if (isGM) {
       patch.subtitle = String(html.find("[name='id-subtitle']").val() || "");
       patch.sinStatus = String(html.find("[name='id-sin']").val() || "");
       patch.clearance = String(html.find("[name='id-clearance']").val() || "");
     }
+    if (patch.housingRent !== "" && (!Number.isFinite(Number(patch.housingRent)) || Number(patch.housingRent) < 0)) return AgentAudio.play("error");
     await app.mutate("id.update", { targetUserId, patch });
     AgentAudio.play("tap");
   });

@@ -3,67 +3,12 @@
 import { loc } from "../constants.js";
 import * as Data from "../data.js";
 import { AgentAudio } from "../audio.js";
+import { MAX_SHARD_LENGTH, mountShardFrame, renderShardBody } from "../shard-html.js";
+import { ShardReader } from "../shard-reader.js";
 
 /* ---- body rendering (scoped, style-bleed safe) ---- */
 
-function escapeHtml(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-function sanitizeHtml(html) {
-  let out = String(html);
-  out = out.replace(/<\s*(script|style|link|iframe|object|embed|meta)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
-  out = out.replace(/<\s*(script|style|link|iframe|object|embed|meta)[^>]*\/?\s*>/gi, "");
-  out = out.replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
-  out = out.replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>\s]*\2/gi, "");
-  return out;
-}
-
-function renderMarkdown(md) {
-  const lines = String(md).split(/\r?\n/);
-  const out = [];
-  let inList = false, inCode = false;
-  const inline = (s) => escapeHtml(s)
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  for (const raw of lines) {
-    if (/^```/.test(raw)) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push(inCode ? "</pre>" : "<pre>");
-      inCode = !inCode;
-      continue;
-    }
-    if (inCode) { out.push(escapeHtml(raw)); continue; }
-    const h = raw.match(/^(#{1,4})\s+(.*)$/);
-    if (h) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      const lvl = h[1].length;
-      out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`);
-      continue;
-    }
-    if (/^\s*[-*]\s+/.test(raw)) {
-      if (!inList) { out.push("<ul>"); inList = true; }
-      out.push(`<li>${inline(raw.replace(/^\s*[-*]\s+/, ""))}</li>`);
-      continue;
-    }
-    if (inList) { out.push("</ul>"); inList = false; }
-    if (/^\s*---+\s*$/.test(raw)) { out.push("<hr>"); continue; }
-    if (raw.trim() === "") { out.push("<br>"); continue; }
-    out.push(`<p>${inline(raw)}</p>`);
-  }
-  if (inList) out.push("</ul>");
-  if (inCode) out.push("</pre>");
-  return out.join("\n");
-}
-
-export function renderShardBody(shard) {
-  if (shard.format === "html") return sanitizeHtml(shard.body);
-  if (shard.format === "markdown") return renderMarkdown(shard.body);
-  return escapeHtml(shard.body).replace(/\r?\n/g, "<br>");
-}
+export { renderShardBody } from "../shard-html.js";
 
 /* ---- recipients ---- */
 
@@ -127,6 +72,7 @@ export async function getData(app) {
     return {
       viewing: true,
       shard,
+      isHtml: shard.format === "html",
       bodyHtml: renderShardBody(shard),
       isAuthored: shard.createdBy === game.user.id,
       canDelete: isGM || shard.createdBy === game.user.id,
@@ -180,6 +126,7 @@ export async function getData(app) {
   return {
     viewing: false,
     composing: !!st.composing,
+    composePreview: !!st.composePreview,
     isEditing: !!st.editShardId,
     compose: st.compose || { title: "", body: "", format: "plain", authorName: "" },
     isGM,
@@ -193,6 +140,16 @@ export async function getData(app) {
 
 export function activateListeners(app, html) {
   const st = app.state;
+  const frame = html.find(".agentos-shard-html")[0];
+  if (frame && st.shardId) {
+    const shard = Data.shardsForUser(game.user.id, game.user.isGM).find(s => s.id === st.shardId);
+    if (shard?.format === "html") mountShardFrame(frame, shard.body);
+  }
+
+  html.on("click", "[data-action='shard-popout']", () => {
+    const shard = Data.shardsForUser(game.user.id, game.user.isGM).find(s => s.id === st.shardId);
+    if (shard) new ShardReader(shard).render(true);
+  });
 
   html.on("click", "[data-action='shard-open']", (ev) => {
     app.state = { shardId: ev.currentTarget.dataset.shardId };
@@ -309,8 +266,60 @@ export function activateListeners(app, html) {
     authorName: String(html.find("[name='shard-author']").val() ?? st.compose?.authorName ?? "")
   });
 
+  const preview = html.find(".agentos-shard-preview")[0];
+  const source = html.find("[name='shard-body']")[0];
+  let renderedBody = null, renderedFormat = null;
+  const updatePreview = () => {
+    if (!preview || !st.composing || !st.composePreview) return;
+    const draft = readCompose();
+    if (renderedBody === draft.body && renderedFormat === draft.format) return;
+    renderedBody = draft.body;
+    renderedFormat = draft.format;
+    preview.replaceChildren();
+    if (draft.body.length > MAX_SHARD_LENGTH) {
+      preview.textContent = loc("AGENTOS.Data.BodyTooLarge");
+      return;
+    }
+    if (draft.format === "html") {
+      const frame = document.createElement("iframe");
+      frame.className = "agentos-shard-html";
+      frame.title = loc("AGENTOS.Data.Preview");
+      mountShardFrame(frame, draft.body);
+      preview.append(frame);
+    } else {
+      const body = document.createElement("div");
+      body.className = "agentos-shard-body";
+      body.innerHTML = renderShardBody(draft);
+      preview.append(body);
+    }
+  };
+
+  html.on("click", "[data-action='shard-compose-mode']", (ev) => {
+    st.compose = readCompose();
+    const show = ev.currentTarget.dataset.mode === "preview";
+    if (show === !!st.composePreview) return;
+    if (show && source) st.composeSelection = [source.selectionStart, source.selectionEnd];
+    st.composePreview = show;
+    source.hidden = show;
+    preview.hidden = !show;
+    html.find("[data-action='shard-compose-mode']").each((i, button) => {
+      const active = (button.dataset.mode === "preview") === show;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    if (show) updatePreview();
+    else {
+      preview.replaceChildren(); // stop scripts/media when returning to the editor
+      renderedBody = renderedFormat = null;
+      source.focus({ preventScroll: true });
+      if (st.composeSelection) source.setSelectionRange(...st.composeSelection);
+    }
+  });
+  updatePreview();
+
   html.on("click", "[data-action='shard-compose']", () => {
     st.composing = true;
+    st.composePreview = false;
     st.editShardId = null;
     st.compose = { title: "", body: "", format: "plain", authorName: "" };
     app.render(false);
@@ -330,6 +339,7 @@ export function activateListeners(app, html) {
 
   html.on("click", "[data-action='shard-compose-cancel']", () => {
     st.composing = false;
+    st.composePreview = false;
     st.editShardId = null;
     st.compose = null;
     app.render(false);
@@ -338,6 +348,7 @@ export function activateListeners(app, html) {
   /* Keep the compose draft synced so background re-renders never wipe it. */
   html.on("input change", "[name='shard-title'], [name='shard-body'], [name='shard-format'], [name='shard-author']", () => {
     st.compose = readCompose();
+    updatePreview();
   });
 
   html.on("change", "[name='shard-author-garden']", (ev) => {
@@ -348,21 +359,18 @@ export function activateListeners(app, html) {
     }
   });
 
-  html.on("click", "[data-action='shard-create']", (ev) => {
+  html.on("click", "[data-action='shard-create']", async (ev) => {
     ev.preventDefault();
     const { title, body, format, authorName } = readCompose();
     if (!title.trim() || !body) return AgentAudio.play("error");
+    if (body.length > MAX_SHARD_LENGTH) return ui.notifications.warn(loc("AGENTOS.Data.BodyTooLarge"));
     const editShardId = st.editShardId;
-    st.composing = false;
-    st.editShardId = null;
-    st.compose = null;
+    st.compose = { title, body, format, authorName };
     AgentAudio.play("tap");
-    app.render(false);                      // optimistic: close the modal now
-    if (editShardId) {
-      app.mutate("shard.update", { shardId: editShardId, patch: { title: title.trim(), body, format, authorName: authorName.trim() } });
-    } else {
-      app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim() } });
-    }
+    const result = editShardId
+      ? await app.mutate("shard.update", { shardId: editShardId, patch: { title: title.trim(), body, format, authorName: authorName.trim() } })
+      : await app.mutate("shard.create", { shard: { title: title.trim(), body, format, authorName: authorName.trim() } });
+    if (result) { st.composing = false; st.composePreview = false; st.editShardId = null; st.compose = null; if (app.state === st) app.render(false); }
   });
 
   html.on("click", "[data-action='shard-delete']", async (ev) => {
@@ -397,9 +405,8 @@ export function activateListeners(app, html) {
     if (!ids.length) return AgentAudio.play("error");
     const userIds = ids.filter(i => i.startsWith("user:")).map(i => i.slice(5));
     const gardenIds = ids.filter(i => i.startsWith("garden:")).map(i => i.slice(7));
-    st.sending = false;
-    st.sendTo = [];
-    await app.mutate("shard.send", { shardId: st.shardId, userIds, gardenIds });
+    const result = await app.mutate("shard.send", { shardId: st.shardId, userIds, gardenIds });
+    if (result) { st.sending = false; st.sendTo = []; if (app.state === st) app.render(false); }
     AgentAudio.play("tap");
   });
 }

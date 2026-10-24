@@ -23,6 +23,7 @@ export async function getData(app) {
     })),
     soundsEnabled: game.settings.get(MODULE_ID, "soundsEnabled") !== false,
     indicatorEnabled: game.settings.get(MODULE_ID, "messageIndicatorEnabled") !== false,
+    arcadeScoresHidden: !!game.user.getFlag(MODULE_ID, "arcadeScoresHidden"),
     radioVolume: Number(game.settings.get(MODULE_ID, "radioVolume") ?? 60)
   };
 }
@@ -55,6 +56,10 @@ export function activateListeners(app, html) {
 
   html.on("change", "[name='set-indicator']", async (ev) => {
     await game.settings.set(MODULE_ID, "messageIndicatorEnabled", ev.currentTarget.checked);
+  });
+
+  html.on("change", "[name='set-hide-scores']", async (ev) => {
+    await game.user.setFlag(MODULE_ID, "arcadeScoresHidden", ev.currentTarget.checked);
   });
 
   html.on("input", "[name='set-radio-volume']", async (ev) => {

@@ -12,6 +12,9 @@
     {{/if}}
   </div>
 
+  <input type="search" name="chat-search" class="agentos-search" value="{{chatQuery}}" placeholder="{{localize "AGENTOS.Chat.SearchChats"}}" aria-label="{{localize "AGENTOS.Chat.SearchChats"}}">
+  {{#if noMatches}}<p class="agentos-empty">{{localize "AGENTOS.Chat.NoMatches"}}</p>{{/if}}
+
   {{#if noActor}}
   <p class="agentos-hint">{{localize "AGENTOS.Chat.NoActorHint"}}</p>
   {{/if}}

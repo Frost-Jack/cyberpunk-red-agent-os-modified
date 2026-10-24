@@ -1,0 +1,17 @@
+<div class="agentos-backup">
+  <p class="agentos-hint">{{localize "AGENTOS.Backup.MetadataOnly"}}</p>
+  <div class="agentos-check-grid">{{#each sections}}<label class="agentos-check"><input type="checkbox" name="backup-section" value="{{id}}" {{#if selected}}checked{{/if}} {{#unless available}}disabled{{/unless}}> {{label}}</label>{{/each}}</div>
+  <button type="button" class="agentos-btn" data-action="backup-export"><i class="fas fa-download"></i> {{localize "AGENTOS.Backup.Export"}}</button>
+  <input type="file" name="backup-file" accept=".json,application/json" aria-label="{{localize "AGENTOS.Backup.Import"}}">
+  <select class="agentos-select" name="backup-mode"><option value="merge" {{#if (agEq mode "merge")}}selected{{/if}}>{{localize "AGENTOS.Backup.Merge"}}</option><option value="replace" {{#if (agEq mode "replace")}}selected{{/if}}>{{localize "AGENTOS.Backup.Replace"}}</option></select>
+  {{#if crossWorld}}<p class="agentos-hint">{{localize "AGENTOS.Backup.Mapping"}}</p>{{#each users}}<label>{{name}}<select class="agentos-select" data-agentos-controlled data-action="backup-map-user" data-source-id="{{id}}"><option value="">{{localize "AGENTOS.Backup.Skip"}}</option>{{#each targets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>{{/each}}{{/if}}
+  <label>{{localize "AGENTOS.Backup.UserMap"}}<textarea name="backup-map" data-agentos-controlled rows="2">{{userMap}}</textarea></label>
+  <button type="button" class="agentos-btn" data-action="backup-preview">{{localize "AGENTOS.Backup.Preview"}}</button>
+  {{#if error}}<p role="alert">{{error}}</p>{{/if}}
+  {{#if plan}}
+  <p>{{localize "AGENTOS.Backup.Added"}}: {{plan.added}} · {{localize "AGENTOS.Backup.Changed"}}: {{plan.changed}} · {{localize "AGENTOS.Backup.Skipped"}}: {{plan.skipped}} · {{localize "AGENTOS.Backup.Removed"}}: {{plan.removed}}</p>
+  {{#each plan.warnings}}<p class="agentos-hint">{{this}}</p>{{/each}}
+  <label class="agentos-check"><input type="checkbox" name="backup-current" checked> {{localize "AGENTOS.Backup.SaveCurrent"}}</label>
+  <button type="button" class="agentos-btn primary" data-action="backup-restore">{{localize "AGENTOS.Backup.Restore"}}</button>
+  {{/if}}
+</div>

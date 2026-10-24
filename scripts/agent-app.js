@@ -19,6 +19,7 @@ import * as MapApp from "./apps/map.js";
 import * as BioApp from "./apps/bio.js";
 import * as ChromeApp from "./apps/chrome.js";
 import * as RadioApp from "./apps/radio.js";
+import * as TokTikApp from "./apps/toktik.js";
 import * as StoreApp from "./apps/store.js";
 import * as IdApp from "./apps/id.js";
 import * as NcpdApp from "./apps/ncpd.js";
@@ -28,12 +29,14 @@ import * as ToolsApp from "./apps/tools.js";
 import * as ArcadeApp from "./apps/arcade.js";
 import * as AdminApp from "./apps/admin.js";
 import * as SettingsApp from "./apps/settings.js";
+import * as BackupApp from "./apps/backup.js";
+import * as NotificationsApp from "./apps/notifications.js";
 
 const IMPL = {
   chat: ChatApp, datapool: DatapoolApp, wallet: WalletApp,
-  contacts: ContactsApp, map: MapApp, bio: BioApp, chrome: ChromeApp, radio: RadioApp, store: StoreApp,
+  contacts: ContactsApp, map: MapApp, bio: BioApp, chrome: ChromeApp, radio: RadioApp, toktik: TokTikApp, store: StoreApp,
   id: IdApp, ncpd: NcpdApp, garden: GardenApp, library: LibraryApp,
-  tools: ToolsApp, arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp
+  tools: ToolsApp, arcade: ArcadeApp, admin: AdminApp, settings: SettingsApp, backup: BackupApp, notifications: NotificationsApp
 };
 
 export class AgentOSApplication extends Application {
@@ -42,6 +45,9 @@ export class AgentOSApplication extends Application {
     super(options);
     this.currentApp = null;      // null => home screen
     this.state = {};             // transient per-app state
+    this._appStates = new Map();
+    this._viewMemory = new Map();
+    this.sideApp = null;
   }
 
   static get defaultOptions() {
@@ -78,6 +84,14 @@ export class AgentOSApplication extends Application {
   }
 
   /* ---------------- device prefs ---------------- */
+
+  setPosition(position = {}) {
+    const dims = DEVICE_MODES[this.deviceMode];
+    return super.setPosition({ ...position,
+      width: Math.round(dims.w * this.zoom) + 60,
+      height: Math.round(dims.h * this.zoom) + 62
+    });
+  }
 
   get deviceMode() {
     const m = game.user.getFlag(MODULE_ID, "agentMode");
@@ -118,19 +132,24 @@ export class AgentOSApplication extends Application {
   }
 
   openApp(appId) {
+    if ((appId === "admin" || appId === "backup") && !game.user.isGM) return;
     if (this.isDisabled && appId !== "settings") {
       AgentAudio.play("error");
       return;
     }
     const prev = this.currentApp;
+    this._captureView();
+    if (prev) this._appStates.set(prev, this.state);
     if (prev && IMPL[prev]?.onClose) IMPL[prev].onClose(this);
     this.currentApp = appId;
-    this.state = {};
+    this.state = this._appStates.get(appId) || {};
     AgentAudio.play("tap");
     this.render(false);
   }
 
   goHome() {
+    this._captureView();
+    if (this.currentApp) this._appStates.set(this.currentApp, this.state);
     if (this.currentApp && IMPL[this.currentApp]?.onClose) IMPL[this.currentApp].onClose(this);
     this.currentApp = null;
     this.state = {};
@@ -139,11 +158,60 @@ export class AgentOSApplication extends Application {
   }
 
   openChatThread(chatId) {
+    this._captureView();
+    if (this.currentApp) this._appStates.set(this.currentApp, this.state);
     if (this.currentApp && this.currentApp !== "chat" && IMPL[this.currentApp]?.onClose) {
       IMPL[this.currentApp].onClose(this);
     }
     this.currentApp = "chat";
-    this.state = { chatId };
+    const saved = this._appStates.get("chat");
+    this.state = saved?.chatId === chatId ? saved : { chatId };
+  }
+
+  openSideApp(id = "datapool", state) {
+    if (this.isDisabled || !["datapool", "contacts", "map", "store"].includes(id) || !this.visibleApps().some(a => a.id === id)) return;
+    if (this.sideApp) { this.sideApp._captureView(); IMPL[this.sideApp.currentApp]?.onClose?.(this.sideApp); }
+    else this.state._composeBeforeSide = this.state.composeFocus;
+    const side = Object.create(this);
+    Object.defineProperty(side, "element", { get: () => this.element?.find(".agentos-side-pane") });
+    side.currentApp = id; side.state = state || this._appStates.get(`side:${id}`) || {};
+    side._displayContextKey = `side:${id}`;
+    this._appStates.set(`side:${id}`, side.state);
+    side.render = () => { if (this.currentApp === "chat" && this.sideApp === side) this.render(false); };
+    side.openApp = (next) => this.openSideApp(next);
+    side.openSideApp = (next, data) => this.openSideApp(next, data);
+    side.shareToChat = attachment => this.shareToChat(attachment);
+    this.sideApp = side;
+    this.render(false);
+  }
+
+  async shareToChat(attachment) {
+    if (this.isDisabled) return;
+    let chatId = this.currentApp === "chat" ? this.state.chatId : null;
+    if (!chatId) {
+      const chats = game.user.isGM ? Data.allChats() : Data.chatsForUser(game.user.id);
+      if (!chats.length) return ui.notifications.warn(loc("AGENTOS.Chat.Empty"));
+      chatId = await new Promise(resolve => new Dialog({ title: loc("AGENTOS.Navigation.Share"),
+        content: `<select name="card-chat">${chats.map(c => `<option value="${Handlebars.escapeExpression(c.id)}">${Handlebars.escapeExpression(c.name || c.participants.map(p => Data.participantIdentity(c, p.key).name).join(", "))}</option>`).join("")}</select>`,
+        buttons: { send: { label: loc("AGENTOS.Common.Ok"), callback: h => resolve(h.find("select").val()) } }, close: () => resolve(null)
+      }).render(true));
+    }
+    if (!chatId) return;
+    this.openChatThread(chatId);
+    this.state.attachment = attachment;
+    this.state.draftChat = chatId;
+    this.state.composeFocus = true;
+    if (this.deviceMode === "phone") this.sideApp = null;
+    this.render(false);
+  }
+
+  _captureView() {
+    if (!this._displayContextKey || !this.element?.length) return;
+    const body = this.element.find(".agentos-app-body").first()[0];
+    if (!body) return;
+    const fields = [...body.querySelectorAll("input[name],textarea[name],select[name]")].filter(e => e.type !== "file" && e.name !== "chat-input").map(e => ({ name: e.name, value: e.value, checked: e.checked, type: e.type }));
+    const active = document.activeElement;
+    this._viewMemory.set(this._displayContextKey, { fields, scroll: body.scrollTop, focus: body.contains(active) ? active.name : null, selection: active?.selectionStart == null ? null : [active.selectionStart, active.selectionEnd] });
   }
 
   async mutate(op, payload) {
@@ -211,9 +279,27 @@ export class AgentOSApplication extends Application {
 
   /* ---------------- rendering ---------------- */
 
+  async _render(force = false, options = {}) {
+    const states = Application.RENDER_STATES;
+    if (this._state === states.RENDERING) {
+      const queued = this._agentRenderQueue || { force: false, options: {} };
+      this._agentRenderQueue = { force: queued.force || force, options: { ...queued.options, ...options } };
+      return;
+    }
+    try { await super._render(force, options); }
+    finally {
+      const queued = this._agentRenderQueue;
+      this._agentRenderQueue = null;
+      if (queued && this._state === states.RENDERED) this.render(queued.force, queued.options);
+    }
+  }
+
   async getData() {
+    this._captureView();
+    this.sideApp?._captureView();
     // Jammed device: kick the user out of any app except settings.
     if (this.isDisabled && this.currentApp && this.currentApp !== "settings") {
+      IMPL[this.currentApp]?.onClose?.(this);
       this.currentApp = null;
       this.state = {};
     }
@@ -227,6 +313,10 @@ export class AgentOSApplication extends Application {
 
     let viewData = {};
     if (impl?.getData) viewData = (await impl.getData(this)) || {};
+    this._displayContextKey = `${view}:${this.state.actorUuid || this.state.targetUserId || this.state.shardId || this.state.chatId || ""}`;
+    const side = view === "chat" && this.sideApp && !this.isDisabled && this.visibleApps().some(a => a.id === this.sideApp.currentApp) ? this.sideApp : null;
+    const sideData = side ? await IMPL[side.currentApp].getData(side) : null;
+    if (side) side._displayContextKey = `side:${side.currentApp}:${side.state.actorUuid || side.state.shardId || ""}`;
 
     const appDef = this.currentApp ? APPS.find(a => a.id === this.currentApp) : null;
     const viewTitle = this.currentApp
@@ -236,7 +326,7 @@ export class AgentOSApplication extends Application {
     return {
       moduleId: MODULE_ID,
       view,
-      viewTitle,
+      viewTitle: this.currentApp === "backup" ? loc("AGENTOS.Backup.Title") : this.currentApp === "notifications" ? loc("AGENTOS.Notifications.Title") : viewTitle,
       mode: this.deviceMode,
       theme: this.theme,
       zoom: this.zoom,
@@ -244,6 +334,7 @@ export class AgentOSApplication extends Application {
       isGM: game.user.isGM,
       identity,
       totalUnreads,
+      notificationCount: NotificationsApp.history().filter(n => !n.read).length,
       apps: this.visibleApps().map(a => ({
         id: a.id,
         icon: a.icon,
@@ -251,7 +342,9 @@ export class AgentOSApplication extends Application {
         label: loc(`AGENTOS.AppShort.${a.id}`),
         badge: a.id === "chat" && totalUnreads > 0 ? totalUnreads : 0
       })),
-      viewData
+      viewData,
+      sideView: side?.currentApp, sideData,
+      sideApps: this.visibleApps().filter(a => ["datapool", "contacts", "map", "store"].includes(a.id)).map(a => ({ id: a.id, label: loc(a.labelKey), selected: a.id === side?.currentApp }))
     };
   }
 
@@ -276,6 +369,19 @@ export class AgentOSApplication extends Application {
       ev.preventDefault();
       this.openApp("settings");
     });
+    html.on("click", "[data-action='open-notifications']", () => this.openApp("notifications"));
+    html.on("click", "[data-action='chat-side-toggle']", () => {
+      if (this.sideApp) { this.sideApp._captureView(); IMPL[this.sideApp.currentApp]?.onClose?.(this.sideApp); this.sideApp = null; this.state.composeFocus = this.state._composeBeforeSide; this.render(false); }
+      else this.openSideApp();
+    });
+    html.on("change", "[name='side-app']", ev => this.openSideApp(ev.currentTarget.value));
+    const cardData = el => ({ kind: el.dataset.objectKind, id: el.dataset.objectId, uuid: el.dataset.uuid, x: Number(el.dataset.x), y: Number(el.dataset.y) });
+    html.find("[data-action='share-object']").on("click", ev => { ev.stopPropagation(); this.shareToChat(cardData(ev.currentTarget)); });
+    html[0]?.addEventListener("dragstart", ev => {
+      const el = ev.target.closest("[data-card-drag]");
+      if (!el) return;
+      ev.stopPropagation(); ev.dataTransfer.setData("text/plain", JSON.stringify(cardData(el))); ev.dataTransfer.effectAllowed = "copy";
+    }, true);
 
     /* The device top bar is the drag handle (the Foundry header is hidden).
      * Draggable must receive the outer .app element, not the inner content. */
@@ -283,11 +389,28 @@ export class AgentOSApplication extends Application {
     if (handle && this.element?.length) new Draggable(this, this.element, handle, false);
 
     if (this.currentApp && IMPL[this.currentApp]?.activateListeners) {
-      IMPL[this.currentApp].activateListeners(this, html);
+      IMPL[this.currentApp].activateListeners(this, html.find(".agentos-app-frame").first());
+    }
+    if (this.currentApp === "chat" && this.sideApp) IMPL[this.sideApp.currentApp].activateListeners(this.sideApp, html.find(".agentos-side-pane"));
+    this._restoreView(html);
+    if (this.currentApp === "chat" && this.sideApp) this.sideApp._restoreView(html.find(".agentos-side-pane"));
+  }
+
+  _restoreView(html) {
+    const memory = this._viewMemory.get(this._displayContextKey);
+    const body = html.find(".agentos-app-body").first()[0];
+    if (memory && body) {
+      body.scrollTop = memory.scroll;
+      for (const e of body.querySelectorAll("input[name],textarea[name],select[name]")) {
+        const field = memory.fields.find(f => f.name === e.name && (e.type !== "checkbox" || f.value === e.value));
+        if (field && !e.disabled && !e.hasAttribute("data-agentos-controlled")) { if (["checkbox", "radio"].includes(e.type)) e.checked = field.checked; else e.value = field.value; }
+        if (e.name === memory.focus) { e.focus({ preventScroll: true }); if (memory.selection && e.setSelectionRange && ["text", "search", "textarea"].includes(e.type)) e.setSelectionRange(...memory.selection); }
+      }
     }
   }
 
   async close(options) {
+    if (this.sideApp) IMPL[this.sideApp.currentApp]?.onClose?.(this.sideApp);
     if (this.currentApp && IMPL[this.currentApp]?.onClose) IMPL[this.currentApp].onClose(this);
     // Radio may keep playing after close (per its in-app toggle); let it decide.
     RadioApp.onDeviceClose?.();

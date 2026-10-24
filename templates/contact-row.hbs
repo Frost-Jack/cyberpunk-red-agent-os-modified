@@ -1,6 +1,8 @@
 {{!-- One contact row. Draggable so it can be filed into a folder. --}}
 <li class="agentos-list-row static {{#if this.focused}}focused{{/if}}"
     draggable="true" data-contact-drag="{{this.id}}">
+  <button type="button" class="agentos-icon-btn" data-action="share-object" data-object-kind="contact" data-object-id="{{id}}" title="{{localize "AGENTOS.Navigation.Share"}}"><i class="fas fa-share"></i></button>
+  {{#if hasPin}}<button type="button" class="agentos-icon-btn" draggable="true" data-card-drag="true" data-action="share-object" data-object-kind="coordinates" data-x="{{mapX}}" data-y="{{mapY}}" title="{{localize "AGENTOS.Navigation.Coordinates"}}"><i class="fas fa-location-dot"></i></button>{{/if}}
   <span class="agentos-contact-glyph" style="color: {{this.color}}; border-color: {{this.color}};"><i class="fas fa-user"></i></span>
   <div class="agentos-list-main">
     <div class="agentos-list-title">

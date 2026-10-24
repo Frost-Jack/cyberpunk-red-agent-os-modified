@@ -91,6 +91,8 @@
       </select>
     </div>
 
+    <div class="agentos-field-row"><label>{{localize "AGENTOS.Expenses.CustomRent"}}</label><input type="number" name="id-rent" min="0" step="any" value="{{housingRent}}" placeholder="{{localize "AGENTOS.Expenses.Standard"}}"></div>
+    <p class="agentos-hint">{{#if customRent}}{{localize "AGENTOS.Expenses.Custom"}}{{else}}{{localize "AGENTOS.Expenses.Standard"}}{{/if}}</p>
     {{#if isGM}}
     <div class="agentos-field-row">
       <label>{{localize "AGENTOS.Id.Subtitle"}}</label>

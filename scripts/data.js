@@ -3,18 +3,29 @@
  * All shared state lives in world-scoped settings (type Object). Only a GM
  * client may write them, so player mutations are relayed over the module
  * socket to the primary GM, who validates and applies them. Every write
- * triggers the core `updateSetting` broadcast, which re-renders open Agents
+ * triggers the core `updateSetting` broadcast, which refreshes affected views
  * on all clients — no manual refresh fan-out is needed for data changes.
  */
 
 import { MODULE_ID, SOCKET_NAME, PACK_CATEGORIES, uid } from "./constants.js";
+import { availableToPlayer, deliverStoreItems } from "./store-rules.js";
+import { MAX_SHARD_LENGTH } from "./shard-html.js";
+import { deltaWealth, deltaLedger, transactions, monthlyExpenses } from "./wealth.js";
+import { restoreBackup } from "./backup.js";
+
+const _storeCheckouts = new Map();
 
 /* ------------------------------------------------------------------ */
 /* Generic access                                                      */
 /* ------------------------------------------------------------------ */
 
+function readWorld(key) {
+  try { return game.settings.get(MODULE_ID, key); }
+  catch (e) { return null; }
+}
+
 export function getWorld(key) {
-  try { return foundry.utils.deepClone(game.settings.get(MODULE_ID, key)); }
+  try { return foundry.utils.deepClone(readWorld(key)); }
   catch (e) { return null; }
 }
 
@@ -39,29 +50,50 @@ export function isPrimaryGM() {
 
 /** Pending player-side mutation requests awaiting the GM's result. */
 const _pendingMutations = new Map(); // requestId -> resolve
+const _operations = new Map();
+let _mutationQueue = Promise.resolve();
+export function operationStates() { return [..._operations.values()]; }
+function operationFingerprint(op, payload) {
+  const text = JSON.stringify([op, payload]);
+  let a = 2166136261, b = 3335557771;
+  for (let i = 0; i < text.length; i++) { a = Math.imul(a ^ text.charCodeAt(i), 16777619); b = Math.imul(b ^ text.charCodeAt(i), 2246822519); }
+  return `${text.length}:${a >>> 0}:${b >>> 0}`;
+}
 
 /** Mutate shared world data. GMs apply locally; players relay to the GM and
- *  await the GM's result over the socket (10s timeout → null). */
+ *  await the GM's result over the socket (15s timeout -> null). */
 export async function mutate(op, payload = {}) {
-  if (game.user.isGM) {
-    return applyOp(op, payload, game.user.id);
-  }
+  const key = JSON.stringify([op, payload]);
+  const previous = _operations.get(key);
+  if (previous?.status === "sending" || previous?.status === "waiting") return previous.promise;
+  const requestId = previous?.status === "timeout" ? previous.requestId : `${Date.now()}:${foundry.utils.randomID(16)}`;
+  const state = { key, op, payload: foundry.utils.deepClone(payload), requestId, status: "sending", ts: Date.now() };
+  _operations.set(key, state);
+  while (_operations.size > 100) _operations.delete(_operations.keys().next().value);
   const gm = primaryGM();
   if (!gm) {
+    state.status = "noGM";
     ui.notifications.warn(game.i18n.localize("AGENTOS.Notify.NoGm"));
     return false;
   }
-  const requestId = foundry.utils.randomID(10);
-  return new Promise((resolve) => {
+  state.promise = (async () => {
+    state.status = "waiting";
+    if (isPrimaryGM()) return applyOp(op, payload, game.user.id, requestId);
+    return new Promise((resolve) => {
     const timer = setTimeout(() => {
       if (_pendingMutations.delete(requestId)) resolve(null);
-    }, 10000);
+    }, 15000);
     _pendingMutations.set(requestId, (result) => {
       clearTimeout(timer);
       resolve(result);
     });
-    game.socket.emit(SOCKET_NAME, { action: "mutate", op, payload, userId: game.user.id, requestId });
-  });
+    game.socket.emit(SOCKET_NAME, { action: "mutate", op, payload, userId: game.user.id, requestId }, { recipients: [gm.id] });
+    });
+  })().catch(error => { console.error(`${MODULE_ID} | request failed`, error); return false; });
+  const result = await state.promise;
+  state.status = result === null ? "timeout" : result === false ? "rejected" : "success";
+  delete state.promise;
+  return result;
 }
 
 /** Called by the socket router when the GM reports a mutation result. */
@@ -139,7 +171,12 @@ export function getChat(chatId) {
 }
 
 export function getMessages(chatId) {
-  return ((getWorld("agentMessages") || {})[chatId] || []);
+  return foundry.utils.deepClone((readWorld("agentMessages") || {})[chatId] || []);
+}
+
+export function getLastMessage(chatId) {
+  const messages = (readWorld("agentMessages") || {})[chatId] || [];
+  return foundry.utils.deepClone(messages[messages.length - 1] || null);
 }
 
 export function visibleGardenContacts(forGM = false) {
@@ -191,15 +228,19 @@ export function unreadCounts() {
   const isGM = game.user.isGM;
   const out = {};
   const chats = isGM ? allChats() : chatsForUser(game.user.id);
+  // Read-only: counting timestamps/authors never needs copies of message bodies.
+  const messages = readWorld("agentMessages") || {};
   for (const chat of chats) {
     const since = lastRead[chat.id] || 0;
     // Player: incoming = not from their own participant key. GM: incoming =
     // any message they didn't send themselves (msg.authorUserId identifies the
     // emitting user, so GM-voiced NPC lines don't count as unread).
-    out[chat.id] = getMessages(chat.id).filter(m => {
-      if (m.ts <= since) return false;
-      return isGM ? (m.authorUserId !== game.user.id) : (m.senderKey !== selfKey);
-    }).length;
+    let count = 0;
+    for (const m of messages[chat.id] || []) {
+      if (m.ts <= since) continue;
+      if (isGM ? m.authorUserId !== game.user.id : m.senderKey !== selfKey) count++;
+    }
+    out[chat.id] = count;
   }
   return out;
 }
@@ -208,6 +249,12 @@ export async function markChatRead(chatId) {
   const lastRead = foundry.utils.deepClone(game.user.getFlag(MODULE_ID, "lastRead") || {});
   lastRead[chatId] = Date.now();
   await game.user.setFlag(MODULE_ID, "lastRead", lastRead);
+  const events = (readWorld("agentNotifications") || {})[game.user.id] || [];
+  const ids = new Set(events.map(n => n.id));
+  const read = Object.fromEntries(Object.entries(game.user.getFlag(MODULE_ID, "notificationRead") || {}).filter(([id]) => ids.has(id)));
+  let changed = false;
+  for (const event of events) if (event.chatId === chatId && !read[event.id]) { read[event.id] = true; changed = true; }
+  if (changed) await game.user.setFlag(MODULE_ID, "notificationRead", read);
 }
 
 /* ------------------------------------------------------------------ */
@@ -267,29 +314,26 @@ export function parseLedgerText(text) {
 }
 
 export function actorTransactions(actor) {
-  const recs = (typeof actor?.listRecords === "function" ? actor.listRecords("wealth") : null)
-    ?? foundry.utils.getProperty(actor, "system.wealth.transactions") ?? [];
-  return recs.map(r => {
-    const text = Array.isArray(r) ? r[0] : String(r);
-    const reason = Array.isArray(r) ? (r[1] || "") : "";
-    return { text, reason, ...parseLedgerText(text) };
-  }).reverse();
+  return transactions(actor);
 }
-
-async function deltaWealth(actor, amount, reason) {
-  if (typeof actor.deltaLedgerProperty === "function") {
-    return actor.deltaLedgerProperty("wealth", amount, reason);
-  }
-  const value = actorWealth(actor);
-  return actor.update({ "system.wealth.value": Math.max(0, value + amount) });
-}
+export const recurringExpenses = userId => monthlyExpenses(userId, getWorld);
 
 /* ------------------------------------------------------------------ */
 /* Notification fan-out (GM side)                                      */
 /* ------------------------------------------------------------------ */
 
-function notifyClients(data) {
-  game.socket.emit(SOCKET_NAME, { action: "notify", ...data });
+async function notifyClients(data) {
+  data.eventId ||= uid("event");
+  const all = getWorld("agentNotifications") || {};
+  const recipients = data.kind === "message" ? [...(data.participantUserIds || []), ...game.users.filter(u => u.isGM).map(u => u.id)] : data.recipientUserIds || [];
+  for (const id of new Set(recipients)) {
+    if (id === data.authorUserId || !game.users.get(id)) continue;
+    const list = all[id] || [];
+    if (!list.some(n => n.id === data.eventId)) list.push({ ...data, id: data.eventId, ts: Date.now() });
+    all[id] = list.slice(-200);
+  }
+  await setWorld("agentNotifications", all);
+  game.socket.emit(SOCKET_NAME, { action: "notify", eventId: data.eventId }, { recipients: [...new Set(recipients)].filter(id => id !== game.user.id && id !== data.authorUserId) });
   // The emitting GM does not receive its own socket message.
   Hooks.callAll(`${MODULE_ID}.notify`, data);
 }
@@ -304,12 +348,34 @@ function requesterIsGM(userId) {
 
 const OPS = {
 
+  async "arcade.inviteNotice"({ target, from, roomId, title }, userId) {
+    if (!requesterIsGM(userId) || !game.users.get(target)) return false;
+    await notifyClients({ kind: "invite", eventId: `invite:${roomId}:${from}:${target}`, roomId, title, recipientUserIds: [target] });
+    return true;
+  },
+
+  async "backup.restore"({ backup, sections, mode, userMap }, userId) {
+    if (!requesterIsGM(userId)) return false;
+    return restoreBackup(backup, sections, mode, userMap);
+  },
+
+  async "monthly.notify"({ userIds }, userId) {
+    if (!requesterIsGM(userId) || !Array.isArray(userIds)) return false;
+    for (const id of new Set(userIds)) {
+      if (!game.users.get(id) || game.users.get(id).isGM) continue;
+      const expenses = recurringExpenses(id);
+      await notifyClients({ kind: "monthly", amount: expenses.total, recipientUserIds: [id] });
+    }
+    return true;
+  },
+
   /* ---- chat ---- */
 
   async "chat.create"({ name, participantKeys }, userId) {
+    if (!Array.isArray(participantKeys) || participantKeys.some(k => typeof k !== "string")) return false;
     const isGM = requesterIsGM(userId);
     const participants = [];
-    for (const key of participantKeys || []) {
+    for (const key of new Set(participantKeys)) {
       const p = buildParticipant(key);
       if (!p) continue;
       if (!isGM && p.kind === "garden") {
@@ -330,7 +396,7 @@ const OPS = {
     const id = uid("chat");
     chats[id] = {
       id,
-      name: name || "",
+      name: String(name || "").slice(0, 200),
       participants,
       createdBy: userId,
       ts: Date.now(),
@@ -401,7 +467,7 @@ const OPS = {
     const chats = getWorld("agentChats") || {};
     const chat = chats[chatId];
     if (!chat) return false;
-    if (!requesterIsGM(userId) && chat.createdBy !== userId) return false;
+    if (!requesterIsGM(userId) && (chat.createdBy !== userId || !chat.participants.some(p => p.userId === userId))) return false;
     if (name !== undefined) chat.name = String(name || "");
     if (img !== undefined) chat.img = String(img || "").slice(0, 1000);
     await setWorld("agentChats", chats);
@@ -456,7 +522,7 @@ const OPS = {
 
   /* ---- messages ---- */
 
-  async "msg.send"({ chatId, senderKey, text, attachment }, userId) {
+  async "msg.send"({ chatId, senderKey, text, attachment, replyTo }, userId) {
     const chats = getWorld("agentChats") || {};
     const chat = chats[chatId];
     if (!chat) return false;
@@ -475,19 +541,22 @@ const OPS = {
       senderName: identity.name,
       senderImg: identity.img,
       text,
-      attachment: sanitizeAttachment(attachment),
+      attachment: await sanitizeAttachment(attachment, userId),
       authorUserId: userId,
       ts: Date.now()
     };
     const all = getWorld("agentMessages") || {};
     const list = all[chatId] || [];
+    if (attachment && !msg.attachment) return false;
+    const original = replyTo && list.find(m => m.id === replyTo);
+    if (original) msg.replyTo = { id: original.id, text: String(original.text || original.attachment?.title || "").slice(0, 300), name: participantIdentity(chat, original.senderKey).name };
     list.push(msg);
     all[chatId] = list;
     chat.lastTs = msg.ts;
     await setWorld("agentMessages", all);
     await setWorld("agentChats", chats);
-    notifyClients({
-      kind: "message",
+    await notifyClients({
+      kind: "message", eventId: msg.id,
       chatId,
       chatName: chat.name,
       senderKey,
@@ -507,6 +576,50 @@ const OPS = {
     all[chatId] = list.filter(m => m.id !== msgId);
     await setWorld("agentMessages", all);
     return true;
+  },
+
+  async "msg.react"({ chatId, msgId, reaction, active }, userId) {
+    const chat = getChat(chatId);
+    if (!chat || !["👍", "❤", "⚠"].includes(reaction) || typeof active !== "boolean") return false;
+    if (!requesterIsGM(userId) && !chat.participants.some(p => p.userId === userId)) return false;
+    const all = getWorld("agentMessages") || {};
+    const message = all[chatId]?.find(m => m.id === msgId);
+    if (!message) return false;
+    message.reactions ||= {};
+    const users = (message.reactions[reaction] || []).filter(id => id !== userId);
+    if (active) users.push(userId);
+    message.reactions[reaction] = users;
+    await setWorld("agentMessages", all); return true;
+  },
+
+  async "msg.pin"({ chatId, msgId, pinned }, userId) {
+    if (!requesterIsGM(userId) || typeof pinned !== "boolean") return false;
+    const all = getWorld("agentMessages") || {};
+    const message = all[chatId]?.find(m => m.id === msgId);
+    if (!message) return false;
+    message.pinned = pinned;
+    await setWorld("agentMessages", all); return true;
+  },
+
+  async "msg.importAttachment"({ chatId, msgId }, userId) {
+    const chat = getChat(chatId);
+    if (!chat || (!requesterIsGM(userId) && !chat.participants.some(p => p.userId === userId))) return false;
+    const attachment = getMessages(chatId).find(m => m.id === msgId)?.attachment;
+    if (!attachment || !["shard", "contact"].includes(attachment.kind) || !attachment.snapshot) return false;
+    const key = `${chatId}:${msgId}`;
+    const setting = attachment.kind === "shard" ? "agentShards" : "personalContacts";
+    const list = getWorld(setting) || [];
+    const old = list.find(v => v.importMessage === key && (v.ownerUserId === userId || v.recipients?.[userId]));
+    if (old) return old.id;
+    const id = uid(attachment.kind);
+    const value = attachment.kind === "shard" ? { ...attachment.snapshot, id, isCopy: true, createdBy: attachment.sharedBy,
+      recipients: { [userId]: Date.now() }, ts: Date.now() }
+      : { ...attachment.snapshot, id, ownerUserId: userId, sharedWith: [], ts: Date.now() };
+    value.importMessage = key; list.push(value);
+    await setWorld(setting, list);
+    await notifyClients({ kind: "object", eventId: `import:${userId}:${msgId}`, title: attachment.title,
+      ...(attachment.kind === "shard" ? { shardId: id } : { contactId: id }), recipientUserIds: [userId] });
+    return id;
   },
 
   /* GM silently edits a message's text and/or timestamp. No "edited" flag is
@@ -591,12 +704,13 @@ const OPS = {
   /* ---- Datapool shards ---- */
 
   async "shard.create"({ shard }, userId) {
+    if (String(shard.body || "").length > MAX_SHARD_LENGTH) return false;
     const list = getWorld("agentShards") || [];
     const isGM = requesterIsGM(userId);
     list.push({
       id: uid("shard"),
       title: String(shard.title || "Untitled").slice(0, 200),
-      body: String(shard.body || "").slice(0, 50000),
+      body: String(shard.body || ""),
       format: ["plain", "markdown", "html"].includes(shard.format) ? shard.format : "plain",
       authorName: isGM ? String(shard.authorName || "???") : playerIdentity(userId).name,
       createdBy: userId,
@@ -717,7 +831,8 @@ const OPS = {
     if (!shard || shard.isCopy) return false;
     if (!requesterIsGM(userId) && shard.createdBy !== userId) return false;
     const now = Date.now();
-    const targets = (userIds || []).filter(u => u !== shard.createdBy);
+    const targets = [...new Set(userIds || [])].filter(u => u !== shard.createdBy && game.users.get(u));
+    gardenIds = [...new Set(gardenIds || [])].filter(id => visibleGardenContacts(requesterIsGM(userId)).some(g => g.id === id));
     if (!targets.length && !(gardenIds || []).length) return false;
     list.push({
       id: uid("shard"),
@@ -732,8 +847,8 @@ const OPS = {
       ts: now
     });
     await setWorld("agentShards", list);
-    notifyClients({
-      kind: "shard",
+    await notifyClients({
+      kind: "shard", shardId: list.at(-1).id,
       title: shard.title,
       authorName: shard.authorName,
       recipientUserIds: targets
@@ -749,7 +864,10 @@ const OPS = {
     const isGM = requesterIsGM(userId);
     if (!isGM && shard.createdBy !== userId) return false;
     if (patch.title !== undefined) shard.title = String(patch.title || shard.title).slice(0, 200);
-    if (patch.body !== undefined) shard.body = String(patch.body).slice(0, 50000);
+    if (patch.body !== undefined) {
+      if (String(patch.body).length > MAX_SHARD_LENGTH) return false;
+      shard.body = String(patch.body);
+    }
     if (["plain", "markdown", "html"].includes(patch.format)) shard.format = patch.format;
     if (isGM && patch.authorName !== undefined) shard.authorName = String(patch.authorName || shard.authorName);
     await setWorld("agentShards", list);
@@ -760,7 +878,7 @@ const OPS = {
     const list = getWorld("agentShards") || [];
     const shard = list.find(s => s.id === shardId);
     if (!shard) return false;
-    if (!requesterIsGM(userId) && shard.createdBy !== userId) return false;
+    if (!requesterIsGM(userId) && (shard.isCopy || shard.createdBy !== userId)) return false;
     await setWorld("agentShards", list.filter(s => s.id !== shardId));
     return true;
   },
@@ -770,6 +888,10 @@ const OPS = {
   async "contact.save"({ contact }, userId) {
     const list = getWorld("personalContacts") || [];
     const existing = contact.id ? list.find(c => c.id === contact.id) : null;
+    if (contact.folderId) {
+      const folder = (getWorld("contactFolders") || []).find(f => f.id === contact.folderId);
+      if (!folder || folder.ownerUserId !== (existing?.ownerUserId || userId)) return false;
+    }
     if (existing) {
       if (!requesterIsGM(userId) && existing.ownerUserId !== userId) return false;
       Object.assign(existing, {
@@ -917,10 +1039,10 @@ const OPS = {
     if (!c) return false;
     if (!requesterIsGM(userId) && c.ownerUserId !== userId) return false;
     const before = new Set(c.sharedWith || []);
-    c.sharedWith = Array.from(new Set(userIds || [])).filter(u => u !== c.ownerUserId);
+    c.sharedWith = Array.from(new Set(userIds || [])).filter(u => u !== c.ownerUserId && game.users.get(u));
     const added = c.sharedWith.filter(u => !before.has(u));
     await setWorld("personalContacts", list);
-    if (added.length) notifyClients({ kind: "contactShared", name: c.name, recipientUserIds: added });
+    if (added.length) await notifyClients({ kind: "contactShared", contactId: c.id, name: c.name, recipientUserIds: added });
     return true;
   },
 
@@ -1070,7 +1192,14 @@ const OPS = {
 
   async "id.update"({ targetUserId, patch }, userId) {
     const isGM = requesterIsGM(userId);
-    const PLAYER_FIELDS = ["proxyName", "proxyImg", "realName", "housingId", "lifestyleId", "traumaId"];
+    const PLAYER_FIELDS = ["proxyName", "proxyImg", "realName", "housingId", "lifestyleId", "traumaId", "housingRent"];
+    if (!game.users.get(targetUserId) || !patch || typeof patch !== "object") return false;
+    if (Object.hasOwn(patch, "housingRent")) {
+      const raw = patch.housingRent;
+      if (raw === "" || raw === null) patch.housingRent = null;
+      else if ((typeof raw !== "number" && typeof raw !== "string") || !String(raw).trim() || !Number.isFinite(Number(raw)) || Number(raw) < 0) return false;
+      else patch.housingRent = Number(raw);
+    }
     if (!isGM) {
       if (targetUserId !== userId) return false;
       patch = Object.fromEntries(Object.entries(patch || {}).filter(([k]) => PLAYER_FIELDS.includes(k)));
@@ -1219,19 +1348,22 @@ const OPS = {
 
   async "wallet.transfer"({ fromActorUuid, toActorUuid, amount, memo }, userId) {
     amount = Math.floor(Number(amount));
-    if (!(amount > 0)) return false;
+    if (!(amount > 0) || !Number.isSafeInteger(amount) || fromActorUuid === toActorUuid) return false;
     const from = await fromUuid(fromActorUuid);
     const to = toActorUuid ? await fromUuid(toActorUuid) : null;
-    if (!from) return false;
+    if (!from || (toActorUuid && !to) || (from.documentName && from.documentName !== "Actor") || (to?.documentName && to.documentName !== "Actor")) return false;
     // Requesting player must own the source actor.
     if (!requesterIsGM(userId) && !from.testUserPermission(game.users.get(userId), "OWNER")) return false;
     if (actorWealth(from) < amount) return false;
     const fromName = from.name;
     const toName = to?.name || memo || "???";
     await deltaWealth(from, -amount, `Agent: → ${toName}${memo ? ` — ${memo}` : ""}`);
-    if (to) await deltaWealth(to, amount, `Agent: ← ${fromName}${memo ? ` — ${memo}` : ""}`);
+    // NPCs without a system wallet are payment recipients, like unlinked Garden contacts.
+    const toWallet = to?.system?.wealth;
+    try { if (toWallet && Array.isArray(toWallet.transactions)) await deltaWealth(to, amount, `Agent: ← ${fromName}${memo ? ` — ${memo}` : ""}`); }
+    catch (error) { await deltaWealth(from, amount, "Agent: transfer refund"); throw error; }
     const toOwnerIds = to ? game.users.filter(u => !u.isGM && to.testUserPermission(u, "OWNER")).map(u => u.id) : [];
-    notifyClients({ kind: "transfer", fromName, toName, amount, recipientUserIds: toOwnerIds });
+    await notifyClients({ kind: "transfer", fromName, toName, amount, recipientUserIds: toOwnerIds });
     return true;
   },
 
@@ -1239,13 +1371,46 @@ const OPS = {
   async "wallet.gmGrant"({ toActorUuid, amount, senderName, memo }, userId) {
     if (!requesterIsGM(userId)) return false;
     amount = Math.floor(Number(amount));
-    if (!(amount > 0)) return false;
+    if (!(amount > 0) || !Number.isSafeInteger(amount)) return false;
     const to = await fromUuid(toActorUuid);
     if (!to) return false;
     const fromName = String(senderName || "???").slice(0, 100);
     await deltaWealth(to, amount, `Agent: ← ${fromName}${memo ? ` — ${memo}` : ""}`);
     const toOwnerIds = game.users.filter(u => !u.isGM && to.testUserPermission(u, "OWNER")).map(u => u.id);
-    notifyClients({ kind: "transfer", fromName, toName: to.name, amount, recipientUserIds: toOwnerIds });
+    await notifyClients({ kind: "transfer", fromName, toName: to.name, amount, recipientUserIds: toOwnerIds });
+    return true;
+  },
+
+  async "wallet.gmAward"({ actorUuids, resource, amount, senderName, memo }, userId) {
+    if (!requesterIsGM(userId) || !["wealth", "improvementPoints"].includes(resource)) return false;
+    if (!Array.isArray(actorUuids) || !actorUuids.length || !Number.isSafeInteger(amount) || amount <= 0) return false;
+    const assigned = new Set(game.users.filter(u => !u.isGM && u.character).map(u => u.character.uuid));
+    const actors = [];
+    for (const uuid of new Set(actorUuids)) {
+      if (!assigned.has(uuid)) return false;
+      const actor = await fromUuid(uuid), ledger = actor?.system?.[resource];
+      if (!ledger || !Array.isArray(ledger.transactions) || !Number.isSafeInteger(ledger.value + amount) || typeof actor.deltaLedgerProperty !== "function") return false;
+      actors.push(actor);
+    }
+    const before = actors.map(actor => ({ ledger: foundry.utils.deepClone(actor.system[resource]), metadata: foundry.utils.deepClone(actor.getFlag(MODULE_ID, "wealthMetadata") || []) }));
+    const fromName = String(senderName || game.users.get(userId).name).slice(0, 100);
+    const reason = `Agent: ${fromName}${memo ? ` - ${String(memo).slice(0, 1000)}` : ""}`;
+    let written = 0;
+    try {
+      for (const actor of actors) { await deltaLedger(actor, resource, amount, reason); written++; }
+    } catch (error) {
+      for (let i = 0; i < written; i++) {
+        const patch = { [`system.${resource}`]: before[i].ledger };
+        if (resource === "wealth") patch[`flags.${MODULE_ID}.wealthMetadata`] = before[i].metadata;
+        await actors[i].update(patch);
+      }
+      console.error(`${MODULE_ID} | award failed`, error);
+      return false;
+    }
+    if (resource === "wealth") for (const actor of actors) {
+      const recipientUserIds = game.users.filter(u => !u.isGM && u.character?.uuid === actor.uuid).map(u => u.id);
+      await notifyClients({ kind: "transfer", fromName, toName: actor.name, amount, recipientUserIds });
+    }
     return true;
   },
 
@@ -1266,29 +1431,35 @@ const OPS = {
     let total = 0;
     const locked = cfg.lockedCategories || [];
     const isGmBuyer = requesterIsGM(userId);
-    const cap = isGmBuyer ? 0 : ((cfg.playerMaxPrice || {})[userId] ?? (cfg.maxPrice ?? 100));
     for (const itemUuid of (itemUuids || []).slice(0, 50)) {
       if (blacklist.includes(itemUuid)) continue;
       const doc = await fromUuid(itemUuid);
-      if (!doc) continue;
+      if (!doc || doc.documentName !== "Item" || doc.system.core) continue;
       // Re-apply the GM's catalog gates server-side (clients can be crafted).
       const packId = doc.pack || "";
       const isCore = !!PACK_CATEGORIES[packId];
-      const category = PACK_CATEGORIES[packId] || "Extra";
+      if (!isCore && !(cfg.extraPacks || []).includes(packId)) continue;
+      const category = PACK_CATEGORIES[packId] || String(game.packs.get(packId)?.metadata.label || "Extra").trim() || "Extra";
       if (locked.includes(category)) continue;
       if (cfg.sourceFilter === "core" && !isCore) continue;
       if (cfg.sourceFilter === "extra" && isCore) continue;
       const price = Number(foundry.utils.getProperty(doc, "system.price.market") || 0);
-      if (cap > 0 && price > cap) continue;
+      if (!(price > 0) || !Number.isFinite(price)) continue;
+      if (!isGmBuyer && !availableToPlayer({ price }, cfg, userId)) continue;
       total += Math.max(0, Math.ceil(price * (1 + markup / 100)));
       docs.push(doc);
     }
     if (!docs.length) return false;
     if (actorWealth(actor) < total) return false;
     await deltaWealth(actor, -total, `Agent: NC MART (${docs.length})`);
-    await actor.createEmbeddedDocuments("Item", docs.map(d => d.toObject()));
+    try {
+      await deliverStoreItems(actor, docs);
+    } catch (error) {
+      await deltaWealth(actor, total, "Agent: NC MART refund");
+      throw error;
+    }
     const ownerIds = game.users.filter(u => !u.isGM && actor.testUserPermission(u, "OWNER")).map(u => u.id);
-    notifyClients({ kind: "purchase", actorName: actor.name, total, count: docs.length, recipientUserIds: ownerIds });
+    await notifyClients({ kind: "purchase", actorName: actor.name, total, count: docs.length, recipientUserIds: ownerIds });
     return true;
   }
 };
@@ -1308,23 +1479,103 @@ function buildParticipant(key) {
   return null;
 }
 
-function sanitizeAttachment(att) {
-  if (!att || !att.src) return null;
-  const kind = ["image", "audio", "video"].includes(att.kind) ? att.kind : "image";
-  return { kind, src: String(att.src).slice(0, 1000) };
+export function safeMediaPath(path) {
+  const src = String(path || "").trim();
+  return src && src.length <= 1000 && !/[\u0000-\u001f<>"']/.test(src) && !src.startsWith("//") && !src.startsWith("\\") && (!/^[a-z][a-z\d+.-]*:/i.test(src) || /^https?:\/\//i.test(src)) ? src : "";
+}
+
+async function sanitizeAttachment(att, userId) {
+  if (!att || typeof att !== "object") return null;
+  const isGM = requesterIsGM(userId);
+  if (["image", "audio", "video"].includes(att.kind)) {
+    const src = safeMediaPath(att.src); return src ? { kind: att.kind, src } : null;
+  }
+  if (att.kind === "shard") {
+    const source = shardsForUser(userId, isGM).find(s => s.id === att.id);
+    if (!source) return null;
+    return { kind: "shard", title: source.title, sourceId: source.id, sharedBy: userId,
+      snapshot: { title: source.title, body: source.body, format: source.format, authorName: source.authorName } };
+  }
+  if (att.kind === "contact") {
+    const source = contactsForUser(userId, isGM).find(c => c.id === att.id);
+    if (!source) return null;
+    return { kind: "contact", title: source.name, sourceId: source.id, sharedBy: userId,
+      snapshot: Object.fromEntries(["name", "note", "address", "hasPin", "mapX", "mapY", "icon", "color"].map(k => [k, source[k] ?? null])) };
+  }
+  if (att.kind === "coordinates" && Number.isFinite(att.x) && Number.isFinite(att.y) && att.x >= 0 && att.x <= 100 && att.y >= 0 && att.y <= 100) return { kind: "coordinates", title: `${att.x.toFixed(1)}, ${att.y.toFixed(1)}`, x: att.x, y: att.y };
+  if (att.kind === "item" && typeof att.uuid === "string") {
+    const doc = await fromUuid(att.uuid);
+    if (doc?.documentName !== "Item" || (!isGM && !doc.testUserPermission?.(game.users.get(userId), "OBSERVER"))) return null;
+    return { kind: "item", title: doc.name, uuid: doc.uuid };
+  }
+  return null;
 }
 
 /** Entry point for socket-relayed and local mutations (GM client only). */
-export async function applyOp(op, payload, userId) {
-  const fn = OPS[op];
+export async function applyOp(op, payload, userId, requestId) {
+  const execute = async () => {
+    if (typeof op !== "string" || !payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+    if (!game.user.isGM || !game.users.get(userId)) return false;
+    let receipts, receiptKey, fingerprint;
+    if (requestId) {
+      if (typeof requestId !== "string" || requestId.length > 80) return false;
+      receipts = getWorld("operationReceipts") || {};
+      receiptKey = `${userId}:${requestId}`;
+      const old = receipts[receiptKey];
+      fingerprint = operationFingerprint(op, payload);
+      if (old) return old.fingerprint === fingerprint ? (old.pending ? null : old.result) : false;
+    }
+    const cfg = getWorld("appConfig") || {};
+    if (!requesterIsGM(userId) && cfg.disabled?.[userId]) return false;
+    const app = ({ msg: "chat", chat: "chat", chatFolder: "chat", shard: "datapool", datapool: "datapool", datapoolFolder: "datapool", contact: "contacts", folder: "contacts", wallet: "wallet", store: "store", id: "id", tools: "tools", chrome: "chrome" })[op?.split(".")[0]];
+    if (app && !requesterIsGM(userId) && (cfg.perPlayer?.[userId]?.[app] ?? cfg.player?.[app]) === false) return false;
+    if (requestId) {
+      const stamp = Number(requestId.split(":")[0]);
+      if (!Number.isFinite(stamp)) return false;
+      if (Math.abs(Date.now() - stamp) > 7 * 86400000) return null;
+      const floor = receipts._floor || {};
+      if (stamp <= (floor[userId] || 0)) return null;
+      if (Object.values(receipts).filter(r => r.pending).length >= 500) return false;
+      receipts[receiptKey] = { fingerprint, pending: true, ts: Date.now() };
+      for (const [id, r] of Object.entries(receipts)) if (id !== "_floor" && Date.now() - r.ts > 7 * 86400000) delete receipts[id];
+      const completed = Object.entries(receipts).filter(([id, r]) => id !== "_floor" && !r.pending).sort((a, b) => a[1].ts - b[1].ts);
+      while (Object.keys(receipts).length > 1000 && completed.length) {
+        const [id] = completed.shift(), owner = id.split(":")[0], issued = Number(id.split(":")[1]);
+        floor[owner] = Math.max(floor[owner] || 0, issued); delete receipts[id];
+      }
+      receipts._floor = floor;
+      await setWorld("operationReceipts", receipts);
+      const result = await executeOp(op, payload, userId);
+      receipts[receiptKey] = { ...receipts[receiptKey], pending: result === null, result };
+      await setWorld("operationReceipts", receipts);
+      return result;
+    }
+    return executeOp(op, payload, userId);
+  };
+  const pending = _mutationQueue.then(execute);
+  _mutationQueue = pending.catch(() => {});
+  return pending;
+}
+
+async function executeOp(op, payload, userId) {
+  const fn = Object.hasOwn(OPS, op) ? OPS[op] : null;
   if (!fn) {
     console.warn(`${MODULE_ID} | unknown op ${op}`);
     return false;
   }
   try {
+    if (op === "store.checkout") {
+      const key = payload.actorUuid;
+      const pending = (_storeCheckouts.get(key) || Promise.resolve()).then(() => fn(payload, userId));
+      // Queue only purchases for the same actor, including after a failed order.
+      const settled = pending.catch(() => {});
+      _storeCheckouts.set(key, settled);
+      try { return await pending; }
+      finally { if (_storeCheckouts.get(key) === settled) _storeCheckouts.delete(key); }
+    }
     return await fn(payload, userId);
   } catch (e) {
     console.error(`${MODULE_ID} | op ${op} failed`, e);
-    return false;
+    return null;
   }
 }

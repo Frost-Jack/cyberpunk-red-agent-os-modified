@@ -1,10 +1,10 @@
 <div class="agentos-radio">
 
   {{!-- GM broadcast banner (players) --}}
-  {{#if following}}
+  {{#if broadcastActive}}
   <div class="agentos-radio-banner">
     <i class="fas fa-tower-broadcast"></i>
-    <span>{{localize "AGENTOS.Radio.GmBroadcast"}}</span>
+    <span>{{#if following}}{{localize "AGENTOS.Radio.GmBroadcast"}}{{else}}{{localize "AGENTOS.Radio.LocalControl"}}{{/if}}</span>
   </div>
   {{/if}}
 
@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  {{!-- Toggles: keep-playing (all) + GM takeover (GM only) --}}
+  {{!-- Background playback + GM takeover / personal sync --}}
   <div class="agentos-radio-toggles">
     <button type="button" class="agentos-radio-toggle {{#if keepPlaying}}on{{/if}}" data-action="radio-toggle-keep">
       <i class="fas {{#if keepPlaying}}fa-infinity{{else}}fa-power-off{{/if}}"></i>
@@ -56,6 +56,11 @@
     <button type="button" class="agentos-radio-toggle takeover {{#if takeover}}on{{/if}}" data-action="radio-takeover">
       <i class="fas fa-tower-broadcast"></i>
       <span>{{#if takeover}}{{localize "AGENTOS.Radio.TakeoverOn"}}{{else}}{{localize "AGENTOS.Radio.TakeoverOff"}}{{/if}}</span>
+    </button>
+    {{else}}
+    <button type="button" class="agentos-radio-toggle {{#if followGM}}on{{/if}}" data-action="radio-follow-toggle" aria-pressed="{{followGM}}">
+      <i class="fas {{#if followGM}}fa-link{{else}}fa-link-slash{{/if}}"></i>
+      <span>{{#if followGM}}{{localize "AGENTOS.Radio.FollowOn"}}{{else}}{{localize "AGENTOS.Radio.FollowOff"}}{{/if}}</span>
     </button>
     {{/if}}
   </div>

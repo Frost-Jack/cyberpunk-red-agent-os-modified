@@ -121,7 +121,7 @@ export function activateListeners(app, html) {
 /* ------------------------------------------------------------------ */
 
 function openBook(src, title) {
-  if (!src) return;
+  if (!Data.safeMediaPath(src)) return;
   AgentAudio.play("tap");
   const url = foundry.utils.getRoute(src);
   try {

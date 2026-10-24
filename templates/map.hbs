@@ -2,9 +2,10 @@
   <div class="agentos-map-viewport">
     <div class="agentos-map-container">
       <img class="agentos-map-img" src="{{mapImage}}" alt="Night City" draggable="false">
+      {{#if focus}}<div class="agentos-map-pin agentos-map-focus" style="left: {{focus.x}}%; top: {{focus.y}}%;" title="{{focus.x}}, {{focus.y}}"><i class="fas fa-crosshairs"></i><div class="agentos-pin-label">{{focus.x}}, {{focus.y}}</div></div>{{/if}}
 
       {{#each markers}}
-      <div class="agentos-map-marker {{#if this.hidden}}gm-hidden{{/if}}" data-marker-id="{{this.id}}"
+      <div class="agentos-map-marker {{#if this.hidden}}gm-hidden{{/if}}" data-marker-id="{{this.id}}" draggable="true" data-card-drag="true" data-object-kind="coordinates" data-x="{{x}}" data-y="{{y}}"
            style="left: {{this.x}}%; top: {{this.y}}%;"
            title="{{this.label}}{{#if this.hidden}} ({{localize "AGENTOS.Map.HiddenTag"}}){{/if}}">
         <i class="fas {{#if this.icon}}{{this.icon}}{{else}}fa-location-dot{{/if}}" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
@@ -14,7 +15,7 @@
       {{/each}}
 
       {{#each pins}}
-      <div class="agentos-map-pin" data-contact-id="{{this.id}}" style="left: {{this.mapX}}%; top: {{this.mapY}}%;"
+      <div class="agentos-map-pin" data-contact-id="{{this.id}}" draggable="true" data-card-drag="true" data-object-kind="coordinates" data-x="{{mapX}}" data-y="{{mapY}}" style="left: {{this.mapX}}%; top: {{this.mapY}}%;"
            title="{{this.name}}{{#if this.ownerName}} ({{this.ownerName}}){{/if}}">
         <i class="fas {{this.icon}}" style="color: {{this.color}}; text-shadow: 0 0 6px {{this.color}}, 0 0 2px #000;"></i>
         <div class="agentos-pin-label" style="border-color: {{this.color}};">

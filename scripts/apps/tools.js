@@ -105,7 +105,7 @@ export function activateListeners(app, html) {
     const macro = await fromUuid(ev.currentTarget.dataset.uuid).catch(() => null);
     if (!macro) return AgentAudio.play("error");
     AgentAudio.play("tap");
-    try { macro.execute(); } catch (e) { console.warn(`${MODULE_ID} | daemon failed`, e); }
+    try { await macro.execute(); } catch (e) { console.warn(`${MODULE_ID} | daemon failed`, e); }
   });
 
   html.on("click", "[data-action='tool-folder-toggle']", (ev) => {

@@ -14,6 +14,7 @@
     </div>
     <span class="agentos-titlebar-brand">AGENT OS</span>
     <div class="agentos-titlebar-right">
+      <button type="button" class="agentos-gear" data-action="open-notifications" title="{{localize "AGENTOS.Notifications.Title"}}"><i class="fas fa-bell"></i><small class="agentos-notification-count" {{#unless notificationCount}}hidden{{/unless}}>{{notificationCount}}</small></button>
       <i class="fas fa-signal"></i>
       {{#if disabled}}
       <span class="agentos-wifi-dead"><i class="fas fa-wifi"></i><i class="fas fa-slash"></i></span>
@@ -34,7 +35,7 @@
     {{#if (agEq view "home")}}
       {{> "modules/cyberpunk-red-agent-os-modified/templates/home.hbs"}}
     {{else}}
-      <div class="agentos-app-frame {{#if (agEq mode "pc")}}pc-window{{/if}}">
+      <div class="agentos-workspace {{#if sideView}}with-side{{/if}}"><div class="agentos-app-frame {{#if (agEq mode "pc")}}pc-window{{/if}}">
         <header class="agentos-app-header">
           <button type="button" class="agentos-hbtn" data-action="go-home" title="{{localize "AGENTOS.Common.Home"}}">
             <i class="fas fa-chevron-left"></i>
@@ -53,6 +54,7 @@
           {{#if (agEq view "bio")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/bio.hbs" viewData}}{{/if}}
           {{#if (agEq view "chrome")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/chrome.hbs" viewData}}{{/if}}
           {{#if (agEq view "radio")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/radio.hbs" viewData}}{{/if}}
+          {{#if (agEq view "toktik")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/toktik.hbs" viewData}}{{/if}}
           {{#if (agEq view "store")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/store.hbs" viewData}}{{/if}}
           {{#if (agEq view "id")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/id.hbs" viewData}}{{/if}}
           {{#if (agEq view "ncpd")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/ncpd.hbs" viewData}}{{/if}}
@@ -61,9 +63,17 @@
           {{#if (agEq view "tools")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/tools.hbs" viewData}}{{/if}}
           {{#if (agEq view "arcade")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/arcade.hbs" viewData}}{{/if}}
           {{#if (agEq view "admin")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/admin.hbs" viewData}}{{/if}}
+          {{#if (agEq view "backup")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/backup.hbs" viewData}}{{/if}}
+          {{#if (agEq view "notifications")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/notifications.hbs" viewData}}{{/if}}
           {{#if (agEq view "settings")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/settings.hbs" viewData}}{{/if}}
         </div>
       </div>
+      {{#if sideView}}<aside class="agentos-side-pane"><div class="agentos-toolbar"><select name="side-app" class="agentos-select">{{#each sideApps}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select><button type="button" class="agentos-icon-btn" data-action="chat-side-toggle" title="{{localize "AGENTOS.Common.Close"}}"><i class="fas fa-xmark"></i></button></div><div class="agentos-app-body view-{{sideView}}">
+      {{#if (agEq sideView "datapool")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/datapool.hbs" sideData}}{{/if}}
+      {{#if (agEq sideView "contacts")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/contacts.hbs" sideData}}{{/if}}
+      {{#if (agEq sideView "map")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/map.hbs" sideData}}{{/if}}
+      {{#if (agEq sideView "store")}}{{> "modules/cyberpunk-red-agent-os-modified/templates/store.hbs" sideData}}{{/if}}
+      </div></aside>{{/if}}</div>
     {{/if}}
   </div>
 </div>

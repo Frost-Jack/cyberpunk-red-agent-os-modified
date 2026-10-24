@@ -1,10 +1,11 @@
-/* Arcade: eight mini-games. Game state lives at module level (or app.state)
+/* Arcade: mini-games. Game state lives at module level (or app.state)
  * so incidental re-renders never reset a session; per-user records persist
  * in the `arcadeScores` user flag and are shown on the menu cards. */
 
 import { MODULE_ID } from "../constants.js";
 import { AgentAudio } from "../audio.js";
 import { pointerFraction } from "./map.js";
+import * as Multiplayer from "./arcade-multiplayer.js";
 
 const GAMES = [
   { id: "mine",      title: "MINEFIELD", icon: "fa-bomb",                     lower: true, suffix: "s" },
@@ -33,6 +34,20 @@ function recordLabel(gameId) {
   const v = records()[gameId];
   if (v === undefined) return "—";
   return `${v}${def?.suffix || ""}`;
+}
+
+export function leaderboardRows(gameId, users = game.users) {
+  const def = GAMES.find(g => g.id === gameId);
+  if (!def) return [];
+  const rows = users.filter(u => !u.getFlag(MODULE_ID, "arcadeScoresHidden"))
+    .map(u => ({ id: u.id, name: u.name, gm: u.isGM, value: u.getFlag(MODULE_ID, "arcadeScores")?.[gameId] }))
+    .filter(row => Number.isFinite(row.value) && row.value > 0)
+    .sort((a, b) => (def.lower ? a.value - b.value : b.value - a.value) || a.name.localeCompare(b.name));
+  return rows.map(row => ({ ...row,
+    rank: rows.findIndex(r => r.value === row.value) + 1,
+    score: `${row.value}${def.suffix || ""}`,
+    mine: row.id === game.user.id
+  }));
 }
 
 /** Persist a new record if it beats the stored one. Returns true if it did. */
@@ -107,6 +122,8 @@ function teardownGames() {
   _timeouts = [];
   _domHandlers = [];
   _rafCancels = [];
+  if (_duelState) _duelState.keys = 0;
+  for (const state of [_firewallState, _dodgeState]) if (state) state.left = state.right = false;
 }
 
 function clearStates(st) {
@@ -120,10 +137,20 @@ function isTypingTarget(t) {
 }
 
 export async function getData(app) {
+  if (app.state.arcadeTab === "network") return { network: true, networkData: Multiplayer.getData() };
   const rec = records();
   const gameId = app.state.game || "";
   const def = GAMES.find(g => g.id === gameId);
+  const boardGame = app.state.boardGame || GAMES[0].id;
+  const touch = app.deviceMode === "phone";
   return {
+    leaderboard: !!app.state.leaderboard,
+    boardGames: GAMES.map(g => ({ id: g.id, title: g.title, selected: g.id === boardGame })),
+    leaders: app.state.leaderboard ? leaderboardRows(boardGame) : [],
+    touchDirections: touch && ["snake", "netduel", "g2077", "dodge", "firewall", "heist"].includes(gameId),
+    touchVertical: !["dodge", "firewall"].includes(gameId),
+    touchHorizontal: gameId !== "netduel",
+    mineFlagMode: !!app.state.mineFlagMode,
     game: gameId,
     gameTitle: def?.title || "",
     record: gameId ? recordLabel(gameId) : "",
@@ -138,12 +165,36 @@ export async function getData(app) {
 
 export function onClose() {
   teardownGames();
+  Multiplayer.onClose();
 }
 
 export function activateListeners(app, html) {
   const st = app.state;
 
   teardownGames(); // stale listeners from the previous render
+  Multiplayer.onClose();
+  html.on("click", "[data-action='arcade-tab']", ev => {
+    onClose();
+    st.arcadeTab = ev.currentTarget.dataset.tab;
+    st.game = ""; st.leaderboard = false;
+    app.render(false);
+  });
+  if (st.arcadeTab === "network") { Multiplayer.activateListeners(app, html); return; }
+
+  html.on("click", "[data-action='arcade-leaderboard']", () => {
+    st.leaderboard = true;
+    app.render(false);
+  });
+  html.on("click", "[data-action='arcade-leaderboard-back']", () => {
+    st.leaderboard = false;
+    app.render(false);
+  });
+  html.on("change", "[name='arcade-board-game']", ev => {
+    st.boardGame = ev.currentTarget.value;
+    app.render(false);
+  });
+
+  if (st.leaderboard) return;
 
   html.on("click", "[data-action='arcade-pick']", (ev) => {
     teardownGames();
@@ -175,6 +226,51 @@ export function activateListeners(app, html) {
     case "heist": setupHeist(html); break;
     case "sprawl": setupSprawl(html); break;
   }
+  bindTouchControls(html, st.game);
+}
+
+/* Route touch controls only to this game's handlers, never Foundry keybindings. */
+function bindTouchControls(html, gameId) {
+  const send = (type, key, target) => {
+    for (const [, eventType, fn] of _domHandlers) {
+      if (eventType === type) fn({ key, target, preventDefault() {} });
+    }
+  };
+  for (const button of html.find("[data-arcade-key]")) {
+    const release = () => {
+      send("keyup", button.dataset.arcadeKey, button);
+      button.classList.remove("pressed");
+    };
+    button.addEventListener("pointerdown", ev => {
+      ev.preventDefault();
+      button.setPointerCapture(ev.pointerId);
+      button.classList.add("pressed");
+      send("keydown", button.dataset.arcadeKey, button);
+    });
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("lostpointercapture", release);
+  }
+  const canvas = html.find(".agentos-game-canvas")[0];
+  const board = gameId === "g2077" ? html.find(".agentos-2077-board")[0] : canvas;
+  if (!board) return;
+  let start = null;
+  board.addEventListener("pointerdown", ev => {
+    if (ev.pointerType === "mouse") return;
+    board.setPointerCapture(ev.pointerId);
+    start = pointerFraction(ev, board);
+  });
+  board.addEventListener("pointerup", ev => {
+    if (!start) return;
+    const end = pointerFraction(ev, board);
+    const dx = end.fx - start.fx, dy = end.fy - start.fy;
+    start = null;
+    if (!["snake", "g2077", "heist"].includes(gameId) || Math.max(Math.abs(dx), Math.abs(dy)) < 0.08) return;
+    const key = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "ArrowRight" : "ArrowLeft") : (dy > 0 ? "ArrowDown" : "ArrowUp");
+    send("keydown", key, board);
+    send("keyup", key, board);
+  });
+  board.addEventListener("pointercancel", () => { start = null; });
 }
 
 /* ------------------------------------------------------------------ */
@@ -253,6 +349,10 @@ function setupMinesweeper(app, html) {
         cell.textContent = "⚑";
       }
       cell.addEventListener("click", () => {
+        if (st.mineFlagMode) {
+          if (!g.over && !g.revealed[y][x]) { g.flagged[y][x] = !g.flagged[y][x]; draw(); }
+          return;
+        }
         if (g.over || g.flagged[y][x]) return;
         if (g.firstClick) { placeMines(x, y); g.firstClick = false; g.startTs = Date.now(); }
         if (g.grid[y][x] === -1) {
@@ -298,6 +398,11 @@ function setupMinesweeper(app, html) {
     st.mine = fresh();
     g = st.mine;
     draw();
+  });
+  html.find("[data-action='mine-flag-mode']").on("click", ev => {
+    st.mineFlagMode = !st.mineFlagMode;
+    ev.currentTarget.classList.toggle("active", st.mineFlagMode);
+    ev.currentTarget.setAttribute("aria-pressed", String(st.mineFlagMode));
   });
   draw();
 }
@@ -677,7 +782,17 @@ function setupNetDuel(html) {
   addDocHandler("keyup", (ev) => {
     if (["w", "s", "ArrowUp", "ArrowDown"].includes(ev.key) && _duelState) _duelState.keys = 0;
   });
-  canvas.addEventListener("pointerdown", () => { if (_duelState?.dead) reset(); });
+  const movePaddle = ev => {
+    if (_duelState && !_duelState.dead) {
+      _duelState.py = Math.max(PH / 2, Math.min(H - PH / 2, pointerFraction(ev, canvas).fy * H));
+    }
+  };
+  canvas.addEventListener("pointerdown", ev => {
+    canvas.setPointerCapture(ev.pointerId);
+    if (_duelState?.dead) reset();
+    else movePaddle(ev);
+  });
+  canvas.addEventListener("pointermove", movePaddle);
 
   html.find("[data-action='game-reset']").on("click", () => reset());
 
@@ -867,7 +982,9 @@ function setup2077(html) {
   const root = html.find(".agentos-2077-board")[0];
   const status = html.find(".agentos-game-status")[0];
   if (!root) return;
-  const N = 4, CELL = 68, GAP = 6;
+  const N = 4, GAP = 6;
+  const CELL = (root.clientWidth - 16 - GAP * (N - 1)) / N;
+  root.style.setProperty("--tile-size", `${CELL}px`);
 
   /* Static background cells (once per render) */
   if (!root.querySelector(".agentos-2077-bg")) {

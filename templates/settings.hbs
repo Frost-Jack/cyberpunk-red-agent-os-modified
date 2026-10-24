@@ -37,6 +37,11 @@
     <span>{{localize "AGENTOS.Settings.MessageIndicator"}}</span>
   </label>
 
+  <label class="agentos-check row">
+    <input type="checkbox" name="set-hide-scores" {{#if arcadeScoresHidden}}checked{{/if}}>
+    <span>{{localize "AGENTOS.Settings.HideArcadeScores"}}</span>
+  </label>
+
   <div class="agentos-radio-vol settings">
     <i class="fas fa-radio"></i>
     <span class="agentos-radio-vol-label">{{localize "AGENTOS.Settings.RadioVolume"}}</span>

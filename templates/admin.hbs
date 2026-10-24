@@ -1,4 +1,5 @@
 <div class="agentos-admin">
+  <button type="button" class="agentos-btn" data-action="open-app" data-app-id="backup"><i class="fas fa-database"></i> {{localize "AGENTOS.Backup.Title"}}</button>
 
   <h3 class="agentos-section-title"><i class="fas fa-map"></i> {{localize "AGENTOS.Admin.MapSection"}}</h3>
   <div class="agentos-field-row">
@@ -9,8 +10,10 @@
   <h3 class="agentos-section-title"><i class="fas fa-bag-shopping"></i> {{localize "AGENTOS.Admin.StoreSection"}}</h3>
 
   <div class="agentos-field-row">
-    <label>{{localize "AGENTOS.Admin.MaxPrice"}}</label>
-    <input type="number" name="admin-max-price" min="0" value="{{maxPrice}}">
+    <label>{{localize "AGENTOS.Admin.MaxRarity"}}</label>
+    <select name="admin-max-rarity" class="agentos-select">
+      {{#each rarities}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+    </select>
   </div>
 
   <div class="agentos-field-row">
@@ -25,13 +28,27 @@
   {{#each playerPrices}}
   <div class="agentos-field-row agentos-player-pricing">
     <label>{{this.name}}</label>
-    <input type="number" min="0" value="{{this.value}}" placeholder="{{localize "AGENTOS.Admin.CapPh"}}"
-           data-action="admin-player-price" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.PlayerMaxPrice"}}">
+    <select class="agentos-select" data-action="admin-player-rarity" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.MaxRarity"}}">
+      {{#each this.rarities}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+    </select>
     <input type="number" value="{{this.markup}}" placeholder="{{localize "AGENTOS.Admin.MarkupPh"}}"
            data-action="admin-player-markup" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.Markup"}} %">
   </div>
   {{/each}}
   {{/if}}
+  <details class="agentos-store-legacy">
+    <summary>{{localize "AGENTOS.Admin.DeprecatedPrice"}}</summary>
+    <div class="agentos-field-row">
+      <label>{{localize "AGENTOS.Admin.MaxPrice"}}</label>
+      <input type="number" name="admin-max-price" min="0" value="{{maxPrice}}">
+    </div>
+    {{#each playerPrices}}
+    <div class="agentos-field-row">
+      <label>{{this.name}}</label>
+      <input type="number" min="0" value="{{this.value}}" placeholder="{{localize "AGENTOS.Admin.CapPh"}}" data-action="admin-player-price" data-user-id="{{this.id}}" title="{{localize "AGENTOS.Admin.PlayerMaxPrice"}}">
+    </div>
+    {{/each}}
+  </details>
   <div class="agentos-field-row">
     <label>{{localize "AGENTOS.Admin.SourceFilter"}}</label>
     <select name="admin-source-filter" class="agentos-select">

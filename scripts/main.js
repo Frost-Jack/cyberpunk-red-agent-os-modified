@@ -1,10 +1,12 @@
 /* Cyberpunk Agent OS — entry point: settings, hooks, notifications. */
 
-import { MODULE_ID, TPL, DEFAULT_HOUSING, DEFAULT_LIFESTYLES, DEFAULT_TRAUMA } from "./constants.js";
+import { MODULE_ID, TPL, DEFAULT_HOUSING, DEFAULT_LIFESTYLES, DEFAULT_TRAUMA, PACK_CATEGORIES } from "./constants.js";
 import { AgentAudio } from "./audio.js";
 import { initSocket } from "./socket.js";
 import { AgentOSApplication } from "./agent-app.js";
 import { syncBroadcast, applyVolume } from "./apps/radio.js";
+import { invalidateCatalog } from "./apps/store.js";
+import { muted, history as notificationHistory } from "./apps/notifications.js";
 
 const WORLD_OBJECTS = {
   agentChats: {},
@@ -27,6 +29,9 @@ const WORLD_OBJECTS = {
   libraryTree: [],
   toolMacros: [],
   chromeLayout: {},
+  operationReceipts: {},
+  agentNotifications: {},
+  monthlyNotices: {},
   radioBroadcast: { active: false, slug: "", playing: false, ts: 0 }
 };
 
@@ -65,6 +70,12 @@ Hooks.once("init", () => {
   game.settings.register(MODULE_ID, "radioVolume", {
     scope: "client", config: false, type: Number, default: 60
   });
+  game.settings.register(MODULE_ID, "toktikVolume", {
+    scope: "client", config: false, type: Number, default: 100
+  });
+  game.settings.register(MODULE_ID, "toktikLastStart", {
+    scope: "client", config: false, type: String, default: ""
+  });
   game.settings.register(MODULE_ID, "mapMarkerScale", {
     scope: "client", config: false, type: Number, default: 1
   });
@@ -78,9 +89,9 @@ Hooks.once("ready", async () => {
   globalThis.AgentOS = { ui: new AgentOSApplication() };
 
   await loadTemplates([
-    "shell", "home", "chat", "chat-thread", "chat-row", "datapool", "datapool-folder", "datapool-row", "wallet",
+    "shell", "home", "chat", "chat-thread", "chat-row", "datapool", "datapool-folder", "datapool-row", "shard-reader", "wallet",
     "contacts", "contact-folder", "contact-row", "map", "bio", "chrome", "chrome-item", "chrome-panel", "chrome-merged-stub", "radio", "store", "id", "ncpd", "ncpd-folder", "ncpd-card", "garden",
-    "library", "tools", "tools-card", "arcade", "admin", "settings"
+    "library", "tools", "tools-card", "arcade", "arcade-network", "admin", "settings", "backup", "notifications", "toktik"
   ].map(TPL));
 
   // Seed default Housing / Lifestyle options once (GM only).
@@ -122,48 +133,109 @@ Hooks.on("getSceneControlButtons", (controls) => {
   });
 });
 
-/* Re-render the open Agent when any of our world settings changes. */
-const _rerenderDebounced = foundry.utils.debounce(() => {
-  const app = globalThis.AgentOS?.ui;
-  if (app?.rendered) app.render(false);
+/* Only refresh views that consume the changed data. Home owns the chat badge. */
+const SETTING_VIEWS = {
+  agentChats: ["home", "chat"], agentMessages: ["home", "chat"], chatFolders: ["chat"],
+  gardenContacts: ["garden", "chat", "datapool", "wallet"],
+  agentShards: ["datapool"], datapoolFolders: ["datapool"],
+  personalContacts: ["contacts", "map"], contactFolders: ["contacts", "map"],
+  mapMarkers: ["map", "contacts"], mapImagePath: ["map", "contacts", "admin"],
+  ncpdRecords: ["ncpd"], ncpdFolders: ["ncpd"],
+  idProfiles: ["home", "id", "bio", "chrome", "chat", "wallet", "datapool"],
+  housingOptions: ["id", "wallet"], lifestyleOptions: ["id", "wallet"], traumaOptions: ["id", "bio", "wallet"],
+  monthlyNotices: ["wallet"], agentNotifications: ["notifications", "home"],
+  storeConfig: ["store", "admin"], libraryTree: ["library"], toolMacros: ["tools"],
+  chromeLayout: ["chrome"], radioBroadcast: ["radio"]
+};
+
+const _rerenderDebounced = foundry.utils.debounce((target, view) => {
+  // A delayed refresh must not interrupt a view the user has since opened.
+  if (target?.rendered && target.currentApp === view) target.render(false);
 }, 100);
+
+function refreshViews(views) {
+  const app = globalThis.AgentOS?.ui;
+  if (!app || (!app.rendered && app._state !== Application.RENDER_STATES.RENDERING)) return;
+  if (views && !views.includes(app.currentApp || "home") && !(app.currentApp === "chat" && views.includes(app.sideApp?.currentApp))) return;
+  _rerenderDebounced(app, app.currentApp);
+}
 
 Hooks.on("updateSetting", (setting) => {
   if (!setting.key?.startsWith(`${MODULE_ID}.`)) return;
   // GM radio takeover: reconcile local playback with the broadcast even when
   // the Radio app isn't open, so players follow the GM's station live.
   if (setting.key === `${MODULE_ID}.radioBroadcast`) syncBroadcast();
-  _rerenderDebounced();
+  const key = setting.key.slice(MODULE_ID.length + 1);
+  if (key === "agentNotifications") refreshNotificationBadge();
+  // Visibility/jamming changes affect the shell itself, regardless of the view.
+  // Local sliders/checkboxes already update their own DOM without a re-render.
+  refreshViews(key === "appConfig" ? null : (SETTING_VIEWS[key] || []));
 });
 
 /* Radio volume tracks Foundry's global music (playlist) volume — re-apply the
  * scaled stream volume live whenever the player drags that slider. */
 Hooks.on("globalPlaylistVolumeChanged", () => applyVolume());
 
+/* User flags already sync through Foundry; don't interrupt a running game. */
+Hooks.on("updateUser", (user, changes) => {
+  const flags = changes.flags?.[MODULE_ID];
+  if (!flags) return;
+  if (user.id === game.user.id && ("notificationRead" in flags || "notificationCleared" in flags)) refreshNotificationBadge();
+  if (user.id === game.user.id && "radioIgnoreBroadcast" in flags) syncBroadcast();
+  if (!("arcadeScores" in flags || "arcadeScoresHidden" in flags)) return;
+  const app = globalThis.AgentOS?.ui;
+  if (app?.rendered && app.currentApp === "arcade" && !app.state.game) refreshViews(["arcade"]);
+});
+
+function refreshNotificationBadge() {
+  const badge = globalThis.AgentOS?.ui?.element?.find(".agentos-notification-count")[0];
+  if (!badge) return;
+  const count = notificationHistory().filter(n => !n.read).length;
+  badge.textContent = String(count); badge.hidden = !count;
+}
+
+function actorIsDisplayed(actor, app) {
+  if (!actor) return false;
+  const selected = app.currentApp === "store" ? app.state.buyerUuid : app.state.actorUuid;
+  if (!game.user.isGM) return game.user.character?.uuid === actor.uuid;
+  if (selected) return selected === actor.uuid;
+  if (app.currentApp === "store") return false;
+  return game.users.some(u => !u.isGM && u.character?.uuid === actor.uuid);
+}
+
 /* Live wallet / biomonitor sync. */
 Hooks.on("updateActor", (actor) => {
   const app = globalThis.AgentOS?.ui;
-  if (!app?.rendered) return;
-  if (["wallet", "bio"].includes(app.currentApp)) _rerenderDebounced();
-  // Installing a foundational cyberware updates the actor's installedItems.list.
-  if (app.currentApp === "chrome") _rerenderDebounced();
+  if (!app?.rendered || !["wallet", "bio", "chrome", "store"].includes(app.currentApp)) return;
+  if (actorIsDisplayed(actor, app)) refreshViews([app.currentApp]);
 });
 
-/* Live Chrome sync — installing / uninstalling / editing cyberware fires
- * item hooks on the actor's embedded items. Refresh the implant viewer. */
-const _chromeRefresh = (item) => {
+/* Compendium edits invalidate the catalog. Embedded item edits refresh only
+ * the implant viewer for the actor currently on screen. */
+const _itemRefresh = (item) => {
+  if (item?.pack && (PACK_CATEGORIES[item.pack] || (game.settings.get(MODULE_ID, "storeConfig")?.extraPacks || []).includes(item.pack))) {
+    invalidateCatalog();
+    refreshViews(["store"]);
+  }
   const app = globalThis.AgentOS?.ui;
   if (!app?.rendered || app.currentApp !== "chrome") return;
-  if (item?.type === "cyberware" || item?.parent?.documentName === "Actor") _rerenderDebounced();
+  if (item?.parent?.documentName === "Actor" && actorIsDisplayed(item.parent, app)) refreshViews(["chrome"]);
 };
-Hooks.on("createItem", _chromeRefresh);
-Hooks.on("updateItem", _chromeRefresh);
-Hooks.on("deleteItem", _chromeRefresh);
+Hooks.on("createItem", _itemRefresh);
+Hooks.on("updateItem", _itemRefresh);
+Hooks.on("deleteItem", _itemRefresh);
 
 /* Client-side notifications (fired locally on GM, via socket elsewhere). */
+const shownNotifications = new Set();
 Hooks.on(`${MODULE_ID}.notify`, async (data) => {
   const app = globalThis.AgentOS?.ui;
   const isGM = game.user.isGM;
+  if (data.eventId) {
+    if (shownNotifications.has(data.eventId)) return;
+    shownNotifications.add(data.eventId);
+    while (shownNotifications.size > 500) shownNotifications.delete(shownNotifications.values().next().value);
+  }
+  if (app?.isDisabled || muted(data)) return;
 
   const forMe = (ids) => Array.isArray(ids) && ids.includes(game.user.id);
 
@@ -172,7 +244,7 @@ Hooks.on(`${MODULE_ID}.notify`, async (data) => {
     const isRecipient = forMe(data.participantUserIds) || isGM;
     if (!isRecipient) return;
     // The author's own client (player OR GM speaking as an NPC) gets no ping.
-    if (data.authorUserId === game.user.id) { _rerenderDebounced(); return; }
+    if (data.authorUserId === game.user.id) { refreshViews(["home", "chat"]); return; }
     const viewingThread = app?.rendered && app.currentApp === "chat" && app.state.chatId === data.chatId;
     if (viewingThread) {
       const { markChatRead } = await import("./data.js");
@@ -186,29 +258,38 @@ Hooks.on(`${MODULE_ID}.notify`, async (data) => {
         ui2.render(true);
       });
     }
-    _rerenderDebounced();
+    refreshViews(["home", "chat"]);
   } else if (data.kind === "shard") {
     if (forMe(data.recipientUserIds)) {
       AgentAudio.play("message");
       showToast(game.i18n.localize("AGENTOS.Notify.NewShard"), data.title);
     }
-    _rerenderDebounced();
+    refreshViews(["datapool"]);
   } else if (data.kind === "transfer") {
     if (forMe(data.recipientUserIds)) {
       AgentAudio.play("cash");
       showToast(game.i18n.localize("AGENTOS.Notify.TransferIn"),
         `${data.fromName}: ${data.amount}€$`);
     }
-    _rerenderDebounced();
+    if (forMe(data.recipientUserIds) || isGM) refreshViews(["wallet", "store"]);
   } else if (data.kind === "purchase") {
     if (forMe(data.recipientUserIds)) AgentAudio.play("cash");
-    _rerenderDebounced();
+    if (forMe(data.recipientUserIds) || isGM) refreshViews(["wallet", "store"]);
+  } else if (["monthly", "object", "invite"].includes(data.kind)) {
+    if (forMe(data.recipientUserIds)) {
+      AgentAudio.play("message");
+      const body = data.kind === "monthly" ? game.i18n.format("AGENTOS.Expenses.PaymentReminder", { amount: data.amount ?? 0 }) : data.title || data.period || "";
+      showToast(game.i18n.localize(`AGENTOS.Notifications.Category.${data.kind}`), body, () => {
+        app?.openApp("notifications"); app?.render(true);
+      });
+    }
+    refreshViews(["notifications", "wallet"]);
   } else if (data.kind === "contactShared") {
     if (forMe(data.recipientUserIds)) {
       AgentAudio.play("message");
       showToast(game.i18n.localize("AGENTOS.Notify.ContactShared"), data.name);
     }
-    _rerenderDebounced();
+    if (forMe(data.recipientUserIds) || isGM) refreshViews(["contacts", "map"]);
   }
 });
 

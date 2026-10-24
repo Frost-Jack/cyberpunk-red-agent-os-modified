@@ -12,6 +12,7 @@ const SYMBOLS = [
   "☰", "☱", "☲", "☳", "☴", "☵", "☶", "☷",
   "⣹", "⣺", "⣻", "⣼", "⣽", "⣾", "⣿"
 ];
+const startingCalls = new Map();
 
 function callingSet() {
   globalThis.__AgentDeviceCalling = globalThis.__AgentDeviceCalling || new Set();
@@ -36,14 +37,14 @@ function firstAvailable(...candidates) {
 }
 
 /** Ring the tokens of the given actor uuids on the current scene (all clients). */
-export function triggerCall(actorUuids) {
+export function triggerCall(actorUuids, chatId) {
   if (!vfxEnabled()) return;
   const tokens = (canvas?.tokens?.placeables || []).filter(t => actorUuids.includes(t.actor?.uuid));
   for (const tok of tokens) {
-    game.socket.emit(SOCKET_NAME, { action: "holophoneStart", tokenId: tok.id, sceneId: canvas.scene?.id });
+    game.socket.emit(SOCKET_NAME, { action: "holophoneStart", chatId, tokenId: tok.id, sceneId: canvas.scene?.id });
     runCallEffectLocal(tok.id, canvas.scene?.id);
     setTimeout(() => {
-      game.socket.emit(SOCKET_NAME, { action: "holophoneStop", tokenId: tok.id });
+      game.socket.emit(SOCKET_NAME, { action: "holophoneStop", chatId, tokenId: tok.id });
       stopCallEffectLocal(tok.id);
     }, 15000);
   }
@@ -141,7 +142,11 @@ export async function runCallEffectLocal(tokenId, sceneId) {
       }
     }
 
-    await seq.play();
+    const starting = seq.play();
+    startingCalls.set(tok.id, starting);
+    try { await starting; }
+    finally { if (startingCalls.get(tok.id) === starting) startingCalls.delete(tok.id); }
+    if (!calling.has(tok.id)) return;
     await globalThis.Sequencer.Helpers.wait(750);
 
     // Symbol-scroll loop: glyphs "type" in a 12-per-row grid until stopped.
@@ -193,8 +198,16 @@ export async function stopCallEffectLocal(tokenId) {
   // Removing the id makes the symbol loop exit; it performs its own sweep.
   callingSet().delete(tokenId);
   if (!sequencerReady()) return;
+  // Sequencer must finish creating media sprites before they can be destroyed.
+  try { await startingCalls.get(tokenId); } catch (e) { /* start failure cleans up below */ }
   const tok = canvas.tokens?.get(tokenId);
   if (!tok) return;
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const effects = ["AgentCall", "AgentCallText"].flatMap(name => globalThis.Sequencer.EffectManager.getEffects({ name, object: tok }));
+    if (!effects.some(effect => effect.ready === false)) break;
+    await globalThis.Sequencer.Helpers.wait(50);
+  }
   try {
     await globalThis.Sequencer.EffectManager.endEffects({ name: "AgentCall", object: tok });
     await globalThis.Sequencer.EffectManager.endEffects({ name: "AgentCallText", object: tok });

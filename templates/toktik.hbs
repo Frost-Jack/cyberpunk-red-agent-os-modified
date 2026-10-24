@@ -1,0 +1,17 @@
+<div class="agentos-toktik">
+  {{#if hasClips}}
+  <div class="agentos-toktik-stage"><span class="agentos-toktik-status" role="status" hidden></span></div>
+  <footer class="agentos-toktik-footer">
+    <strong class="agentos-toktik-product">{{clip.product}}</strong>
+    <div class="agentos-toktik-controls">
+      <div class="agentos-toktik-navigation">
+        <button type="button" data-action="toktik-previous" title="{{localize "AGENTOS.TokTik.Previous"}}" aria-label="{{localize "AGENTOS.TokTik.Previous"}}"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+        <button type="button" data-action="toktik-next" title="{{localize "AGENTOS.TokTik.Next"}}" aria-label="{{localize "AGENTOS.TokTik.Next"}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+      </div>
+      <label class="agentos-toktik-volume" title="{{localize "AGENTOS.TokTik.Volume"}}"><i class="fas fa-volume-high" aria-hidden="true"></i><input type="range" name="toktik-volume" min="0" max="100" step="1" value="{{volume}}" style="--toktik-volume: {{volume}}%;" data-agentos-controlled aria-label="{{localize "AGENTOS.TokTik.Volume"}}"><span class="agentos-toktik-volume-value">{{volume}}%</span></label>
+    </div>
+  </footer>
+  {{else}}
+  <p class="agentos-empty">{{error}}</p>
+  {{/if}}
+</div>

@@ -1,6 +1,7 @@
 {{!-- One data-shard row. Draggable so it can be filed into a folder. --}}
 <li class="agentos-list-row" data-action="shard-open" data-shard-id="{{this.id}}"
     draggable="true" data-shard-drag="{{this.id}}">
+  <button type="button" class="agentos-icon-btn" data-action="share-object" data-object-kind="shard" data-object-id="{{id}}" title="{{localize "AGENTOS.Navigation.Share"}}"><i class="fas fa-share"></i></button>
   <span class="agentos-shard-icon {{#if this.isAuthored}}authored{{else}}received{{/if}}">
     <i class="fas {{#if this.isAuthored}}fa-file-pen{{else}}fa-file-arrow-down{{/if}}"></i>
   </span>

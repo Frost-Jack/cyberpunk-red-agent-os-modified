@@ -32,6 +32,7 @@ export const MARKER_ICONS = [
 export async function getData(app) {
   const isGM = game.user.isGM;
   const st = app.state;
+  const focus = Number.isFinite(st.focusX) && Number.isFinite(st.focusY) ? { x: st.focusX, y: st.focusY } : null;
   const pins = Data.contactsForUser(game.user.id, isGM)
     .filter(c => c.hasPin)
     .map(c => ({
@@ -49,7 +50,7 @@ export async function getData(app) {
   const editMarker = st.editMarker || null;
   const allMarkers = Data.getWorld("mapMarkers") || [];
   return {
-    isGM,
+    isGM, focus,
     markerScale: markerScaleSetting(),
     mapImage: game.settings.get(MODULE_ID, "mapImagePath"),
     pins,
@@ -214,6 +215,15 @@ export function activateListeners(app, html) {
 
   const viewport = html.find(".agentos-map-viewport")[0];
   const container = html.find(".agentos-map-container")[0];
+  if (Number.isFinite(st.focusX) && Number.isFinite(st.focusY) && !st.focusCentered) {
+    const image = container?.querySelector("img");
+    const center = () => {
+      st.mapX = (0.5 - st.focusX / 100) * container.offsetWidth * st.mapZoom;
+      st.mapY = (0.5 - st.focusY / 100) * container.offsetHeight * st.mapZoom;
+      st.focusCentered = true; applyTransform(st, container);
+    };
+    if (image?.complete) center(); else image?.addEventListener("load", center, { once: true });
+  }
 
   /* Marker-size slider (bottom-left): scales pins/markers via a CSS variable,
    * live and without a re-render. The chosen scale is remembered per user. */

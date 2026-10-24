@@ -1,3 +1,32 @@
+<nav class="agentos-net-tabs">
+  <button type="button" class="agentos-cat {{#unless network}}active{{/unless}}" data-action="arcade-tab" data-tab="solo">{{localize "AGENTOS.Multiplayer.Solo"}}</button>
+  <button type="button" class="agentos-cat {{#if network}}active{{/if}}" data-action="arcade-tab" data-tab="network"><i class="fas fa-users"></i> {{localize "AGENTOS.Multiplayer.Network"}}</button>
+</nav>
+{{#if network}}
+  {{> "modules/cyberpunk-red-agent-os-modified/templates/arcade-network.hbs" networkData}}
+{{else}}
+{{#if leaderboard}}
+<div class="agentos-arcade-leaderboard">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-icon-btn" data-action="arcade-leaderboard-back" title="{{localize "AGENTOS.Common.Home"}}"><i class="fas fa-arrow-left"></i></button>
+    <span class="agentos-arcade-title">{{localize "AGENTOS.Arcade.Leaderboard"}}</span>
+  </div>
+  <select name="arcade-board-game" class="agentos-select">
+    {{#each boardGames}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.title}}</option>{{/each}}
+  </select>
+  {{#if leaders.length}}
+  <ol class="agentos-arcade-scores">
+    {{#each leaders}}
+    <li class="{{#if this.mine}}mine{{/if}}">
+      <span class="agentos-score-rank">{{this.rank}}</span>
+      <span class="agentos-score-name">{{this.name}}{{#if this.gm}} <small>GM</small>{{/if}}</span>
+      <strong>{{this.score}}</strong>
+    </li>
+    {{/each}}
+  </ol>
+  {{else}}<p class="agentos-empty">{{localize "AGENTOS.Arcade.NoScores"}}</p>{{/if}}
+</div>
+{{else}}
 {{#if game}}
 
 <div class="agentos-arcade-game">
@@ -11,6 +40,7 @@
   <div class="agentos-game-status">0</div>
 
   {{#if (agEq game "mine")}}
+  <button type="button" class="agentos-cat {{#if mineFlagMode}}active{{/if}}" data-action="mine-flag-mode" aria-pressed="{{mineFlagMode}}"><i class="fas fa-flag"></i> {{localize "AGENTOS.Arcade.FlagMode"}}</button>
   <div class="agentos-mine-board"></div>
   <p class="agentos-hint">{{localize "AGENTOS.Arcade.MineHint"}}</p>
   {{/if}}
@@ -89,10 +119,25 @@
   <canvas class="agentos-game-canvas" width="300" height="300"></canvas>
   <p class="agentos-hint">{{localize "AGENTOS.Arcade.SprawlHint"}}</p>
   {{/if}}
+  {{#if touchDirections}}
+  <div class="agentos-arcade-controls {{#unless touchVertical}}horizontal-only{{/unless}}" aria-label="{{localize "AGENTOS.Arcade.Controls"}}">
+    {{#if touchVertical}}
+    <button type="button" data-arcade-key="ArrowUp" aria-label="{{localize "AGENTOS.Arcade.Up"}}"><i class="fas fa-chevron-up"></i></button>
+    <button type="button" data-arcade-key="ArrowDown" aria-label="{{localize "AGENTOS.Arcade.Down"}}"><i class="fas fa-chevron-down"></i></button>
+    {{/if}}
+    {{#if touchHorizontal}}
+    <button type="button" data-arcade-key="ArrowLeft" aria-label="{{localize "AGENTOS.Arcade.Left"}}"><i class="fas fa-chevron-left"></i></button>
+    <button type="button" data-arcade-key="ArrowRight" aria-label="{{localize "AGENTOS.Arcade.Right"}}"><i class="fas fa-chevron-right"></i></button>
+    {{/if}}
+  </div>
+  {{/if}}
 </div>
 
 {{else}}
 
+<div class="agentos-toolbar">
+  <button type="button" class="agentos-btn" data-action="arcade-leaderboard"><i class="fas fa-ranking-star"></i> {{localize "AGENTOS.Arcade.Leaderboard"}}</button>
+</div>
 <div class="agentos-arcade-menu">
   {{#each games}}
   <button type="button" class="agentos-arcade-card" data-action="arcade-pick" data-game="{{this.id}}">
@@ -103,4 +148,6 @@
   {{/each}}
 </div>
 
+{{/if}}
+{{/if}}
 {{/if}}

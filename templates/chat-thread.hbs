@@ -6,12 +6,22 @@
       <span>{{chatName}}</span>
       <small>{{participants.length}} {{localize "AGENTOS.Chat.Members"}}</small>
     </div>
+    <button type="button" class="agentos-icon-btn" data-action="chat-search-toggle" title="{{localize "AGENTOS.Chat.SearchMessages"}}"><i class="fas fa-magnifying-glass"></i></button>
+    <button type="button" class="agentos-icon-btn" data-action="chat-mute" title="{{localize "AGENTOS.Notifications.Mute"}}"><i class="fas {{#if muted}}fa-bell-slash{{else}}fa-bell{{/if}}"></i></button>
+    <button type="button" class="agentos-icon-btn" data-action="chat-side-toggle" title="{{localize "AGENTOS.Navigation.Alongside"}}"><i class="fas fa-columns"></i></button>
     <button type="button" class="agentos-icon-btn" data-action="chat-call" title="{{localize "AGENTOS.Chat.Call"}}"><i class="fas fa-phone"></i></button>
     {{#if isGM}}
     <button type="button" class="agentos-icon-btn" data-action="chat-rename" title="{{localize "AGENTOS.Chat.EditChat"}}"><i class="fas fa-pen"></i></button>
     <button type="button" class="agentos-icon-btn" data-action="chat-participants" title="{{localize "AGENTOS.Chat.Participants"}}"><i class="fas fa-users"></i></button>
     {{/if}}
   </header>
+
+  <div class="agentos-message-search" {{#unless searchOpen}}hidden{{/unless}}>
+    <input type="search" name="message-search" value="{{messageQuery}}" placeholder="{{localize "AGENTOS.Chat.SearchMessages"}}" aria-label="{{localize "AGENTOS.Chat.SearchMessages"}}">
+    <span class="agentos-chat-match-count">0/0</span>
+    <button type="button" class="agentos-icon-btn" data-action="chat-search-step" data-step="-1" title="{{localize "AGENTOS.Chat.PreviousMatch"}}"><i class="fas fa-chevron-up"></i></button>
+    <button type="button" class="agentos-icon-btn" data-action="chat-search-step" data-step="1" title="{{localize "AGENTOS.Chat.NextMatch"}}"><i class="fas fa-chevron-down"></i></button>
+  </div>
 
   {{#if editMsg}}
   <div class="agentos-modal">
@@ -86,6 +96,7 @@
   {{/if}}
 
   <div class="agentos-chat-scroll">
+    {{#each pinned}}<button type="button" class="agentos-btn" data-action="msg-jump" data-msg-id="{{id}}"><i class="fas fa-thumbtack"></i> {{preview}}</button>{{/each}}
     {{#each messages}}
     <div class="agentos-msg-row {{#if this.isSelf}}self{{/if}}" data-msg-id="{{this.id}}">
       {{#unless this.isSelf}}
@@ -94,6 +105,8 @@
       <div class="agentos-bubble-wrap">
         {{#unless this.isSelf}}<div class="agentos-msg-sender">{{this.name}}</div>{{/unless}}
         <div class="agentos-bubble">
+          {{#if replyTo}}<button type="button" class="agentos-quote" data-action="msg-jump" data-msg-id="{{replyTo.id}}"><strong>{{replyTo.name}}</strong><span>{{replyTo.text}}</span></button>{{/if}}
+          {{#if card}}<div class="agentos-attachment-card"><button type="button" class="agentos-btn" data-action="card-open" data-msg-id="{{id}}"><i class="fas fa-folder-open"></i> {{attachment.title}}</button>{{#if importable}}<button type="button" class="agentos-icon-btn" data-action="card-import" data-msg-id="{{id}}" {{#if imported}}disabled{{/if}} title="{{#if imported}}{{localize "AGENTOS.Chat.Added"}}{{else}}{{#if (agEq attachment.kind "shard")}}{{localize "AGENTOS.Chat.Download"}}{{else}}{{localize "AGENTOS.Chat.AddContact"}}{{/if}}{{/if}}"><i class="fas {{#if imported}}fa-check{{else}}fa-download{{/if}}"></i></button>{{/if}}</div>{{/if}}
           {{#if this.attachment}}
             {{#if (agEq this.attachment.kind "image")}}
               <img class="agentos-attach-img" src="{{this.attachment.src}}" alt=""
@@ -116,12 +129,16 @@
           {{#if this.text}}<div class="agentos-msg-text">{{this.text}}</div>{{/if}}
           <span class="agentos-msg-time">{{agTime this.ts}}</span>
         </div>
+        <div class="agentos-message-actions"><button type="button" class="agentos-icon-btn" data-action="msg-reply" data-msg-id="{{id}}" title="{{localize "AGENTOS.Chat.Reply"}}"><i class="fas fa-reply"></i></button>{{#each reactionsView}}<button type="button" class="agentos-reaction {{#if active}}active{{/if}}" data-action="msg-react" data-msg-id="{{../id}}" data-reaction="{{reaction}}">{{reaction}}{{#if count}} {{count}}{{/if}}</button>{{/each}}{{#if @root.isGM}}<button type="button" class="agentos-icon-btn" data-action="msg-pin" data-msg-id="{{id}}" title="{{localize "AGENTOS.Chat.Pin"}}"><i class="fas fa-thumbtack"></i></button>{{/if}}</div>
       </div>
     </div>
     {{/each}}
   </div>
 
+  <button type="button" class="agentos-cat agentos-chat-latest" data-action="chat-latest" {{#unless showLatest}}hidden{{/unless}}><i class="fas fa-chevron-down"></i> {{localize "AGENTOS.Chat.Latest"}}</button>
   <footer class="agentos-compose">
+    {{#if uploadFailed}}<button type="button" class="agentos-btn" data-action="chat-upload-retry">{{localize "AGENTOS.Notify.UploadFailed"}} · {{localize "AGENTOS.Operations.Retry"}}</button>{{/if}}
+    {{#if reply}}<div class="agentos-attach-chip"><span>{{reply.name}}: {{reply.text}}</span><button type="button" class="agentos-icon-btn" data-action="reply-clear" title="{{localize "AGENTOS.Common.Cancel"}}"><i class="fas fa-xmark"></i></button></div>{{/if}}
     {{#if uploading}}
     <div class="agentos-attach-chip">
       <i class="fas fa-spinner fa-spin"></i>
@@ -131,7 +148,7 @@
     {{#if attachment}}
     <div class="agentos-attach-chip">
       <i class="fas {{#if (agEq attachment.kind "image")}}fa-image{{/if}}{{#if (agEq attachment.kind "audio")}}fa-music{{/if}}{{#if (agEq attachment.kind "video")}}fa-film{{/if}}"></i>
-      <span>{{attachment.src}}</span>
+      <span>{{attachmentLabel}}</span>
       <button type="button" class="agentos-icon-btn" data-action="chat-attach-clear"><i class="fas fa-xmark"></i></button>
     </div>
     {{/if}}
@@ -165,8 +182,8 @@
       <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="image" title="{{localize "AGENTOS.Chat.AttachImage"}}"><i class="fas fa-image"></i></button>
       <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="audio" title="{{localize "AGENTOS.Chat.AttachAudio"}}"><i class="fas fa-music"></i></button>
       <button type="button" class="agentos-icon-btn" data-action="chat-attach" data-kind="video" title="{{localize "AGENTOS.Chat.AttachVideo"}}"><i class="fas fa-film"></i></button>
-      <textarea name="chat-input" rows="1" placeholder="{{localize "AGENTOS.Chat.InputPlaceholder"}}">{{draft}}</textarea>
-      <button type="button" class="agentos-icon-btn send" data-action="chat-send"><i class="fas fa-paper-plane"></i></button>
+      <textarea name="chat-input" rows="1" maxlength="5000" placeholder="{{localize "AGENTOS.Chat.InputPlaceholder"}}">{{draft}}</textarea>
+      <button type="button" class="agentos-icon-btn send" data-action="chat-send" {{#if sending}}disabled{{/if}} title="{{localize "AGENTOS.Chat.Send"}}"><i class="fas {{#if sending}}fa-spinner fa-spin{{else}}fa-paper-plane{{/if}}"></i></button>
     </div>
     {{else}}
     <p class="agentos-hint">{{#if isGM}}{{localize "AGENTOS.Chat.GmNoNpcHint"}}{{else}}{{localize "AGENTOS.Chat.NotMemberHint"}}{{/if}}</p>

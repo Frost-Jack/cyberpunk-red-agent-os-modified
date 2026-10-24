@@ -7,6 +7,7 @@
       {{#if isAuthored}}{{localize "AGENTOS.Data.Authored"}}{{else}}{{localize "AGENTOS.Data.Received"}}{{/if}}
     </span>
     <span class="agentos-spacer"></span>
+    <button type="button" class="agentos-icon-btn" data-action="shard-popout" title="{{localize "AGENTOS.Data.OpenWindow"}}"><i class="fas fa-up-right-from-square"></i></button>
     <button type="button" class="agentos-icon-btn" data-action="shard-move" title="{{localize "AGENTOS.Data.MoveToFolder"}}"><i class="fas fa-folder-tree"></i></button>
     {{#if canEdit}}
     <button type="button" class="agentos-icon-btn" data-action="shard-edit" title="{{localize "AGENTOS.Data.EditShard"}}"><i class="fas fa-pen"></i></button>
@@ -37,7 +38,11 @@
   </div>
   {{/if}}
 
+  {{#if isHtml}}
+  <iframe class="agentos-shard-html" title="{{shard.title}}" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>
+  {{else}}
   <div class="agentos-shard-body">{{{bodyHtml}}}</div>
+  {{/if}}
 </div>
 
 {{#if sending}}
@@ -137,7 +142,14 @@
       <option value="markdown" {{#if (agEq compose.format "markdown")}}selected{{/if}}>Markdown</option>
       <option value="html" {{#if (agEq compose.format "html")}}selected{{/if}}>HTML</option>
     </select>
-    <textarea name="shard-body" rows="8" placeholder="{{localize "AGENTOS.Data.BodyPlaceholder"}}">{{compose.body}}</textarea>
+    <div class="agentos-toolbar" role="tablist" aria-label="{{localize "AGENTOS.Data.Preview"}}">
+      <button type="button" class="agentos-cat {{#unless composePreview}}active{{/unless}}" role="tab" aria-selected="{{#if composePreview}}false{{else}}true{{/if}}" data-action="shard-compose-mode" data-mode="editor">{{localize "AGENTOS.Data.Editor"}}</button>
+      <button type="button" class="agentos-cat {{#if composePreview}}active{{/if}}" role="tab" aria-selected="{{#if composePreview}}true{{else}}false{{/if}}" data-action="shard-compose-mode" data-mode="preview"><i class="fas fa-eye"></i> {{localize "AGENTOS.Data.Preview"}}</button>
+    </div>
+    <div class="agentos-shard-stage">
+      <textarea name="shard-body" rows="8" {{#if composePreview}}hidden{{/if}} placeholder="{{localize "AGENTOS.Data.BodyPlaceholder"}}">{{compose.body}}</textarea>
+      <div class="agentos-shard-preview" {{#unless composePreview}}hidden{{/unless}}></div>
+    </div>
     <div class="agentos-modal-actions">
       <button type="button" class="agentos-btn" data-action="shard-compose-cancel">{{localize "AGENTOS.Common.Cancel"}}</button>
       <button type="button" class="agentos-btn primary" data-action="shard-create">{{#if isEditing}}{{localize "AGENTOS.Common.Save"}}{{else}}{{localize "AGENTOS.Common.Create"}}{{/if}}</button>

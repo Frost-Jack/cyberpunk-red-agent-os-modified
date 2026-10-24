@@ -244,15 +244,14 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
-  html.on("click", "[data-action='contact-save']", (ev) => {
+  html.on("click", "[data-action='contact-save']", async (ev) => {
     ev.preventDefault();
     const draft = readDraft(html, st);
     if (!draft.name.trim()) return AgentAudio.play("error");
-    st.editing = null;
-    st.picking = false;
     AgentAudio.play("tap");
-    app.render(false);                      // optimistic: close the form now
-    app.mutate("contact.save", { contact: draft });
+    st.editing = draft;
+    const result = await app.mutate("contact.save", { contact: draft });
+    if (result) { st.editing = null; st.picking = false; if (app.state === st) app.render(false); }
   });
 
   html.on("click", "[data-action='contact-delete']", async (ev) => {
@@ -330,14 +329,12 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
-  html.on("click", "[data-action='contact-share']", (ev) => {
+  html.on("click", "[data-action='contact-share']", async (ev) => {
     ev.preventDefault();
     const contactId = st.sharing;
     const userIds = st.shareTo || [];   // exact set — empty means "shared with nobody"
-    st.sharing = null;
-    st.shareTo = [];
     AgentAudio.play("tap");
-    app.render(false);
-    app.mutate("contact.share", { contactId, userIds });
+    const result = await app.mutate("contact.share", { contactId, userIds });
+    if (result) { st.sharing = null; st.shareTo = []; if (app.state === st) app.render(false); }
   });
 }

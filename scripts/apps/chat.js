@@ -7,6 +7,28 @@ import { MODULE_ID, loc } from "../constants.js";
 import * as Data from "../data.js";
 import { AgentAudio } from "../audio.js";
 import { triggerCall } from "../vfx.js";
+import { ShardReader } from "../shard-reader.js";
+
+// Private drafts live only in this browser session, never in shared world data.
+const drafts = new Map();
+const draftKey = id => `${game.user.id}:${id}`;
+function rememberDraft(st) {
+  if (!st.chatId) return;
+  if (st.draft || st.attachment || st.reply || st.sending || st.uploading || st.pendingUpload) drafts.set(draftKey(st.chatId), st);
+  else drafts.delete(draftKey(st.chatId));
+}
+
+async function uploadAttachment(app, st, file, kind) {
+  if (st.uploading) return;
+  st.pendingUpload = { file, kind }; st.uploading = true;
+  rememberDraft(st); app.render(false);
+  const path = await app.uploadFile(file);
+  const current = drafts.get(draftKey(st.chatId)) || st;
+  current.uploading = false;
+  if (path) { if (!current.attachment) current.attachment = { kind, src: path }; current.pendingUpload = null; }
+  rememberDraft(current);
+  if (app.state === current) app.render(false);
+}
 
 function myKey() {
   return Data.participantKeyForUser(game.user.id);
@@ -75,19 +97,40 @@ export async function getData(app) {
    * updateSetting re-render will open the thread automatically. */
   const openChat = st.chatId ? Data.getChat(st.chatId) : null;
   if (openChat) {
+    if (st.draftChat !== st.chatId) {
+      const saved = drafts.get(draftKey(st.chatId));
+      if (saved) Object.assign(st, { draft: saved.draft, attachment: saved.attachment, sending: saved.sending, uploading: saved.uploading, voiceKey: saved.voiceKey, reply: saved.reply, pendingUpload: saved.pendingUpload });
+      st.draftChat = st.chatId;
+      rememberDraft(st);
+    }
+    const oldInput = app.element?.find("[name='chat-input']")[0];
+    if (oldInput) {
+      const active = globalThis.document?.activeElement;
+      if (active === oldInput) st.composeFocus = true;
+      else if (active?.matches?.("input,textarea,select") || active?.isContentEditable) st.composeFocus = false;
+      st.composeSelection = [oldInput.selectionStart, oldInput.selectionEnd];
+    }
     const chat = openChat;
     const disp = chatDisplay(chat);
     const mine = myKey();
     const isMember = chat.participants.some(p => p.key === mine);
+    const identities = new Map(chat.participants.map(p => [p.key, Data.participantIdentity(chat, p.key)]));
+    const shards = Data.shardsForUser(game.user.id, isGM), contacts = Data.contactsForUser(game.user.id, isGM);
+    const imported = new Set([...shards.filter(s => s.recipients?.[game.user.id]), ...contacts.filter(c => c.ownerUserId === game.user.id)].map(v => v.importMessage));
     const messages = Data.getMessages(st.chatId).map(m => {
-      const live = chat.participants.some(p => p.key === m.senderKey)
-        ? Data.participantIdentity(chat, m.senderKey)
-        : { name: m.senderName, img: m.senderImg };
+      const live = identities.get(m.senderKey) || { name: m.senderName, img: m.senderImg };
+      const media = ["image", "audio", "video"].includes(m.attachment?.kind);
+      const attachment = media ? (Data.safeMediaPath(m.attachment.src) ? { ...m.attachment, src: Data.safeMediaPath(m.attachment.src) } : null) : m.attachment;
       return {
         ...m,
+        attachment,
         name: live.name,
         img: live.img,
-        isSelf: !isGM && m.senderKey === mine
+        isSelf: !isGM && m.senderKey === mine,
+        reactionsView: ["👍", "❤", "⚠"].map(reaction => ({ reaction, count: m.reactions?.[reaction]?.length || 0, active: m.reactions?.[reaction]?.includes(game.user.id) || false })),
+        imported: imported.has(`${st.chatId}:${m.id}`),
+        card: ["shard", "contact", "coordinates", "item"].includes(m.attachment?.kind),
+        importable: ["shard", "contact"].includes(m.attachment?.kind)
       };
     });
     // Opening a chat marks it read — for members AND the observing GM. An
@@ -102,7 +145,7 @@ export async function getData(app) {
     }
 
     const npcParticipants = chat.participants.filter(p => p.kind === "garden")
-      .map(p => ({ key: p.key, ...Data.participantIdentity(chat, p.key) }));
+      .map(p => ({ key: p.key, ...identities.get(p.key) }));
     if (isGM && (!st.voiceKey || !npcParticipants.some(p => p.key === st.voiceKey)) && npcParticipants.length) {
       st.voiceKey = npcParticipants[0].key;
     }
@@ -111,7 +154,7 @@ export async function getData(app) {
     const participants = chat.participants.map(p => ({
       key: p.key,
       kind: p.kind,
-      ...Data.participantIdentity(chat, p.key),
+      ...identities.get(p.key),
       sub: p.kind === "player" ? (game.users.get(p.userId)?.name || "?") : "Garden"
     }));
 
@@ -122,6 +165,9 @@ export async function getData(app) {
 
     return {
       thread: true,
+      pinned: messages.filter(m => m.pinned).map(m => ({ ...m, preview: (m.text || m.attachment?.title || "").slice(0, 160) })),
+      reply: st.reply || null,
+      muted: !!game.user.getFlag(MODULE_ID, "mutedChats")?.[st.chatId],
       isGM,
       chat,
       chatName: disp.name,
@@ -142,7 +188,7 @@ export async function getData(app) {
         img: chat.img || ""
       } : null,
       editMsg: (isGM && st.editMsgId) ? (() => {
-        const m = Data.getMessages(st.chatId).find(x => x.id === st.editMsgId);
+        const m = messages.find(x => x.id === st.editMsgId);
         if (!m) return null;
         // build a YYYY-MM-DDTHH:mm string in local time for <input datetime-local>
         const d = new Date(m.ts);
@@ -151,7 +197,13 @@ export async function getData(app) {
         return { text: m.text || "", tsLocal: local };
       })() : null,
       attachment: st.attachment || null,
+      attachmentLabel: st.attachment?.src || st.attachment?.title || (st.attachment?.kind === "shard" ? shards.find(s => s.id === st.attachment.id)?.title || loc("AGENTOS.Notifications.Category.shard") : st.attachment?.kind === "contact" ? contacts.find(c => c.id === st.attachment.id)?.name || loc("AGENTOS.Notifications.Category.contactShared") : st.attachment?.kind === "item" ? loc("AGENTOS.App.store") : st.attachment?.kind === "coordinates" ? `${st.attachment.x}, ${st.attachment.y}` : ""),
       uploading: !!st.uploading,
+      uploadFailed: !!st.pendingUpload && !st.uploading,
+      sending: !!st.sending,
+      messageQuery: st.messageQuery || "",
+      searchOpen: !!st.searchOpen,
+      showLatest: st.followTail === false,
       draft: st.draft || ""
     };
   }
@@ -162,13 +214,13 @@ export async function getData(app) {
   const rawChats = isGM ? Data.allChats() : Data.chatsForUser(uid);
   const chats = rawChats.map(c => {
     const disp = chatDisplay(c);
-    const msgs = Data.getMessages(c.id);
-    const last = msgs[msgs.length - 1];
+    const last = Data.getLastMessage(c.id);
     return {
       id: c.id,
       name: disp.name,
       img: disp.img,
       lastText: last ? (last.text || "📎") : "",
+      draftText: drafts.get(draftKey(c.id))?.draft || "",
       lastTs: last?.ts || c.ts,
       unread: unreads[c.id] || 0,
       count: c.participants.length,
@@ -178,26 +230,30 @@ export async function getData(app) {
 
   /* Group chats into the viewer's folders; unfiled chats sit at the root.
    * A folder carries the sum of unread counts of the chats inside it. */
+  const query = (st.chatQuery || "").trim().toLocaleLowerCase();
+  const shown = query ? chats.filter(c => `${c.name} ${c.lastText}`.toLocaleLowerCase().includes(query)) : chats;
   const myFolders = (Data.getWorld("chatFolders") || []).filter(f => f.ownerUserId === uid);
   const collapsed = st.collapsed || {};
   const folders = myFolders
     .sort((a, b) => a.name.localeCompare(b.name))
     .map(f => {
-      const items = chats.filter(c => c.folderId === f.id);
+      const items = shown.filter(c => c.folderId === f.id);
       return {
         id: f.id, name: f.name,
-        collapsed: !!collapsed[f.id],
+        collapsed: query ? false : !!collapsed[f.id],
         chats: items,
         count: items.length,
-        unread: items.reduce((n, c) => n + c.unread, 0)
+        unread: chats.filter(c => c.folderId === f.id).reduce((n, c) => n + c.unread, 0)
       };
-    });
-  const rootChats = chats.filter(c => !c.folderId || !myFolders.some(f => f.id === c.folderId));
+    }).filter(f => !query || f.count > 0);
+  const rootChats = shown.filter(c => !c.folderId || !myFolders.some(f => f.id === c.folderId));
 
   return {
     thread: false,
     isGM,
     hasChats: chats.length > 0,
+    chatQuery: st.chatQuery || "",
+    noMatches: !!query && shown.length === 0,
     folders,
     rootChats,
     creating: !!st.creating,
@@ -216,6 +272,68 @@ export async function getData(app) {
 export function activateListeners(app, html) {
   const st = app.state;
   const isGM = game.user.isGM;
+  html.on("click", "[data-action='chat-upload-retry']", () => {
+    if (st.pendingUpload) uploadAttachment(app, st, st.pendingUpload.file, st.pendingUpload.kind);
+  });
+  const messageFor = ev => Data.getMessages(st.chatId).find(m => m.id === ev.currentTarget.dataset.msgId);
+  html.on("click", "[data-action='msg-reply']", ev => {
+    const msg = messageFor(ev);
+    if (!msg) return;
+    st.reply = { id: msg.id, text: msg.text || msg.attachment?.title || "", name: Data.participantIdentity(Data.getChat(st.chatId), msg.senderKey).name };
+    st.composeFocus = true; rememberDraft(st); app.render(false);
+  });
+  html.on("click", "[data-action='reply-clear']", () => { st.reply = null; app.render(false); });
+  html.on("click", "[data-action='msg-jump']", ev => {
+    const row = [...html.find(".agentos-msg-row")].find(e => e.dataset.msgId === ev.currentTarget.dataset.msgId);
+    if (row) { st.followTail = false; row.scrollIntoView({ block: "center" }); row.classList.add("search-match"); }
+    else ui.notifications.info(loc("AGENTOS.Chat.OriginalMissing"));
+  });
+  html.on("click", "[data-action='msg-react']", ev => {
+    const msg = messageFor(ev), reaction = ev.currentTarget.dataset.reaction;
+    if (msg) app.mutate("msg.react", { chatId: st.chatId, msgId: msg.id, reaction, active: !msg.reactions?.[reaction]?.includes(game.user.id) });
+  });
+  html.on("click", "[data-action='msg-pin']", ev => {
+    const msg = messageFor(ev);
+    if (msg && isGM) app.mutate("msg.pin", { chatId: st.chatId, msgId: msg.id, pinned: !msg.pinned });
+  });
+  html.on("click", "[data-action='chat-mute']", async () => {
+    const muted = game.user.getFlag(MODULE_ID, "mutedChats")?.[st.chatId];
+    await game.user.setFlag(MODULE_ID, `mutedChats.${st.chatId}`, !muted); app.render(false);
+  });
+  html.on("click", "[data-action='card-import']", async ev => {
+    await app.mutate("msg.importAttachment", { chatId: st.chatId, msgId: ev.currentTarget.dataset.msgId }); app.render(false);
+  });
+  html.on("click", "[data-action='card-open']", async ev => {
+    const attachment = messageFor(ev)?.attachment;
+    if (!attachment) return;
+    if (attachment.kind === "coordinates") { app.openSideApp?.("map", { focusX: attachment.x, focusY: attachment.y }); return; }
+    if (attachment.kind === "item") {
+      const doc = await fromUuid(attachment.uuid).catch(() => null);
+      if (!doc || (!isGM && !doc.testUserPermission?.(game.user, "OBSERVER"))) return ui.notifications.warn(loc("AGENTOS.Chat.OriginalMissing"));
+      doc.sheet.render(true); return;
+    }
+    const snapshot = attachment.snapshot;
+    if (!snapshot) return;
+    if (attachment.kind === "shard") { new ShardReader(snapshot).render(true); return; }
+    const content = document.createElement("div");
+    const text = document.createElement("pre"); text.style.whiteSpace = "pre-wrap"; text.textContent = [snapshot.name, snapshot.note, snapshot.address].filter(Boolean).join("\n"); content.append(text);
+    const dialog = new Dialog({ title: attachment.title, content: "<div class='agentos-card-preview'></div>", buttons: { close: { label: loc("AGENTOS.Common.Close") } }, render: h => h.find(".agentos-card-preview")[0].append(content) });
+    dialog.render(true);
+  });
+
+  html.on("input", "[name='chat-search']", foundry.utils.debounce(ev => {
+    if (app.state !== st) return;
+    st.chatQuery = ev.target.value;
+    st.searchFocus = true;
+    st.searchCaret = ev.target.selectionStart;
+    app.render(false);
+  }, 180));
+  const chatSearch = html.find("[name='chat-search']")[0];
+  if (chatSearch && st.searchFocus && !st.creating) {
+    chatSearch.focus({ preventScroll: true });
+    chatSearch.setSelectionRange(st.searchCaret ?? chatSearch.value.length, st.searchCaret ?? chatSearch.value.length);
+  }
+  html.on("blur", "[name='chat-search']", ev => { if (ev.target.isConnected) st.searchFocus = false; });
 
   /* ---- list ---- */
   html.on("click", "[data-action='chat-open']", (ev) => {
@@ -332,12 +450,10 @@ export function activateListeners(app, html) {
     const name = String(html.find("[name='new-chat-name']").val() || "").trim();
     const keys = st.selectedKeys || [];
     if (!keys.length) return AgentAudio.play("error");
-    st.creating = false;
-    st.selectedKeys = [];
-    st.newChatName = "";
-    app.render(false);                       // optimistic: close the modal now
+    st.newChatName = name;
     const result = await app.mutate("chat.create", { name, participantKeys: keys });
     if (typeof result === "string") {
+      st.creating = false; st.selectedKeys = []; st.newChatName = "";
       app.openChatThread(result);
       app.render(false);
     }
@@ -357,19 +473,31 @@ export function activateListeners(app, html) {
     app.render(false);
   });
 
-  const doSend = () => {
+  const doSend = async () => {
+    if (st.sending || st.uploading) return;
     const ta = html.find("[name='chat-input']");
     const text = String(ta.val() || "").trim();
     const attachment = st.attachment || null;
     if (!text && !attachment) return;
     const senderKey = isGM ? st.voiceKey : myKey();
     if (!senderKey) return AgentAudio.play("error");
-    st.attachment = null;
-    st.draft = "";
-    ta.val("");
+    const draft = String(ta.val() || "");
+    st.draft = draft;
+    st.sending = true;
+    rememberDraft(st);
     AgentAudio.play("tap");
-    app.render(false);                       // clear the attachment chip now
-    app.mutate("msg.send", { chatId: st.chatId, senderKey, text, attachment });
+    app.render(false);
+    const result = await app.mutate("msg.send", { chatId: st.chatId, senderKey, text, attachment, replyTo: st.reply?.id || null });
+    const current = drafts.get(draftKey(st.chatId)) || st;
+    current.sending = false;
+    if (result) {
+      current.reply = null;
+      if (current.draft === draft) current.draft = "";
+      if (current.attachment === attachment) current.attachment = null;
+      current.followTail = true;
+    } else ui.notifications.warn(loc("AGENTOS.Chat.SendUnconfirmed"));
+    rememberDraft(current);
+    if (app.state === current) app.render(false);
   };
 
   html.on("click", "[data-action='chat-send']", doSend);
@@ -382,6 +510,8 @@ export function activateListeners(app, html) {
   html.on("input", "[name='chat-input']", (ev) => {
     st.draft = ev.currentTarget.value;
     st.composeFocus = true;
+    st.composeSelection = [ev.currentTarget.selectionStart, ev.currentTarget.selectionEnd];
+    rememberDraft(st);
   });
 
   /* Paste an image straight from the clipboard (Ctrl+V) into the input. */
@@ -397,20 +527,14 @@ export function activateListeners(app, html) {
     const file = new File([blob], `clipboard-${Date.now()}.${ext}`, { type: blob.type });
     st.draft = String(html.find("[name='chat-input']").val() || "");
     st.composeFocus = true;
-    st.uploading = true;
-    app.render(false);
-    const path = await app.uploadFile(file);
-    st.uploading = false;
-    if (path) st.attachment = { kind: "image", src: path };
-    app.render(false);
+    await uploadAttachment(app, st, file, "image");
   });
 
-  html.find("[name='chat-input']").on("blur", () => { st.composeFocus = false; });
   if (st.composeFocus) {
     const ta = html.find("[name='chat-input']")[0];
     if (ta) {
       ta.focus();
-      try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { /* noop */ }
+      try { ta.setSelectionRange(...(st.composeSelection || [ta.value.length, ta.value.length])); } catch (e) { /* noop */ }
     }
   }
 
@@ -419,12 +543,15 @@ export function activateListeners(app, html) {
     const fpType = kind === "image" ? "image" : (kind === "audio" ? "audio" : "video");
     const path = await app.pickFile(fpType);
     if (!path) return;
-    st.attachment = { kind, src: path };
-    app.render(false);
+    const current = drafts.get(draftKey(st.chatId)) || st;
+    current.attachment = { kind, src: path };
+    rememberDraft(current);
+    if (app.state === current) app.render(false);
   });
 
   html.on("click", "[data-action='chat-attach-clear']", () => {
     st.attachment = null;
+    rememberDraft(st);
     app.render(false);
   });
 
@@ -433,7 +560,7 @@ export function activateListeners(app, html) {
   const threadEl = html.find(".agentos-thread")[0];
   if (threadEl) {
     threadEl.addEventListener("dragover", (ev) => {
-      if (ev.dataTransfer?.types?.includes("Files")) {
+      if (ev.dataTransfer?.types?.includes("Files") || ev.dataTransfer?.types?.includes("text/plain")) {
         ev.preventDefault();
         threadEl.classList.add("drop-over");
       }
@@ -444,19 +571,24 @@ export function activateListeners(app, html) {
     threadEl.addEventListener("drop", async (ev) => {
       threadEl.classList.remove("drop-over");
       const file = ev.dataTransfer?.files?.[0];
-      if (!file) return;
+      if (!file) {
+        ev.preventDefault(); ev.stopPropagation();
+        try {
+          const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
+          const kind = data.type === "Item" ? "item" : data.kind || (data.shard ? "shard" : data.contact ? "contact" : "");
+          if (!["shard", "contact", "coordinates", "item"].includes(kind)) return;
+          st.attachment = { kind, id: data.id || data.shard || data.contact, uuid: data.uuid, x: data.x, y: data.y };
+          rememberDraft(st); app.render(false);
+        } catch { AgentAudio.play("error"); }
+        return;
+      }
       ev.preventDefault();
       ev.stopPropagation();
       const kind = file.type.startsWith("audio/") ? "audio"
         : file.type.startsWith("video/") ? "video"
         : file.type.startsWith("image/") ? "image" : null;
       if (!kind) return AgentAudio.play("error");
-      st.uploading = true;
-      app.render(false);
-      const path = await app.uploadFile(file);
-      st.uploading = false;
-      if (path) st.attachment = { kind, src: path };
-      app.render(false);
+      await uploadAttachment(app, st, file, kind);
     });
   }
 
@@ -476,7 +608,7 @@ export function activateListeners(app, html) {
     const chat = Data.getChat(st.chatId);
     if (!chat) return;
     const targets = chat.participants.filter(p => p.kind === "player" && p.actorUuid);
-    if (targets.length) triggerCall(targets.map(p => p.actorUuid));
+    if (targets.length) triggerCall(targets.map(p => p.actorUuid), st.chatId);
     AgentAudio.play("tap");
     // Announce the call in the Foundry chat log. Names are resolved through
     // participantIdentity, so the GM's per-chat renames win over real names.
@@ -643,7 +775,54 @@ export function activateListeners(app, html) {
     await app.mutate("chat.rename", { chatId: st.chatId, name, img });
   });
 
-  /* keep the thread scrolled to the newest message */
   const scroller = html.find(".agentos-chat-scroll")[0];
-  if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  if (scroller) {
+    const latest = html.find("[data-action='chat-latest']")[0];
+    const tail = () => { st.followTail = true; scroller.scrollTop = scroller.scrollHeight; if (latest) latest.hidden = true; };
+    if (st.followTail === false) scroller.scrollTop = st.threadScroll || 0;
+    else tail();
+    scroller.addEventListener("scroll", () => {
+      st.threadScroll = scroller.scrollTop;
+      st.followTail = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 48;
+      if (latest) latest.hidden = st.followTail;
+    });
+    for (const event of ["load", "loadedmetadata"]) scroller.addEventListener(event, ev => {
+      if (st.followTail !== false && ev.target.matches(".agentos-attach-img, .agentos-attach-audio, .agentos-attach-video")) tail();
+    }, true);
+    html.on("click", "[data-action='chat-latest']", tail);
+
+    let matches = [], match = st.messageMatch || 0, searchRows = null;
+    const search = html.find("[name='message-search']")[0];
+    const counter = html.find(".agentos-chat-match-count")[0];
+    const find = (jump = true) => {
+      const query = (search?.value || "").trim().toLocaleLowerCase();
+      st.messageQuery = search?.value || "";
+      for (const row of matches) row.classList.remove("search-match");
+      matches = [];
+      if (query) {
+        searchRows ??= [...scroller.querySelectorAll(".agentos-msg-row")].map(row => ({ row, text: row.textContent.toLocaleLowerCase() }));
+        for (const { row, text } of searchRows) if (text.includes(query)) {
+          row.classList.add("search-match");
+          matches.push(row);
+        }
+      }
+      match = Math.min(match, Math.max(0, matches.length - 1));
+      st.messageMatch = match;
+      if (counter) counter.textContent = matches.length ? `${match + 1}/${matches.length}` : "0/0";
+      if (jump && matches[match]) matches[match].scrollIntoView({ block: "center" });
+    };
+    html.on("click", "[data-action='chat-search-toggle']", () => {
+      st.searchOpen = !st.searchOpen;
+      html.find(".agentos-message-search")[0].hidden = !st.searchOpen;
+      if (st.searchOpen) search?.focus();
+      else { search.value = ""; find(false); }
+    });
+    html.on("input", "[name='message-search']", () => { match = 0; find(); });
+    html.on("click", "[data-action='chat-search-step']", ev => {
+      if (!matches.length) return;
+      match = (match + Number(ev.currentTarget.dataset.step) + matches.length) % matches.length;
+      find();
+    });
+    find(false);
+  }
 }

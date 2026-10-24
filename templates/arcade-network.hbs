@@ -1,0 +1,57 @@
+<div class="agentos-net-arcade">
+  {{#unless onlineGM}}<p class="agentos-empty">{{localize "AGENTOS.Notify.NoGm"}}</p>{{/unless}}
+  {{#if room}}
+  <div class="agentos-toolbar">
+    <strong class="agentos-arcade-title">{{room.title}}</strong>
+    <span class="agentos-spacer"></span>
+    <button type="button" class="agentos-btn" data-action="net-leave"><i class="fas fa-right-from-bracket"></i> {{localize "AGENTOS.Multiplayer.Leave"}}</button>
+  </div>
+  <div class="agentos-net-players">
+    {{#each room.players}}<span style="--player-color: {{this.color}};" class="{{#if this.mine}}mine{{/if}}"><i class="fas {{#if this.ready}}fa-check{{else}}fa-user{{/if}}"></i> {{this.name}}</span>{{/each}}
+  </div>
+  {{#if room.finished}}<div class="agentos-net-result">{{room.result}}</div>{{/if}}
+  {{#if room.waiting}}
+  <div class="agentos-net-room-actions">
+    <button type="button" class="agentos-btn {{#if room.mineReady}}primary{{/if}}" data-action="net-ready">{{#if room.mineReady}}{{localize "AGENTOS.Multiplayer.Ready"}}{{else}}{{localize "AGENTOS.Multiplayer.NotReady"}}{{/if}}</button>
+    {{#if room.ownerIsMe}}<button type="button" class="agentos-btn primary" data-action="net-start" {{#unless room.canStart}}disabled{{/unless}}>{{localize "AGENTOS.Multiplayer.Start"}}</button>{{/if}}
+  </div>
+  {{#if inviteUsers.length}}
+  <div class="agentos-net-room-actions">
+    <select name="net-invite-user" class="agentos-select">{{#each inviteUsers}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}</select>
+    <button type="button" class="agentos-btn" data-action="net-invite"><i class="fas fa-user-plus"></i> {{localize "AGENTOS.Multiplayer.Invite"}}</button>
+  </div>
+  {{/if}}
+  {{else}}
+  <button type="button" class="agentos-btn" data-action="net-pause">{{#if room.pauseRequested}}{{localize "AGENTOS.Multiplayer.Resume"}}{{else}}{{localize "AGENTOS.Multiplayer.Pause"}}{{/if}}</button>
+  <canvas class="agentos-net-canvas" width="330" height="{{#if (agEq room.kind "fleet")}}260{{else}}330{{/if}}" aria-label="{{room.title}}"></canvas>
+  {{#unless room.turnBased}}
+  <div class="agentos-net-controls">
+    {{#if (agEq room.kind "bomber")}}<button type="button" data-net-move="up" aria-label="{{localize "AGENTOS.Arcade.Up"}}"><i class="fas fa-chevron-up"></i></button>{{/if}}
+    <button type="button" data-net-move="left" aria-label="{{localize "AGENTOS.Arcade.Left"}}"><i class="fas fa-chevron-left"></i></button>
+    <button type="button" data-net-move="down" aria-label="{{localize "AGENTOS.Arcade.Down"}}"><i class="fas fa-chevron-down"></i></button>
+    <button type="button" data-net-move="right" aria-label="{{localize "AGENTOS.Arcade.Right"}}"><i class="fas fa-chevron-right"></i></button>
+    <button type="button" data-net-move="action" aria-label="{{localize "AGENTOS.Multiplayer.Action"}}"><i class="fas {{#if (agEq room.kind "bomber")}}fa-bomb{{else}}fa-rotate-right{{/if}}"></i></button>
+    {{#if (agEq room.kind "tetris")}}<button type="button" data-net-move="drop" aria-label="{{localize "AGENTOS.Multiplayer.Drop"}}"><i class="fas fa-angles-down"></i></button>{{/if}}
+  </div>
+  {{/unless}}
+  <p class="agentos-hint">{{#if (agEq room.kind "bomber")}}{{localize "AGENTOS.Multiplayer.BomberHint"}}{{/if}}{{#if (agEq room.kind "tetris")}}{{localize "AGENTOS.Multiplayer.StackHint"}}{{/if}}{{#if (agEq room.kind "connect4")}}{{localize "AGENTOS.Multiplayer.ConnectHint"}}{{/if}}{{#if (agEq room.kind "reversi")}}{{localize "AGENTOS.Multiplayer.ReversiHint"}}{{/if}} {{localize "AGENTOS.Multiplayer.DisconnectHint"}}</p>
+  {{/if}}
+  {{else}}
+  <div class="agentos-toolbar"><strong>{{localize "AGENTOS.Multiplayer.Rooms"}}</strong><span class="agentos-spacer"></span><button type="button" class="agentos-icon-btn" data-action="net-refresh" title="{{localize "AGENTOS.Multiplayer.Refresh"}}"><i class="fas fa-rotate-right"></i></button></div>
+  {{#each invites}}
+  <button type="button" class="agentos-net-invite" data-action="net-join" data-room-id="{{this.roomId}}"><i class="fas fa-envelope"></i> {{this.name}} · {{this.title}}</button>
+  {{/each}}
+  <div class="agentos-net-create">
+    {{#each games}}<button type="button" class="agentos-btn" data-action="net-create" data-kind="{{this.id}}" {{#unless ../onlineGM}}disabled{{/unless}}><i class="fas {{this.icon}}"></i> {{this.title}} <small>2{{#if (agEq this.max 4)}}–4{{/if}}</small></button>{{/each}}
+  </div>
+  <div class="agentos-list">
+    {{#each rooms}}
+    <div class="agentos-list-row agentos-net-room">
+      <div class="agentos-list-main"><div class="agentos-list-title">{{this.title}}</div><small>{{this.ownerName}} · {{this.count}}/{{this.max}}</small></div>
+      <button type="button" class="agentos-btn" data-action="net-join" data-room-id="{{this.id}}" {{#unless this.joinable}}disabled{{/unless}}>{{localize "AGENTOS.Multiplayer.Join"}}</button>
+    </div>
+    {{else}}<p class="agentos-empty">{{localize "AGENTOS.Multiplayer.Empty"}}</p>{{/each}}
+  </div>
+  {{/if}}
+  <div class="agentos-net-status" role="status"></div>
+</div>

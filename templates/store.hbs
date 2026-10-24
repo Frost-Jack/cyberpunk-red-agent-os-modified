@@ -18,26 +18,45 @@
     <span class="agentos-money"><i class="fas fa-wallet"></i> {{agNum balance}} €$</span>
     {{/if}}
     <span class="agentos-spacer"></span>
-    <button type="button" class="agentos-btn {{#if cartCount}}primary{{/if}}" data-action="store-cart-toggle">
+    <button type="button" class="agentos-btn agentos-store-cart-toggle {{#if cartCount}}primary{{/if}}" data-action="store-cart-toggle">
       <i class="fas fa-cart-shopping"></i> {{cartCount}}
     </button>
   </div>
 
+  <div class="agentos-store-layout">
+  <div class="agentos-store-catalog">
+  <div class="agentos-toolbar">
+    <button type="button" class="agentos-cat {{#unless byType}}active{{/unless}}" data-action="store-browse-mode" data-mode="sources">{{localize "AGENTOS.Store.BySource"}}</button>
+    <button type="button" class="agentos-cat {{#if byType}}active{{/if}}" data-action="store-browse-mode" data-mode="types">{{localize "AGENTOS.Store.ByType"}}</button>
+  </div>
   <input type="text" name="store-search" class="agentos-search" value="{{search}}" placeholder="{{localize "AGENTOS.Store.Search"}}">
 
   <div class="agentos-store-cats-row">
     <button type="button" class="agentos-icon-btn cats-arrow" data-action="store-cats-scroll" data-dir="-1"><i class="fas fa-chevron-left"></i></button>
     <nav class="agentos-store-cats">
       {{#each categories}}
-      <button type="button" class="agentos-cat {{#if this.active}}active{{/if}}" data-action="store-cat" data-cat="{{this.id}}">{{this.id}}</button>
+      <button type="button" class="agentos-cat {{#if this.active}}active{{/if}}" data-action="store-cat" data-cat="{{this.id}}">{{this.label}}</button>
       {{/each}}
     </nav>
     <button type="button" class="agentos-icon-btn cats-arrow" data-action="store-cats-scroll" data-dir="1"><i class="fas fa-chevron-right"></i></button>
   </div>
 
-  {{#if cartOpen}}
-  <div class="agentos-cart">
-    <h3 class="agentos-section-title">{{localize "AGENTOS.Store.Cart"}}</h3>
+  <div class="agentos-store-grid">
+    {{#each items}}
+    <div class="agentos-store-item">
+      <img src="{{this.img}}" alt="" data-action="store-view-item" data-uuid="{{this.uuid}}">
+      <div class="agentos-store-item-name" data-action="store-view-item" data-uuid="{{this.uuid}}" title="{{this.name}}">{{this.name}}</div>
+      <button type="button" class="agentos-icon-btn" draggable="true" data-card-drag="true" data-action="share-object" data-object-kind="item" data-uuid="{{uuid}}" title="{{localize "AGENTOS.Navigation.Share"}}"><i class="fas fa-share"></i></button>
+      <div class="agentos-store-item-foot">
+        <span class="agentos-money">{{agNum this.shownPrice}} €$</span>
+        <button type="button" class="agentos-icon-btn" data-action="store-add" data-uuid="{{this.uuid}}" title="{{localize "AGENTOS.Store.AddToCart"}}"><i class="fas fa-cart-plus"></i></button>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+  </div>
+  <aside class="agentos-cart {{#if cartOpen}}open{{/if}}" aria-label="{{localize "AGENTOS.Store.Cart"}}">
+    <h3 class="agentos-section-title">{{localize "AGENTOS.Store.Cart"}} · {{cartCount}}</h3>
     {{#if cart.length}}
     <ul class="agentos-list">
       {{#each cart}}
@@ -62,22 +81,17 @@
     {{else}}
     <p class="agentos-empty">{{localize "AGENTOS.Store.CartEmpty"}}</p>
     {{/if}}
+  </aside>
   </div>
-  {{/if}}
-
-  <div class="agentos-store-grid">
-    {{#each items}}
-    <div class="agentos-store-item">
-      <img src="{{this.img}}" alt="" data-action="store-view-item" data-uuid="{{this.uuid}}">
-      <div class="agentos-store-item-name" data-action="store-view-item" data-uuid="{{this.uuid}}" title="{{this.name}}">{{this.name}}</div>
-      <div class="agentos-store-item-foot">
-        <span class="agentos-money">{{agNum this.shownPrice}} €$</span>
-        <button type="button" class="agentos-icon-btn" data-action="store-add" data-uuid="{{this.uuid}}" title="{{localize "AGENTOS.Store.AddToCart"}}">
-          <i class="fas fa-cart-plus"></i>
-        </button>
-      </div>
-    </div>
-    {{/each}}
+  <div class="agentos-store-cart-summary">
+    {{#unless cartOpen}}
+    {{#if cart.length}}
+    <ul class="agentos-mini-cart">
+      {{#each cart}}<li><span>{{this.name}}</span><small>{{agNum this.shownPrice}} €$</small></li>{{/each}}
+    </ul>
+    {{/if}}
+    {{/unless}}
+    <button type="button" class="agentos-btn block" data-action="store-cart-toggle"><i class="fas fa-cart-shopping"></i> {{localize "AGENTOS.Store.Cart"}}: {{cartCount}} · {{agNum total}} €$</button>
   </div>
 </div>
 
